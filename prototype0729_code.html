@@ -429,7 +429,7 @@ table.list th{font-size:11px;font-weight:400;color:var(--text-muted);text-align:
   border-bottom:1px solid var(--cell-border);white-space:nowrap}
 table.list td{padding:10px 9px;border-bottom:1px solid var(--border);vertical-align:middle;
   color:var(--text-strong);white-space:nowrap}
-table.list td.wrap{white-space:normal;min-width:200px}
+table.list td.nm{white-space:normal;min-width:200px}
 table.list tr.rw:hover td{background:#FCFCFD}
 table.list .r{text-align:right;font-family:Roboto;font-variant-numeric:tabular-nums}
 .st.needfix{background:var(--waiting-bg);color:var(--waiting-text);border:1px solid var(--waiting-border)}
@@ -1138,7 +1138,7 @@ function cardList(){
       <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
         <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th><th>사유</th></tr>
       ${rows.map(r=>`<tr class="rw">
-        <td class="wrap">${esc(r.camp)}</td>
+        <td class="nm">${esc(r.camp)}</td>
         <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
         <td>${fmtD(r.date)} ${r.hour}:00</td>
         <td>${r.ch.join('·')}</td><td>${esc(r.gnb)}</td>
@@ -1534,7 +1534,7 @@ function renderManage(){
         <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널 / GNB</th>
           <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th></th></tr>
         ${wait.map(r=>`<tr class="rw">
-          <td class="wrap">${esc(r.camp)}</td>
+          <td class="nm">${esc(r.camp)}</td>
           <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
           <td>${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`}</td>
           <td>${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}</td>
