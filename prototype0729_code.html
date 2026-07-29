@@ -386,15 +386,15 @@ table.list td.rsn .rn{color:var(--waiting-text)}
 .kpi.clickable:hover{border-color:var(--sk-orange-text)}
 .kpi.clickable .s{color:var(--sk-orange-text)}
 .kpi.open{outline:2px solid var(--sk-orange);outline-offset:-1px}
-.adjcard .adjitem{border:1px solid var(--border);border-radius:6px;padding:13px 15px;margin-bottom:11px}
-.adjcard .adjitem:last-child{margin-bottom:0}
+.adjitem{border:1px solid var(--border);border-radius:6px;padding:13px 15px;margin-bottom:11px}
+.adjitem:last-child{margin-bottom:0}
 .adjhd{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px}
 .adjhd b{font-size:13.5px;font-weight:500;color:var(--text-strong)}
 .adjhd .adjwhen{margin-left:auto;font-size:11.5px;color:var(--text-muted);font-family:Roboto}
-.adjcard .cfgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 22px}
-.adjcard .cfg{display:flex;gap:10px;font-size:12px;min-width:0}
-.adjcard .cfg span{color:var(--text-muted);flex:0 0 82px}
-.adjcard .cfg b{font-weight:400;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cfgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 22px}
+.cfg{display:flex;gap:10px;font-size:12px;min-width:0}
+.cfg span{color:var(--text-muted);flex:0 0 82px}
+.cfg b{font-weight:400;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .adjwhy{margin-top:10px;font-size:12px;color:var(--waiting-text);background:var(--waiting-bg);
   border-radius:4px;padding:7px 10px;display:flex;gap:8px}
 .adjwhy span{font-weight:500;flex:0 0 auto}
@@ -433,6 +433,26 @@ table.list td.wrap{white-space:normal;min-width:200px}
 table.list tr.rw:hover td{background:#FCFCFD}
 table.list .r{text-align:right;font-family:Roboto;font-variant-numeric:tabular-nums}
 .st.needfix{background:var(--waiting-bg);color:var(--waiting-text);border:1px solid var(--waiting-border)}
+
+/* ── 담당자 화면 ── */
+.pill.xs{padding:5px 11px;font-size:11.5px;border-radius:999px}
+table.list td.act{white-space:nowrap;text-align:right}
+table.list td.act .pill{margin-left:5px}
+table.list th:last-child,table.list td.act{width:1%}
+.adjitem.on{border-color:var(--sk-orange)}
+.fixpanel{margin-top:12px;padding-top:12px;border-top:1px dashed var(--sk-orange)}
+.fixhd{font-size:12px;font-weight:500;color:var(--sk-orange-text);margin-bottom:10px}
+.fixrow{display:flex;gap:12px;align-items:flex-start;margin-bottom:11px}
+.fixrow > span{flex:0 0 56px;font-size:11.5px;color:var(--text-muted);padding-top:6px}
+.daychips{display:flex;gap:6px;flex-wrap:wrap}
+.hgrid.adm{grid-template-columns:repeat(11,minmax(0,1fr));flex:1}
+.capabd{display:flex;flex-direction:column;gap:11px}
+.capaday{display:flex;gap:14px;align-items:center}
+.capaday .cdlbl{flex:0 0 76px;font-size:12px;color:var(--text-strong)}
+.capaday .cdbars{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.capaday .cbrow .cl{flex:0 0 54px;width:54px;font-size:11px}
+.capaday .cbtrack{height:14px}
+.capaday .cn{flex:0 0 120px;width:120px;font-size:11.5px}
 
 /* ── 수정 중 배너 ── */
 .editbar{background:var(--sk-orange-t10);border:1px solid var(--sk-orange);border-radius:6px;
@@ -556,7 +576,7 @@ let requests=[
 /* 자리를 실제로 차지하는 상태 — '조정 필요'는 아직 자리를 잡은 게 아니라 제외 */
 const live=r=>['확정','발송 완료','신청'].includes(r.status);
 /* 수정 중인 건은 자기 자신과 충돌하면 안 되므로 판정에서 제외한다 */
-const excNo=()=>tab==='apply'?draft.editNo:null;
+const excNo=()=>tab==='apply'?draft.editNo:tab==='manage'?admFix.no:null;
 const inScope=r=>live(r)&&r.no!==excNo();
 
 /* ── 점유 모델 (0728 미팅 확인) ──
@@ -653,6 +673,7 @@ let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), foun
 let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',offer:'쿠폰',qty:15,
            date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null};
 let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false;
+let admFix={no:null,date:null,hour:null};   /* 담당자 재배정 대상 */
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
@@ -1447,22 +1468,204 @@ function renderDay(d){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   페이지 3 — 캠페인 관리 (담당자 · 다음 차수)
+   페이지 3 — 캠페인 관리 (담당자)
+   · 마케터가 1차 배치해 신청한 건을 확인하고 확정
+   · 조정 요청 들어온 건을 재배정해서 확정
    ══════════════════════════════════════════════════════════════════════ */
+const byWhen=(a,b)=>a.date<b.date?-1:a.date>b.date?1:a.hour-b.hour;
+
 function renderManage(){
-  return `<div class="wrap"><div class="card">
-    <div class="card-hd"><div class="rule"></div>
-      <div class="lbl"><span>캠페인 관리</span><span>담당자 전용</span></div>
-      <h2><span>다음 차수에서 설계합니다</span></h2></div>
-    <div class="empty">담당자 화면은 이번 작업 범위에 포함되어 있지 않습니다.<br>
-      1차로 배치된 캠페인 리스트를 확인하고 <b>확정</b>하는 흐름으로 설계할 예정입니다.</div>
-  </div></div>`;
+  const wait=requests.filter(r=>r.status==='신청').sort(byWhen);
+  const adj =requests.filter(r=>r.status==='조정 필요').sort(byWhen);
+  const conf=requests.filter(r=>r.status==='확정'&&r.date.slice(0,7)===kpiMonth);
+  const mi=MONTHS.indexOf(kpiMonth);
+  return `<div class="wrap wide">
+    <div class="kpihd">
+      <button class="arw" data-km="${MONTHS[mi-1]||''}" ${mi<=0?'disabled':''}>‹</button>
+      <span class="kml num">${kpiMonth.replace('-','. ')}</span>
+      <button class="arw" data-km="${MONTHS[mi+1]||''}" ${mi>=MONTHS.length-1?'disabled':''}>›</button>
+      <span class="kmn">전체 팀</span>
+    </div>
+    <div class="kpis">
+      <div class="kpi${wait.length?' hero':''}"><div class="k">확정 대기</div>
+        <div class="v num">${wait.length||'—'}</div></div>
+      <div class="kpi"><div class="k">조정 필요</div>
+        <div class="v num">${adj.length||'—'}</div></div>
+      <div class="kpi"><div class="k">확정</div>
+        <div class="v num">${conf.length||'—'}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><div class="rule"></div>
+        <div class="lbl"><span>확정 대기</span><span>마케터 1차 배치</span></div>
+        <h2><span>${wait.length}건</span>
+          ${wait.length?`<button class="pill primary sm" id="okAll">전체 확정</button>`:''}</h2></div>
+      ${wait.length?`<div class="tblwrap"><table class="list">
+        <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널 / GNB</th>
+          <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th></th></tr>
+        ${wait.map(r=>`<tr class="rw">
+          <td class="wrap">${esc(r.camp)}</td>
+          <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
+          <td>${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`}</td>
+          <td>${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}</td>
+          <td>${r.cycle}</td><td>${r.offer}</td>
+          <td class="r">${man(r.qty)}만</td>
+          <td>${r.team} ${r.mk}</td>
+          <td class="act"><button class="pill primary xs" data-ok="${r.no}">확정</button>
+            <button class="pill ghost xs" data-rej="${r.no}">조정 필요</button></td></tr>`).join('')}
+      </table></div>`:`<div class="empty">확정을 기다리는 건이 없습니다.</div>`}
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><div class="rule"></div>
+        <div class="lbl"><span>조정 필요</span><span>재배정 후 확정</span></div>
+        <h2><span>${adj.length}건</span></h2></div>
+      ${adj.length?adj.map(r=>admItem(r)).join(''):`<div class="empty">조정할 건이 없습니다.</div>`}
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><div class="rule"></div>
+        <div class="lbl"><span>캐파 현황</span><span>${kpiMonth.replace('-','.')}</span></div>
+        <h2><span>일자별 소진</span>
+          <span class="badge">배너 일 ${man(CAPA['배너'].limit)}만 · 쿠폰 일 ${man(CAPA['쿠폰'].limit)}만</span></h2></div>
+      ${capaBoard()}
+    </div>
+  </div>`;
+}
+
+/* 조정 필요 1건 — 신청 내용, 선점 사유, 재배정 */
+function admItem(r){
+  const open=admFix.no===r.no;
+  return `<div class="adjitem${open?' on':''}">
+    <div class="adjhd"><b>${esc(r.camp)}</b>
+      <span class="st needfix">조정 필요</span>
+      <span class="adjwhen">${r.cycle==='주기성'
+        ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
+        : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
+    <div class="cfgrid">
+      ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
+      ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
+      ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
+      ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+      ${cfRow('신청자',`${r.team} ${r.mk}`)}
+      ${r.reqAt?cfRow('신청 시각',r.reqAt):''}
+    </div>
+    ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
+    ${r.note?`<div class="adjnote"><span>마케터 사유</span>${esc(r.note)}</div>`:''}
+    ${open?admFixPanel(r):`<div class="adjbtns">
+      <button class="pill primary sm" data-fix="${r.no}">재배정</button>
+      <button class="pill ghost sm" data-okadj="${r.no}">그대로 확정</button>
+    </div>`}
+  </div>`;
+}
+
+/* 재배정 — 날짜·시간대를 다시 고른다 (자기 자신은 충돌에서 제외) */
+function admFixPanel(r){
+  const rep=r.cycle==='주기성';
+  const d=admFix.date||r.date, h=admFix.hour||r.hour;
+  const days=rangeDays(r.from,r.to).filter(x=>!isPast(x));
+  const hours=rep?REC_HOURS:HOURS;
+  /* 주기성은 기간 내내 같은 시간대를 잡아야 하므로 전 기간을 검사 */
+  const busy=new Set();
+  hours.forEach(x=>{
+    const hit=rep ? days.some(dd=>blockedHours(dd,r).has(x)) : blockedHours(d,r).has(x);
+    if(hit) busy.add(x);
+  });
+  const capaBad=(()=>{
+    const chk=dd=>(r.ch.includes('배너')&&bannerRem(dd)<r.qty)||(r.offer==='쿠폰'&&couponRem(dd)<r.qty);
+    return rep?days.some(chk):chk(d);
+  })();
+  const ok=!busy.has(h)&&!capaBad;
+  return `<div class="fixpanel">
+    <div class="fixhd">재배정</div>
+    ${rep?`<div class="segnote">주기성은 기간(${fmtD(r.from)}~${fmtD(r.to)}) 내내 같은 시간대를 씁니다.</div>`
+      :`<div class="fixrow"><span>발송일</span>
+        <div class="daychips">${days.map(x=>`<button class="chip sm ${x===d?'on':''}" data-fd="${x}">${fmtD(x)}</button>`).join('')}</div>
+      </div>`}
+    <div class="fixrow"><span>시간대</span>
+      <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(x=>{
+        const t=busy.has(x);
+        return `<div class="hslot ${t?'taken':''}${x===h?' on':''}" data-fh="${x}">
+          <span class="hh">${x}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
+    </div>
+    ${capaBad?`<div class="blockbox"><b>캐파를 넘겨 배정할 수 없습니다</b>
+      <div>${rep?'기간 내 어느 날의':fmtD(d)} 잔여가 부족합니다 · 배너 ${man(bannerRem(d))}만 / 쿠폰 ${man(couponRem(d))}만</div></div>`:''}
+    <div class="adjbtns">
+      <button class="pill primary sm" data-fixok="${r.no}" ${ok?'':'disabled'}>이 일정으로 확정</button>
+      <button class="pill ghost sm" data-fixno="1">취소</button>
+      ${busy.has(h)?`<span class="note" style="margin:0">선점된 시간대입니다. 다른 시간대를 골라 주세요.</span>`:''}
+    </div>
+  </div>`;
+}
+
+/* 일자별 캐파 소진 */
+function capaBoard(){
+  const days=monthDayList(kpiMonth);
+  const row=(name,lim,used)=>`<div class="cbrow">
+    <div class="cl"><i class="sw" style="background:${name==='배너'?'var(--ch-banner)':'var(--ch-coupon)'}"></i>${name}</div>
+    <div class="cbtrack"><b style="width:${Math.min(100,used/lim*100)}%;background:${
+      used/lim>=.9?'var(--sk-red)':name==='배너'?'var(--ch-banner)':'var(--ch-coupon)'}"></b></div>
+    <div class="cn">${man(used)} / ${man(lim)}만</div></div>`;
+  return `<div class="capabd">${days.map(d=>{
+    const b=bannerUsed(d), c=couponUsed(d);
+    if(!b&&!c) return '';
+    return `<div class="capaday">
+      <div class="cdlbl">${fmtD(d)}</div>
+      <div class="cdbars">${row('배너',CAPA['배너'].limit,b)}${row('쿠폰',CAPA['쿠폰'].limit,c)}</div>
+    </div>`}).join('')||'<div class="empty">이 달에 배정된 캠페인이 없습니다.</div>'}</div>`;
+}
+
+/* ── 담당자 화면 이벤트 ── */
+function bindManage(){
+  const re=()=>{$('page').innerHTML=renderManage();bindManage()};
+  document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
+    if(x.dataset.km){kpiMonth=x.dataset.km;admFix={no:null,date:null,hour:null};re()}});
+
+  document.querySelectorAll('[data-ok]').forEach(x=>x.onclick=()=>{
+    const r=requests.find(q=>q.no===+x.dataset.ok); if(!r) return;
+    r.status='확정'; toast(`확정했습니다 — ${r.camp}`); re()});
+
+  const all=$('okAll'); if(all) all.onclick=()=>{
+    const n=requests.filter(r=>r.status==='신청').length;
+    requests.forEach(r=>{if(r.status==='신청') r.status='확정'});
+    toast(`${n}건을 확정했습니다`); re()};
+
+  document.querySelectorAll('[data-rej]').forEach(x=>x.onclick=()=>{
+    const r=requests.find(q=>q.no===+x.dataset.rej); if(!r) return;
+    r.status='조정 필요';
+    r.reason=r.reason||'담당자 조정 요청';
+    toast(`조정 필요로 넘겼습니다 — ${r.camp}`,true); re()});
+
+  document.querySelectorAll('[data-okadj]').forEach(x=>x.onclick=()=>{
+    const r=requests.find(q=>q.no===+x.dataset.okadj); if(!r) return;
+    r.status='확정'; toast(`그대로 확정했습니다 — ${r.camp}`); re()});
+
+  document.querySelectorAll('[data-fix]').forEach(x=>x.onclick=()=>{
+    const r=requests.find(q=>q.no===+x.dataset.fix); if(!r) return;
+    admFix={no:r.no,date:r.date,hour:r.hour}; re()});
+  document.querySelectorAll('[data-fixno]').forEach(x=>x.onclick=()=>{
+    admFix={no:null,date:null,hour:null}; re()});
+  document.querySelectorAll('[data-fd]').forEach(x=>x.onclick=()=>{admFix.date=x.dataset.fd;re()});
+  document.querySelectorAll('[data-fh]').forEach(x=>x.onclick=()=>{admFix.hour=+x.dataset.fh;re()});
+
+  document.querySelectorAll('[data-fixok]').forEach(x=>x.onclick=()=>{
+    const r=requests.find(q=>q.no===+x.dataset.fixok); if(!r) return;
+    const was=r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`;
+    if(r.cycle!=='주기성'&&admFix.date) r.date=admFix.date;
+    if(admFix.hour) r.hour=admFix.hour;
+    r.status='확정';
+    r.memo=`담당자 재배정 (${was} → ${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`})`;
+    r.reason='';
+    admFix={no:null,date:null,hour:null};
+    toast(`재배정 후 확정했습니다 — ${r.camp}`); re()});
 }
 
 /* ══════════════════════════════════════════════════════════════════════
    렌더
    ══════════════════════════════════════════════════════════════════════ */
 function render(){
+  $('roleMkt').classList.toggle('on',role==='mkt');
+  $('roleAdm').classList.toggle('on',role==='adm');
   renderTabs();
   if(tab==='apply'){ $('page').innerHTML=renderApply(); bindApply(); }
   else if(tab==='cal'&&calDay){
@@ -1492,7 +1695,7 @@ function render(){
       else{const i=calFilter.ch.indexOf(v); i<0?calFilter.ch.push(v):calFilter.ch.splice(i,1)}
       render()});
   }
-  else $('page').innerHTML=renderManage();
+  else { $('page').innerHTML=renderManage(); bindManage(); }
 }
 $('roleMkt').onclick=()=>{role='mkt';$('roleMkt').classList.add('on');$('roleAdm').classList.remove('on');
   if(tab==='manage') tab='apply'; render()};
