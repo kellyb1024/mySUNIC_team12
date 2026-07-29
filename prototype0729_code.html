@@ -67,11 +67,13 @@ input,select,textarea{font-family:inherit;font-size:13px}
   font-family:Roboto;cursor:help;position:relative;vertical-align:1px;margin-left:4px;flex:0 0 14px}
 .i::before{content:'i';font-family:Roboto;font-weight:500;line-height:1}
 .i:hover{border-color:var(--sk-orange-text);color:var(--sk-orange-text)}
-.i::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);
+.i::after{content:attr(data-tip);position:absolute;left:calc(100% + 9px);top:50%;transform:translateY(-50%);
   background:var(--text-strong);color:#fff;font-size:11.5px;font-weight:400;line-height:1.55;
-  padding:8px 11px;border-radius:5px;width:250px;text-align:left;white-space:pre-line;
+  padding:8px 11px;border-radius:5px;width:220px;text-align:left;white-space:pre-line;
   opacity:0;visibility:hidden;transition:opacity .12s;z-index:120;pointer-events:none;
   box-shadow:0 4px 14px rgba(0,0,0,.18)}
+/* 꼬리 */
+.i::marker{content:''}
 .i:hover::after{opacity:1;visibility:visible}
 
 /* ── 스텝 인디케이터 ── */
@@ -303,7 +305,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 
 /* ── 2단 배치 (좌 조건 / 우 카드) ── */
 .shell{display:flex;align-items:flex-start;gap:20px}
-.side{width:250px;flex:0 0 250px;position:sticky;top:112px}
+.side{width:250px;flex:0 0 250px;position:sticky;top:112px;z-index:40}
 .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:20px}
 .fgroup{margin-bottom:13px}
 .ftitle{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:5px;display:flex;align-items:center}
@@ -350,11 +352,24 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .conflict{border:1px solid var(--waiting-border);background:var(--waiting-bg);border-radius:6px;
   padding:12px 14px;margin-bottom:14px}
 .conflict .cft{font-size:12.5px;font-weight:500;color:var(--waiting-text);margin-bottom:7px}
-.conflict .cfr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--text-strong)}
-.conflict .cfr span:first-child{font-weight:500}
+.conflict .cfbox{background:#fff;border:1px solid var(--waiting-border);border-radius:5px;
+  padding:11px 13px;margin-bottom:9px}
+.conflict .cfhd{display:flex;align-items:center;gap:9px;margin-bottom:9px;
+  padding-bottom:8px;border-bottom:1px dashed var(--waiting-border)}
+.conflict .cfhd b{font-size:13.5px;font-weight:500;color:var(--text-strong)}
+.conflict .cfgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 22px}
+.conflict .cfg{display:flex;gap:10px;font-size:12px;min-width:0}
+.conflict .cfg span{color:var(--text-muted);flex:0 0 82px}
+.conflict .cfg b{font-weight:400;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .conflict .cfm{font-size:11.5px;color:var(--waiting-text);margin-top:7px;line-height:1.55}
-table.list td.rsn{color:var(--text-muted);font-size:11.5px;max-width:210px;
-  overflow:hidden;text-overflow:ellipsis}
+table.list td.rsn{color:var(--text-muted);font-size:11.5px;max-width:230px;white-space:normal;line-height:1.5}
+table.list td.rsn .rn{color:var(--waiting-text)}
+.reasonfld label{font-size:11.5px;font-weight:500;color:var(--sk-orange-text);
+  display:flex;align-items:center;margin-bottom:5px}
+.reasonfld{margin-bottom:14px}
+.reasonfld textarea{width:100%;padding:9px 10px;border:1px solid var(--waiting-border);border-radius:4px;
+  font-family:inherit;font-size:12.5px;resize:vertical;background:#FFFDF5}
+.reasonfld textarea:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;
   padding:14px 16px;position:relative}
@@ -365,6 +380,24 @@ table.list td.rsn{color:var(--text-muted);font-size:11.5px;max-width:210px;
 .kpi.hero::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
   background:var(--sk-orange);border-radius:8px 0 0 8px}
 .kpi.hero .k{color:var(--sk-orange-text);font-weight:500}
+.kpi.clickable{cursor:pointer}
+.kpi.clickable:hover{border-color:var(--sk-orange-text)}
+.kpi.clickable .s{color:var(--sk-orange-text)}
+.kpi.open{outline:2px solid var(--sk-orange);outline-offset:-1px}
+.adjcard .adjitem{border:1px solid var(--border);border-radius:6px;padding:13px 15px;margin-bottom:11px}
+.adjcard .adjitem:last-child{margin-bottom:0}
+.adjhd{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+.adjhd b{font-size:13.5px;font-weight:500;color:var(--text-strong)}
+.adjhd .adjwhen{margin-left:auto;font-size:11.5px;color:var(--text-muted);font-family:Roboto}
+.adjcard .cfgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 22px}
+.adjcard .cfg{display:flex;gap:10px;font-size:12px;min-width:0}
+.adjcard .cfg span{color:var(--text-muted);flex:0 0 82px}
+.adjcard .cfg b{font-weight:400;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adjwhy{margin-top:10px;font-size:12px;color:var(--waiting-text);background:var(--waiting-bg);
+  border-radius:4px;padding:7px 10px;display:flex;gap:8px}
+.adjwhy span{font-weight:500;flex:0 0 auto}
+.adjbtns{display:flex;gap:8px;margin-top:11px}
+.pill.sm{padding:7px 14px;font-size:12px}
 .kpihd{display:flex;align-items:center;gap:9px;margin-bottom:-6px}
 .kpihd .arw{width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:12px}
 .kpihd .arw:hover:not(:disabled){background:var(--motif)}
@@ -529,11 +562,22 @@ const couponUsed=d=>usedOn(d,r=>r.offer==='쿠폰');
 const bannerRem=d=>CAPA['배너'].limit-bannerUsed(d);
 const couponRem=d=>CAPA['쿠폰'].limit-couponUsed(d);
 /* ── 시간대 충돌 규칙 ──
-   · 일회성 ↔ 일회성 : 같은 채널을 쓸 때만 충돌. 배너와 토스트팝업은 동시 발송 가능
-     쿠폰은 일 440만 기준이라 시간대 자원이 아니다 (0728 피드백)
-   · 주기성이 한쪽에라도 있으면 : 채널 무관하게 그 시간대를 독점
+   시간당 캐파라는 것은 없다. 시간대 경합은 캐파가 아니라 '지면' 문제다.
+   같은 지면(채널 × GNB)에 같은 시각 두 캠페인을 띄울 수 없다.
+
+   · 일회성 ↔ 일회성 : 지면이 겹칠 때만 충돌
+       배너@홈 vs 배너@영화 홈   → 지면이 달라 동시 가능
+       배너@홈 vs 토스트팝업@홈  → 채널이 달라 동시 가능
+       배너@홈 vs 배너@홈        → 충돌
+     (더미 시트 7/30: 왕과 사는 남자 배너@홈 17시 / 영화 월정액 배너@영화 홈 17시 — 공존)
+   · 쿠폰은 지면이 아니라 오퍼라 시간대 자원이 아니다 (0728 피드백 · 일 440만 기준)
+   · 주기성이 한쪽에라도 있으면 : 지면 무관하게 그 시간대를 독점
      (주기성은 메일 시스템을 타서 다른 캠페인의 방해를 받으면 안 됨 — 0728 미팅) */
-const slotKeys=r=>r.ch||[];
+const gnbList=r=>String(r.gnb||'').split(/[,·]/).map(s=>s.trim()).filter(Boolean);
+const slotKeys=r=>{
+  const gs=gnbList(r); if(!gs.length) return [];
+  return (r.ch||[]).flatMap(c=>gs.map(g=>`${c}@${g}`));
+};
 function slotClash(a,b){
   if(a.cycle==='주기성'||b.cycle==='주기성') return true;
   const bk=slotKeys(b);
@@ -544,7 +588,7 @@ function clashWhy(a,b){
   if(b.cycle==='주기성') return '주기성 캠페인이 이 시간대를 독점합니다';
   if(a.cycle==='주기성') return '주기성은 기간 내내 이 시간대를 독점해야 합니다';
   const bk=slotKeys(b), dup=slotKeys(a).filter(k=>bk.includes(k));
-  return `${dup.join('·')} 채널이 겹칩니다`;
+  return `${dup.map(k=>k.replace('@',' · ')).join(', ')} 지면이 겹칩니다`;
 }
 /* 그 날 그 시각에 배치된 캠페인 전부 (표시용) */
 const liveAt=(d,h)=>requests.filter(r=>live(r)&&activeOn(d,r)&&r.hour===h);
@@ -589,8 +633,8 @@ function periodCheck(c){
    ══════════════════════════════════════════════════════════════════════ */
 let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), found=false, scope='mine';
 let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',offer:'쿠폰',qty:15,
-           date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk};
-let calFilter={mode:'all',ch:[]}, calDay=null;
+           date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:''};
+let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
@@ -639,7 +683,8 @@ function kpiRow(){
   const applied=adj+conf+wait;
   const parts=[adj?`조정 필요 ${adj}`:'',conf?`확정 ${conf}`:'',wait?`확정 대기 ${wait}`:'']
     .filter(Boolean).join(' · ')||'신청한 캠페인 없음';
-  const box=(k,v,s,hero)=>`<div class="kpi${hero?' hero':''}">
+  const box=(k,v,s,hero,attr)=>`<div class="kpi${hero?' hero':''}${attr?' clickable':''}${
+      attr&&adjOpen?' open':''}" ${attr||''}>
     <div class="k">${k}</div><div class="v num">${v||'—'}</div><div class="s">${s}</div></div>`;
   const mi=MONTHS.indexOf(m);
   return `<div class="kpihd">
@@ -650,9 +695,46 @@ function kpiRow(){
     </div>
     <div class="kpis">
       ${box('신청',applied,parts)}
-      ${box('조정 필요',adj,'시간대 선점 · 담당자 조정',adj>0)}
+      ${box('조정 필요',adj,adjOpen?'닫기':'클릭하면 내역을 봅니다',adj>0,'data-adj')}
       ${box('확정',conf,'담당자 확정 완료')}
-    </div>`;
+    </div>
+    ${adjOpen?adjPanel(m):''}`;
+}
+
+/* 조정 필요 내역 — 정보·사유 확인과 수정 */
+function adjPanel(m){
+  const rows=requests.filter(r=>r.mk===ME.mk&&r.team===ME.team
+    &&r.date.slice(0,7)===m&&r.status==='조정 필요');
+  if(!rows.length) return `<div class="card"><div class="empty">이 달에 조정 필요 건이 없습니다.</div></div>`;
+  return `<div class="card adjcard">
+    <div class="card-hd"><div class="rule"></div>
+      <div class="lbl"><span>조정 필요 내역</span><span>${m.replace('-','.')}</span></div>
+      <h2><span>${rows.length}건</span>
+        <span class="badge">담당자 조정 대기</span></h2></div>
+    ${rows.map(r=>`<div class="adjitem">
+      <div class="adjhd"><b>${esc(r.camp)}</b>
+        <span class="st needfix">조정 필요</span>
+        <span class="adjwhen">${r.cycle==='주기성'
+          ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
+          : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
+      <div class="cfgrid">
+        ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
+        ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
+        ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
+        ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+      </div>
+      ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
+      <div class="reasonfld" style="margin:11px 0 0">
+        <label>조정 요청 사유</label>
+        <textarea rows="2" data-note="${r.no}"
+          placeholder="사유를 입력하세요">${esc(r.note||'')}</textarea>
+      </div>
+      <div class="adjbtns">
+        <button class="pill ghost sm" data-move="${r.no}">시간대 다시 고르기</button>
+        <button class="pill ghost sm" data-drop="${r.no}">요청 취소</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 
 /* ── 좌측 · 잔여 일정 확인하기 ── */
@@ -880,11 +962,28 @@ function secFinal(){
         : `${fmtD(draft.date)} ${draft.hour}:00`}</span></div>
     ${c?`<div class="conflict">
       <div class="cft">이 시간대는 이미 선점되어 있습니다</div>
-      <div class="cfr"><span>${esc(c.camp)}</span>
-        <span>${c.ch.join('·')||'—'} / ${c.offer}</span>
-        <span>${c.team} ${c.mk}</span>
-        <span class="st ${c.status==='신청'?'applied':'confirmed'}">${c.status}</span></div>
+      <div class="cfbox">
+        <div class="cfhd"><b>${esc(c.camp)}</b>
+          <span class="st ${c.status==='신청'?'applied':c.status==='조정 필요'?'needfix'
+            :c.status==='발송 완료'?'sent':'confirmed'}">${c.status}</span></div>
+        <div class="cfgrid">
+          ${cfRow('기간',`${fmtD(c.from)} ~ ${fmtD(c.to)}`)}
+          ${cfRow('발송', c.cycle==='주기성'
+            ? `기간 내 매일 ${c.hour}:00` : `${fmtD(c.date)} ${c.hour}:00`)}
+          ${cfRow('채널 / GNB', `${c.ch.join('·')||'—'} / ${esc(c.gnb)||'—'}`)}
+          ${cfRow('주기 / 오퍼', `${c.cycle} · ${c.offer}`)}
+          ${cfRow(c.cycle==='주기성'?'1일 타겟수':'전체 타겟수', `${man(c.qty)}만 건`)}
+          ${cfRow('부서 · 마케터', `${c.team} ${c.mk}`)}
+          ${c.memo?cfRow('비고', esc(c.memo)):''}
+          ${c.reason?cfRow('사유', esc(c.reason)):''}
+        </div>
+      </div>
       <div class="cfm">${clashWhy(draft,c)} · 조정 필요 상태로 신청되며 담당자가 일정을 조정합니다.</div>
+    </div>`:''}
+    ${c?`<div class="reasonfld">
+      <label>조정 요청 사유<i class="i" data-tip="담당자가 우선순위를 판단하는 근거가 됩니다.&#10;일정을 옮기기 어려운 이유를 적어 주세요."></i></label>
+      <textarea id="fNote" rows="2"
+        placeholder="예: 제휴사와 협의된 오픈 시각이라 다른 시간대로 옮기기 어렵습니다">${esc(draft.note)}</textarea>
     </div>`:''}
     <div class="frow3">
       <div class="fld"><label>캠페인명</label>
@@ -980,7 +1079,7 @@ function cardList(){
         <td>${r.team} ${r.mk}</td>
         <td><span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
              :r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span></td>
-        <td class="rsn">${esc(r.reason||'—')}</td></tr>`).join('')}
+        <td class="rsn">${r.reason?`${esc(r.reason)}${r.note?`<br><span class="rn">${esc(r.note)}</span>`:''}`:'—'}</td></tr>`).join('')}
     </table></div>
     ${rows.length?'':'<div class="empty">해당하는 캠페인이 없습니다.</div>'}
   </div>`;
@@ -988,6 +1087,7 @@ function cardList(){
 
 /* ── 신청 확인 팝업 ── */
 const hrow=(k,v)=>`<div class="hr"><span>${k}</span><span>${esc(v)}</span></div>`;
+const cfRow=(k,v)=>`<div class="cfg"><span>${k}</span><b>${v}</b></div>`;
 function confirmModal(){
   const c=conflict();
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
@@ -1003,6 +1103,7 @@ function confirmModal(){
       ${hrow('채널 / GNB',`${draft.ch.join(' · ')} / ${draft.gnb||'—'}`)}
       ${hrow('주기 / 오퍼',`${draft.cycle} · ${draft.offer}`)}
       ${hrow('전체 타겟수',`${man(draft.qty)}만 건`)}
+      ${c?hrow('조정 요청 사유',draft.note):''}
     </div>
     <div class="m-act">
       <button class="pill ghost" id="mNo">다시 확인</button>
@@ -1014,10 +1115,11 @@ function confirmModal(){
       cycle:draft.cycle,offer:draft.offer,qty:draft.qty,team:draft.dept,mk:draft.mk,
       date:draft.date,hour:draft.hour,
       status:c?'조정 필요':'신청',
-      reason:c?`${c.camp} (${c.team} ${c.mk}) 선점`:''}));
+      reason:c?`${c.camp} (${c.team} ${c.mk}) 선점`:'',
+      note:c?draft.note.trim():''}));
     $('modalSlot').innerHTML='';
     toast(c?`조정 요청되었습니다 — ${c.camp} 선점`:`신청되었습니다 — ${fmtD(draft.date)} ${draft.hour}:00`, !!c);
-    draft.camp=''; draft.date=null; draft.hour=null;
+    draft.camp=''; draft.note=''; draft.date=null; draft.hour=null;
     scope='mine'; render();
   };
 }
@@ -1064,6 +1166,20 @@ function bindApply(){
   document.querySelectorAll('[data-sc]').forEach(x=>x.onclick=()=>{scope=x.dataset.sc;re()});
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
     if(x.dataset.km) {kpiMonth=x.dataset.km; re()}});
+  document.querySelectorAll('[data-adj]').forEach(x=>x.onclick=()=>{adjOpen=!adjOpen;re()});
+  document.querySelectorAll('[data-note]').forEach(x=>x.oninput=()=>{
+    const r=requests.find(q=>q.no===+x.dataset.note); if(r) r.note=x.value});
+  document.querySelectorAll('[data-drop]').forEach(x=>x.onclick=()=>{
+    const i=requests.findIndex(q=>q.no===+x.dataset.drop);
+    if(i>=0){const r=requests[i]; requests.splice(i,1); toast(`요청을 취소했습니다 — ${r.camp}`)}
+    re()});
+  document.querySelectorAll('[data-move]').forEach(x=>x.onclick=()=>{
+    const r=requests.find(q=>q.no===+x.dataset.move); if(!r) return;
+    const i=requests.indexOf(r); requests.splice(i,1);
+    Object.assign(draft,{cycle:r.cycle,from:r.from,to:r.to,ch:[...r.ch],gnb:r.gnb,
+      offer:r.offer,qty:r.qty,camp:r.camp,dept:r.team,mk:r.mk,note:r.note||'',
+      date:r.cycle==='주기성'?r.from:r.date,hour:r.hour});
+    adjOpen=false; found=true; toast('시간대를 다시 골라 주세요.'); re()});
   const te=$('takeEarly'); if(te) te.onclick=()=>{
     const es=earliestSlot(draft); if(!es) return;
     draft.date=es.d; draft.hour=es.h; re()};
@@ -1073,8 +1189,11 @@ function bindApply(){
     cf.oninput=e=>draft.camp=e.target.value;
     $('fDept').oninput=e=>draft.dept=e.target.value;
     $('fMk').oninput=e=>draft.mk=e.target.value;
+    const nt=$('fNote'); if(nt) nt.oninput=e=>draft.note=e.target.value;
     $('submitBtn').onclick=()=>{
       if(!draft.camp.trim()){toast('캠페인명을 입력해 주세요.',true);cf.focus();return}
+      if(conflict()&&!draft.note.trim()){
+        toast('조정 요청 사유를 입력해 주세요.',true); if(nt) nt.focus(); return}
       confirmModal();
     };
   }
