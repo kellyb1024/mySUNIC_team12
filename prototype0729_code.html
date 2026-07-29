@@ -855,7 +855,7 @@ function sideCond(){
     <div class="fgroup"><div class="ftitle">주기<i class="i" data-tip="주기성은 기간 내 매일 같은 시간대에 반복 발송합니다."></i></div>
       ${['일회성','주기성'].map(v=>`<label class="opt"><input type="radio" name="cy" data-cy="${v}" ${draft.cycle===v?'checked':''}>${v}</label>`).join('')}
     </div>
-    <div class="fgroup"><div class="ftitle">오퍼<i class="i" data-tip="쿠폰 일 440만 건 (시간당 20만 × 22시간)"></i></div>
+    <div class="fgroup"><div class="ftitle">오퍼<i class="i" data-tip="쿠폰 일 440만 건"></i></div>
       ${['쿠폰','없음'].map(v=>`<label class="opt"><input type="radio" name="of" data-of="${v}" ${draft.offer===v?'checked':''}>${v}</label>`).join('')}
     </div>
     <div class="fgroup"><div class="ftitle">전체 타겟수</div>
