@@ -436,9 +436,9 @@ table.list .r{text-align:right;font-family:Roboto;font-variant-numeric:tabular-n
 
 /* ── 담당자 화면 ── */
 .pill.xs{padding:5px 11px;font-size:11.5px;border-radius:999px}
-table.list td.act{white-space:nowrap;text-align:right}
-table.list td.act .pill{margin-left:5px}
-table.list th:last-child,table.list td.act{width:1%}
+table.list.adm td.act{white-space:nowrap;text-align:right}
+table.list.adm td.act .pill{margin-left:5px}
+table.list.adm th:last-child,table.list.adm td.act{width:1%}
 .adjitem.on{border-color:var(--sk-orange)}
 .fixpanel{margin-top:12px;padding-top:12px;border-top:1px dashed var(--sk-orange)}
 .fixhd{font-size:12px;font-weight:500;color:var(--sk-orange-text);margin-bottom:10px}
@@ -1527,10 +1527,10 @@ function renderManage(){
 
     <div class="card">
       <div class="card-hd"><div class="rule"></div>
-        <div class="lbl"><span>확정 대기</span><span>마케터 1차 배치</span></div>
+        <div class="lbl"><span>확정 대기</span></div>
         <h2><span>${wait.length}건</span>
           ${wait.length?`<button class="pill primary sm" id="okAll">전체 확정</button>`:''}</h2></div>
-      ${wait.length?`<div class="tblwrap"><table class="list">
+      ${wait.length?`<div class="tblwrap"><table class="list adm">
         <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널 / GNB</th>
           <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th></th></tr>
         ${wait.map(r=>`<tr class="rw">
