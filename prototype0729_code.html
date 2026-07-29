@@ -521,7 +521,6 @@ const REC_HOURS=[17,18,19];
 const PREF=[19,18,20,21,17,22,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1];
 const prefRank=h=>PREF.indexOf(h);
 const activeOn=(d,r)=>r.cycle==='주기성' ? (d>=r.from&&d<=r.to) : (r.date===d);
-const hoursOf=r=>[r.hour];
 
 /* ── 사용량: 그 날 실제로 나가는 물량 ── */
 const usedOn=(d,pred)=>requests.filter(r=>live(r)&&activeOn(d,r)&&pred(r)).reduce((s,r)=>s+r.qty,0);
@@ -529,8 +528,28 @@ const bannerUsed=d=>usedOn(d,r=>r.ch.includes('배너'));
 const couponUsed=d=>usedOn(d,r=>r.offer==='쿠폰');
 const bannerRem=d=>CAPA['배너'].limit-bannerUsed(d);
 const couponRem=d=>CAPA['쿠폰'].limit-couponUsed(d);
-/* 1시간대 1캠페인 */
-const takenHours=d=>new Set(requests.filter(r=>live(r)&&activeOn(d,r)).flatMap(hoursOf));
+/* ── 시간대 충돌 규칙 ──
+   · 일회성 ↔ 일회성 : 같은 자원(채널·쿠폰)을 쓸 때만 충돌. 배너와 토스트팝업은 동시 발송 가능
+   · 주기성이 한쪽에라도 있으면 : 채널 무관하게 그 시간대를 독점
+     (주기성은 메일 시스템을 타서 다른 캠페인의 방해를 받으면 안 됨 — 0728 미팅) */
+const slotKeys=r=>[...(r.ch||[]), ...(r.offer==='쿠폰'?['쿠폰']:[])];
+function slotClash(a,b){
+  if(a.cycle==='주기성'||b.cycle==='주기성') return true;
+  const bk=slotKeys(b);
+  return slotKeys(a).some(k=>bk.includes(k));
+}
+/* 왜 막혔는지 */
+function clashWhy(a,b){
+  if(b.cycle==='주기성') return '주기성 캠페인이 이 시간대를 독점합니다';
+  if(a.cycle==='주기성') return '주기성은 기간 내내 이 시간대를 독점해야 합니다';
+  const bk=slotKeys(b), dup=slotKeys(a).filter(k=>bk.includes(k));
+  return `${dup.join('·')}이(가) 겹칩니다`;
+}
+/* 그 날 그 시각에 배치된 캠페인 전부 (표시용) */
+const liveAt=(d,h)=>requests.filter(r=>live(r)&&activeOn(d,r)&&r.hour===h);
+const takenHours=d=>new Set(requests.filter(r=>live(r)&&activeOn(d,r)).map(r=>r.hour));
+/* 조건 c 로 신청할 때 실제로 막히는 시간대 (판정용) */
+const blockedHours=(d,c)=>new Set(requests.filter(r=>live(r)&&activeOn(d,r)&&slotClash(c,r)).map(r=>r.hour));
 const isPast=d=>d<=TODAY;
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -540,7 +559,7 @@ function dayCheck(c,d){
   if(isPast(d)) return {ok:false,why:'지난 날짜'};
   if(c.ch.includes('배너')&&bannerRem(d)<c.qty) return {ok:false,why:`배너 잔여 ${man(bannerRem(d))}만`};
   if(c.offer==='쿠폰'&&couponRem(d)<c.qty) return {ok:false,why:`쿠폰 잔여 ${man(couponRem(d))}만`};
-  const free=HOURS.filter(h=>!takenHours(d).has(h));
+  const free=HOURS.filter(h=>!blockedHours(d,c).has(h));
   if(!free.length) return {ok:false,why:'시간대 마감'};
   return {ok:true,free};
 }
@@ -558,7 +577,7 @@ function periodCheck(c){
   /* 주기성은 기간 내내 같은 시간대를 잡으므로, 17~19시 각각이 기간 전체에서 비었는지 본다 */
   const hours=REC_HOURS.map(h=>{
     const hits=[], onDays=[];
-    days.forEach(d=>{const r=holderOf(d,h); if(r){onDays.push(d); if(!hits.includes(r))hits.push(r)}});
+    days.forEach(d=>{const r=holderOf(d,h,c); if(r){onDays.push(d); if(!hits.includes(r))hits.push(r)}});
     return {h, free:!hits.length, hits, onDays};
   });
   return {days, blocked, hours, ok:blocked.length===0};
@@ -777,7 +796,7 @@ function recurringBody(head){
 
 /* ── 날짜 클릭 후 펼쳐지는 시간대 선택 ── */
 function secHour(){
-  const d=draft.date, taken=takenHours(d);
+  const d=draft.date, taken=blockedHours(d,draft);
   const free=HOURS.filter(h=>!taken.has(h));
   const rec=[...free].sort((a,c)=>prefRank(a)-prefRank(c)).slice(0,3);
   return `<div class="drill">
@@ -802,7 +821,7 @@ function secHour(){
    게이지가 비어 보이므로 점유 사유를 목록으로 드러낸다 */
 function occupancyList(d){
   const on=requests.filter(r=>live(r)&&activeOn(d,r))
-    .sort((a,b)=>hoursOf(a)[0]-hoursOf(b)[0]);
+    .sort((a,b)=>a.hour-b.hour);
   if(!on.length) return '';
   return `<div class="segnote" style="margin:16px 0 0">이 날 배치된 캠페인</div>
   <div class="daylist">${on.map(r=>{
@@ -840,14 +859,14 @@ function gaugeRow(d){
 }
 
 /* 선택한 날짜·시간대를 이미 점유한 캠페인 */
-const holderOf=(d,h)=>requests.find(r=>live(r)&&activeOn(d,r)&&hoursOf(r).includes(h))||null;
+const holderOf=(d,h,c)=>liveAt(d,h).find(r=>slotClash(c||draft,r))||null;
 const conflict=()=>{
   if(draft.cycle==='주기성'){
     if(!draft.hour) return null;
     const h=periodCheck(draft).hours.find(x=>x.h===draft.hour);
     return h&&h.hits.length?h.hits[0]:null;
   }
-  return draft.date&&draft.hour?holderOf(draft.date,draft.hour):null;
+  return draft.date&&draft.hour?holderOf(draft.date,draft.hour,draft):null;
 };
 
 /* ── 시간대 선택 후 펼쳐지는 최종 신청 ── */
@@ -860,9 +879,11 @@ function secFinal(){
         : `${fmtD(draft.date)} ${draft.hour}:00`}</span></div>
     ${c?`<div class="conflict">
       <div class="cft">이 시간대는 이미 선점되어 있습니다</div>
-      <div class="cfr"><span>${esc(c.camp)}</span><span>${c.team} ${c.mk}</span>
+      <div class="cfr"><span>${esc(c.camp)}</span>
+        <span>${c.ch.join('·')||'—'} / ${c.offer}</span>
+        <span>${c.team} ${c.mk}</span>
         <span class="st ${c.status==='신청'?'applied':'confirmed'}">${c.status}</span></div>
-      <div class="cfm">조정 필요 상태로 신청되며, 담당자가 일정을 조정합니다.</div>
+      <div class="cfm">${clashWhy(draft,c)} · 조정 필요 상태로 신청되며 담당자가 일정을 조정합니다.</div>
     </div>`:''}
     <div class="frow3">
       <div class="fld"><label>캠페인명</label>
@@ -1240,7 +1261,7 @@ function chartFor(rows){
 /* ── 일자 상세 (먼슬리뷰에서 날짜 클릭 → 구체화) ── */
 function renderDay(d){
   const taken=takenHours(d);
-  const onDay=requests.filter(r=>live(r)&&activeOn(d,r)).sort((a,b)=>hoursOf(a)[0]-hoursOf(b)[0]);
+  const onDay=requests.filter(r=>live(r)&&activeOn(d,r)).sort((a,b)=>a.hour-b.hour);
   const starts=requests.filter(r=>r.from===d), ends=requests.filter(r=>r.to===d);
   const past=isPast(d);
   return `<div class="wrap wide">
@@ -1262,7 +1283,7 @@ function renderDay(d){
       </div>
       <div class="segnote">시간대별 배치 현황</div>
       <div class="hgrid">${HOURS.map(h=>{
-        const r=onDay.find(x=>hoursOf(x).includes(h));
+        const r=onDay.find(x=>x.hour===h);
         return `<div class="hslot ro ${r?'taken':''}">
           <span class="hh">${h}시</span>
           <span class="hs">${r?esc(r.camp.slice(0,6)):'비어 있음'}</span></div>`}).join('')}</div>
