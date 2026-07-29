@@ -117,6 +117,14 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dcell.no{background:var(--motif);border-style:dashed;border-color:var(--border);cursor:not-allowed}
 .dcell.no .dd{color:var(--locked-text);font-weight:400} .dcell.no .dm{color:var(--locked-text)}
 .dcell.blank{border:none;background:none;cursor:default;min-height:0}
+.dcell.busy{background:var(--waiting-bg);border-color:var(--waiting-border)}
+.dcell.start{border-color:var(--sk-orange);border-width:2px}
+.dcell.start .wk{color:var(--sk-orange-text);font-weight:500}
+.dcell.busy .dm{color:var(--waiting-text)}
+.blockbox{border:1px solid var(--sk-red);border-radius:6px;padding:13px 15px;margin-top:16px}
+.blockbox b{display:block;font-size:13px;font-weight:500;color:var(--sk-red);margin-bottom:6px}
+.blockbox div{font-size:11.5px;color:var(--text);line-height:1.6}
+.blockbox .bm{color:var(--text-muted);margin-top:5px}
 .dcell .wk{position:absolute;top:4px;right:6px;font-size:9px;color:var(--text-muted)}
 .dcell.sun .dd{color:var(--sk-red)}
 .dcell.on.sun .dd{color:#fff}
@@ -392,7 +400,7 @@ const HOURS=Array.from({length:22},(_,i)=>i+1);   /* 1시 ~ 22시 (0시·23시 �
 const WD=['일','월','화','수','목','금','토'];
 
 /* ══════════════════════════════════════════════════════════════════════
-   ⚠ 캐파 정의 — 0728 피드백 1차 반영 / 확정 전
+   캐파 정의 — 0728 피드백 반영 · 2026-07-29 확정
    · 배너       : 일 400만                      (1차원 · 날짜)
    · 쿠폰       : 일 440만 (시간당 20만 × 22시간)  (1차원 · 날짜)  ← '시간당 20만 신청 제한' 폐지
    · TV팝업     : 제한 없음                                    ← '노드당 100만' 폐지, 노드 개념 제거
@@ -469,14 +477,29 @@ let requests=[
 ];
 const live=r=>['확정','발송 완료','신청'].includes(r.status);
 
-/* ── 사용량: 신청 데이터에서 직접 도출 ── */
-const usedOn=(d,pred)=>requests.filter(r=>r.date===d&&live(r)&&pred(r)).reduce((s,r)=>s+r.qty,0);
+/* ── 점유 모델 (0728 미팅 확인) ──
+   일회성 : 시작일 1회 발송. 기간은 고객 노출 기간(고객이 TV를 켠 최초 시점에 1회 노출)
+   주기성 : 기간 내 매일 17~19시 발송. 우선순위가 높아 그 기간 17~19시는 주기성만 배치
+
+   캐파   : 일회성·주기성 모두 '시작일'에만 반영.
+            주기성은 실제로 매일 소진하지만 기간 내내 17~19시를 독점하므로
+            다른 캠페인이 어차피 못 들어와 캐파 반영과 무관하다는 현업 운영 방식.
+   시간대 : 일회성 = 시작일 1칸 / 주기성 = 기간 내내 17~19시 3칸 */
+const REC_HOURS=[17,18,19];
+/* 마케터 선호 시간대 — 저녁 18~19시 반응률이 가장 높음 (0728 미팅) */
+const PREF=[19,18,20,21,17,22,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1];
+const prefRank=h=>PREF.indexOf(h);
+const activeOn=(d,r)=>r.cycle==='주기성' ? (d>=r.from&&d<=r.to) : (r.date===d);
+const hoursOf=r=>r.cycle==='주기성'?REC_HOURS:[r.hour];
+
+/* ── 사용량: 캐파는 시작일 기준 ── */
+const usedOn=(d,pred)=>requests.filter(r=>live(r)&&r.date===d&&pred(r)).reduce((s,r)=>s+r.qty,0);
 const bannerUsed=d=>usedOn(d,r=>r.ch.includes('배너'));
 const couponUsed=d=>usedOn(d,r=>r.offer==='쿠폰');
 const bannerRem=d=>CAPA['배너'].limit-bannerUsed(d);
 const couponRem=d=>CAPA['쿠폰'].limit-couponUsed(d);
 /* 1시간대 1캠페인 */
-const takenHours=d=>new Set(requests.filter(r=>r.date===d&&live(r)).map(r=>r.hour));
+const takenHours=d=>new Set(requests.filter(r=>live(r)&&activeOn(d,r)).flatMap(hoursOf));
 const isPast=d=>d<=TODAY;
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -491,6 +514,29 @@ function dayCheck(c,d){
   return {ok:true,free};
 }
 const rangeDays=(from,to)=>ALL.filter(x=>x.d>=from&&x.d<=to).map(x=>x.d);
+
+/* 주기성: 기간 전체를 한 번에 판정 (매일 17~19시 · 매일 1일치 캐파) */
+function periodCheck(c){
+  const days=rangeDays(c.from,c.to), blocked=[], busy=[];
+  const s=days[0];
+  /* 캐파는 시작일에만 반영 */
+  if(isPast(s)) blocked.push({d:s,why:'지난 날짜'});
+  else if(c.ch.includes('배너')&&bannerRem(s)<c.qty) blocked.push({d:s,why:`배너 잔여 ${man(bannerRem(s))}만`});
+  else if(c.offer==='쿠폰'&&couponRem(s)<c.qty) blocked.push({d:s,why:`쿠폰 잔여 ${man(couponRem(s))}만`});
+  /* 시간대 점유는 기간 전체 검사 */
+  days.forEach(d=>{
+    const t=takenHours(d), occ=REC_HOURS.filter(h=>t.has(h));
+    if(occ.length) busy.push({d,hours:occ});
+  });
+  return {days,blocked,busy,ok:blocked.length===0};
+}
+/* 주기성 신청 시 부딪히는 기존 캠페인 */
+function periodHolders(c){
+  const out=[];
+  rangeDays(c.from,c.to).forEach(d=>requests.filter(r=>live(r)&&activeOn(d,r)
+    &&hoursOf(r).some(h=>REC_HOURS.includes(h))).forEach(r=>{if(!out.includes(r))out.push(r)}));
+  return out;
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    상태
@@ -525,8 +571,6 @@ function renderTabs(){
    ══════════════════════════════════════════════════════════════════════ */
 function renderApply(){
   return `<div class="wrap wide">
-    <div class="wipbar"><b>캐파 기준 재정의 진행 중</b> — 배너 일 400만 / 쿠폰 <b>일 440만</b> /
-      TV팝업·토스트팝업 <b>제한 없음</b> / 1개 시간대에 1개 캠페인. 숫자 확정되면 로직 교체합니다.</div>
     <div class="shell">
       <aside class="side">${sideCond()}</aside>
       <div class="main">
@@ -602,7 +646,8 @@ function thisWeekDays(){
 function earliestSlot(c){
   for(const x of ALL){
     if(x.d<draft.from||x.d>draft.to) continue;
-    const r=dayCheck(c,x.d); if(r.ok) return {d:x.d,h:r.free[0]};
+    const r=dayCheck(c,x.d);
+    if(r.ok) return {d:x.d,h:[...r.free].sort((a,b)=>prefRank(a)-prefRank(b))[0]};
   }
   return null;
 }
@@ -615,6 +660,7 @@ function cardApply(){
       <span class="badge">선점 시간대는 조정 요청으로 신청</span></h2></div>`;
   if(!found) return `<div class="card">${head}
     <div class="empty">좌측에서 조건을 입력하고 <b>가능한 날 찾기</b>를 눌러 주세요.</div></div>`;
+  if(draft.cycle==='주기성') return recurringBody(head);
 
   const days=rangeDays(draft.from,draft.to);
   const okDays=days.filter(d=>dayCheck(draft,d).ok);
@@ -650,12 +696,51 @@ function cardApply(){
   </div>`;
 }
 
+/* ── 주기성: 기간 전체를 한 건으로 신청 ── */
+function recurringBody(head){
+  const pc=periodCheck(draft);
+  const total=draft.qty*pc.days.length;
+  const first=pc.days[0], lead=dayOf(first)?.dow??0;
+  const blockedOn=Object.fromEntries(pc.blocked.map(x=>[x.d,x.why]));
+  const busyOn=Object.fromEntries(pc.busy.map(x=>[x.d,x.hours]));
+  const grid=[...Array(lead)].map(()=>`<div class="dcell blank"></div>`).concat(
+    pc.days.map(d=>{
+      const o=dayOf(d), bl=blockedOn[d], bu=busyOn[d], isStart=d===draft.from;
+      const cls=bl?'no':bu?'busy':'ok';
+      return `<div class="dcell ${cls}${o.dow===0?' sun':''}${isStart?' start':''}" style="cursor:default">
+        <span class="wk">${isStart?'시작':o.w}</span><span class="dd">${+d.slice(8)}</span>
+        <span class="dm">${bl||(bu?`${bu.join('·')}시 선점`:'17~19시 점유')}</span></div>`})).join('');
+  return `<div class="card">${head}
+    <div class="quicks">
+      <div class="qk"><div class="qt">발송 기간</div>
+        <div class="qv num">${pc.days.length}일</div>
+        <div class="qm">${fmtD(draft.from)} ~ ${fmtD(draft.to)} · 매일 발송</div></div>
+      <div class="qk"><div class="qt">발송 시간대</div>
+        <div class="qv num">17 ~ 19시</div>
+        <div class="qm">주기성은 매일 이 시간대를 점유합니다</div></div>
+      <div class="qk"><div class="qt">1일 발송 모수</div>
+        <div class="qv num">${man(draft.qty)}만 <small>건</small></div>
+        <div class="qm">기간 합계 ${man(total)}만 · 캐파는 시작일에만 반영</div></div>
+    </div>
+    <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
+    <div class="legend">
+      <span><i style="background:#fff;border-color:var(--cell-border)"></i>발송 가능</span>
+      <span><i style="background:var(--waiting-bg);border-color:var(--waiting-border)"></i>17~19시 선점</span>
+      <span><i style="background:var(--motif);border-style:dashed"></i>캐파 부족 · 발송 불가</span>
+    </div>
+    ${pc.blocked.length
+      ? `<div class="blockbox"><b>${pc.blocked.length}일이 캐파를 넘겨 신청할 수 없습니다</b>
+          <div>${pc.blocked.slice(0,6).map(x=>`${fmtD(x.d)} ${x.why}`).join(' · ')}${pc.blocked.length>6?` 외 ${pc.blocked.length-6}일`:''}</div>
+          <div class="bm">캐파는 시작일 기준입니다. 1일 타겟수를 줄이거나 시작일을 옮겨 주세요.</div></div>`
+      : secFinal()}
+  </div>`;
+}
+
 /* ── 날짜 클릭 후 펼쳐지는 시간대 선택 ── */
 function secHour(){
   const d=draft.date, taken=takenHours(d);
   const free=HOURS.filter(h=>!taken.has(h));
-  const score=h=>(taken.has(h-1)?1:0)+(taken.has(h+1)?1:0);
-  const rec=[...free].sort((a,c)=>score(a)-score(c)||a-c).slice(0,3);
+  const rec=[...free].sort((a,c)=>prefRank(a)-prefRank(c)).slice(0,3);
   return `<div class="drill">
     <div class="drill-hd"><b>${fmtD(d)} · 잔여 시간대</b>
       <span>빈 시간대 ${free.length}개 / 22개</span></div>
@@ -666,7 +751,8 @@ function secHour(){
         <span class="hh">${h}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
     <div class="segnote" style="margin:14px 0 0">잔여 시간대 추천</div>
     <div class="top3">${rec.map((h,i)=>`<div class="t3"><div class="r">추천 ${i+1}</div>
-      <div class="h">${h}:00</div><div class="m">앞뒤 ${score(h)?'인접 캠페인 있음':'비어 있음'}</div>
+      <div class="h">${h}:00</div><div class="m">${prefRank(h)<2?'반응률이 가장 높은 시간대'
+        :prefRank(h)<4?'선호도가 높은 시간대':'남아 있는 시간대'}</div>
       <button data-pick="${h}">이 시간대 선택</button></div>`).join('')
       ||'<div class="empty">남은 시간대가 없습니다.</div>'}</div>
   </div>`;
@@ -692,15 +778,19 @@ function gaugeRow(d){
 }
 
 /* 선택한 날짜·시간대를 이미 점유한 캠페인 */
-const holderOf=(d,h)=>requests.find(r=>r.date===d&&r.hour===h&&live(r))||null;
-const conflict=()=>draft.date&&draft.hour?holderOf(draft.date,draft.hour):null;
+const holderOf=(d,h)=>requests.find(r=>live(r)&&activeOn(d,r)&&hoursOf(r).includes(h))||null;
+const conflict=()=>draft.cycle==='주기성'
+  ? (periodHolders(draft)[0]||null)
+  : (draft.date&&draft.hour?holderOf(draft.date,draft.hour):null);
 
 /* ── 시간대 선택 후 펼쳐지는 최종 신청 ── */
 function secFinal(){
   const c=conflict();
   return `<div class="drill final${c?' warn':''}">
     <div class="drill-hd"><b>${c?'조정 요청':'최종 신청'}</b>
-      <span>${fmtD(draft.date)} ${draft.hour}:00</span></div>
+      <span>${draft.cycle==='주기성'
+        ? `${fmtD(draft.from)} ~ ${fmtD(draft.to)} · 매일 17~19시`
+        : `${fmtD(draft.date)} ${draft.hour}:00`}</span></div>
     ${c?`<div class="conflict">
       <div class="cft">이 시간대는 이미 선점되어 있습니다</div>
       <div class="cfr"><span>${esc(c.camp)}</span><span>${c.team} ${c.mk}</span>
@@ -809,24 +899,33 @@ function confirmModal(){
 }
 
 /* ── 캠페인 신청 탭 이벤트 바인딩 ── */
+function syncCycleTarget(){
+  if(draft.cycle==='주기성'){draft.date=draft.from;draft.hour=REC_HOURS[0]}
+  else{draft.date=null;draft.hour=null}
+}
 function bindApply(){
   const re=()=>{$('page').innerHTML=renderApply();bindApply()};
   $('fFrom').onchange=e=>{draft.from=e.target.value;if(draft.to<draft.from)draft.to=draft.from;
-    draft.date=null;draft.hour=null;re()};
+    syncCycleTarget();re()};
   $('fTo').onchange=e=>{draft.to=e.target.value;if(draft.to<draft.from)draft.from=draft.to;
-    draft.date=null;draft.hour=null;re()};
+    syncCycleTarget();re()};
   document.querySelectorAll('[data-ch]').forEach(x=>x.onchange=()=>{
     const v=x.dataset.ch, i=draft.ch.indexOf(v);
-    if(x.checked){if(i<0)draft.ch.push(v)} else if(draft.ch.length>1){draft.ch.splice(i,1)}
-    draft.date=null;draft.hour=null;re()});
+    if(x.checked){if(i<0)draft.ch.push(v)} else if(i>=0){draft.ch.splice(i,1)}
+    syncCycleTarget();re()});
   document.querySelectorAll('[data-cy]').forEach(x=>x.onchange=()=>{draft.cycle=x.dataset.cy;
-    draft.date=null;draft.hour=null;re()});
+    if(draft.cycle==='주기성'){draft.date=draft.from;draft.hour=REC_HOURS[0]}
+    else{draft.date=null;draft.hour=null}
+    re()});
   document.querySelectorAll('[data-of]').forEach(x=>x.onchange=()=>{draft.offer=x.dataset.of;
     draft.date=null;draft.hour=null;re()});
   $('fGnb').oninput=e=>draft.gnb=e.target.value;
   $('fQty').oninput=e=>{draft.qty=Math.max(0,+e.target.value||0);hintQty()};
   hintQty();
-  $('findBtn').onclick=()=>{found=true;draft.date=null;draft.hour=null;re()};
+  $('findBtn').onclick=()=>{found=true;
+    if(draft.cycle==='주기성'){draft.date=draft.from;draft.hour=REC_HOURS[0]}
+    else{draft.date=null;draft.hour=null}
+    re()};
   const rb=$('resetBtn'); if(rb) rb.onclick=()=>{found=false;draft.date=null;draft.hour=null;re()};
 
   document.querySelectorAll('[data-d]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.d;draft.hour=null;re()});
