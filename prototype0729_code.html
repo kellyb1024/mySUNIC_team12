@@ -138,9 +138,19 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .hslot:hover:not(.taken):not(.on){border-color:var(--sk-orange-text);background:var(--sk-orange-t10)}
 .hslot.on{background:var(--text-strong);border-color:var(--text-strong)}
 .hslot.on .hh{color:#fff} .hslot.on .hs{color:#D6D8DA}
-.hslot.taken{background:repeating-linear-gradient(45deg,#E8E9EB 0 4px,#CFD2D5 4px 8px);
-  cursor:not-allowed;border-color:var(--locked-fill)}
-.hslot.taken .hh,.hslot.taken .hs{color:var(--locked-text);font-weight:400}
+/* 선점 = 남이 쓰고 있지만 조정 요청은 가능 → 비활성처럼 보이지 않게 */
+.hslot.taken{background:var(--l1);border-color:var(--locked-fill);cursor:pointer}
+.hslot.taken .hh{color:var(--locked-text)}
+.hslot.taken .hs{color:var(--locked-text);font-weight:400}
+.hslot.taken .swap{display:none}
+.hslot.taken:hover:not(.on){background:var(--waiting-bg);border-color:var(--waiting-border)}
+.hslot.taken:hover:not(.on) .hh{color:var(--waiting-text)}
+.hslot.taken:hover:not(.on) .keep{display:none}
+.hslot.taken:hover:not(.on) .swap{display:inline;color:var(--waiting-text);font-weight:500}
+/* 읽기 전용(일자 상세) — 호버 반응 없음 */
+.hslot.ro{cursor:default}
+.hslot.ro:hover{background:var(--l1);border-color:var(--locked-fill)}
+.hslot.ro:hover .hh{color:var(--locked-text)}
 .hslot.rec{border-color:var(--sk-orange);border-width:2px}
 .top3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
 .t3{border:1px solid var(--border);border-radius:6px;padding:11px 12px}
@@ -159,9 +169,10 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .gauges{display:flex;gap:22px;flex-wrap:wrap;margin:4px 0 14px}
 .gauge{display:flex;gap:10px;align-items:flex-end}
 .gtube{width:40px;height:84px;border:1px solid var(--cell-border);border-radius:3px;position:relative;overflow:hidden;background:var(--l1)}
-.gfill{position:absolute;left:0;right:0;bottom:0;background:var(--confirmed)}
+/* 소진된 캐파 = SK 오렌지 / 내가 신청하려는 분량 = 연한 톤 빗금 */
+.gfill{position:absolute;left:0;right:0;bottom:0;background:var(--sk-orange)}
 .gghost{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,
-  rgba(238,117,1,.6) 0 4px,rgba(238,117,1,.28) 4px 8px)}
+  var(--sk-orange-t25) 0 4px,#FFFFFF 4px 8px);border-top:1px solid var(--sk-orange-t25)}
 .gmeta{font-size:11.5px;line-height:1.6}
 .gmeta .gt{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:2px;display:flex;align-items:center}
 .gmeta .gn{font-family:Roboto;font-variant-numeric:tabular-nums;color:var(--text-strong)}
@@ -315,7 +326,6 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .frow3 .fld input:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
 
 /* ── 맨 위 · 내 캠페인 월간 현황 요약 ── */
-.hslot.taken{cursor:pointer}
 .hslot.taken.on{background:var(--waiting-bg);border-color:var(--waiting-border);border-width:2px}
 .hslot.taken.on .hh{color:var(--waiting-text);font-weight:500}
 .hslot.taken.on .hs{color:var(--waiting-text)}
@@ -481,9 +491,9 @@ const live=r=>['확정','발송 완료','신청'].includes(r.status);
    일회성 : 시작일 1회 발송. 기간은 고객 노출 기간(고객이 TV를 켠 최초 시점에 1회 노출)
    주기성 : 기간 내 매일 17~19시 발송. 우선순위가 높아 그 기간 17~19시는 주기성만 배치
 
-   캐파   : 일회성·주기성 모두 '시작일'에만 반영.
-            주기성은 실제로 매일 소진하지만 기간 내내 17~19시를 독점하므로
-            다른 캠페인이 어차피 못 들어와 캐파 반영과 무관하다는 현업 운영 방식.
+   캐파   : 일회성 = 시작일 1회 / 주기성 = 기간 내 매일 1일치씩 실제 소진.
+            (기존 스프레드시트는 매일 반영이 어려워 시작일만 적었지만,
+             시스템에서는 실제 소진량을 계산해 보여준다.)
    시간대 : 일회성 = 시작일 1칸 / 주기성 = 기간 내내 17~19시 3칸 */
 const REC_HOURS=[17,18,19];
 /* 마케터 선호 시간대 — 저녁 18~19시 반응률이 가장 높음 (0728 미팅) */
@@ -492,8 +502,8 @@ const prefRank=h=>PREF.indexOf(h);
 const activeOn=(d,r)=>r.cycle==='주기성' ? (d>=r.from&&d<=r.to) : (r.date===d);
 const hoursOf=r=>r.cycle==='주기성'?REC_HOURS:[r.hour];
 
-/* ── 사용량: 캐파는 시작일 기준 ── */
-const usedOn=(d,pred)=>requests.filter(r=>live(r)&&r.date===d&&pred(r)).reduce((s,r)=>s+r.qty,0);
+/* ── 사용량: 그 날 실제로 나가는 물량 ── */
+const usedOn=(d,pred)=>requests.filter(r=>live(r)&&activeOn(d,r)&&pred(r)).reduce((s,r)=>s+r.qty,0);
 const bannerUsed=d=>usedOn(d,r=>r.ch.includes('배너'));
 const couponUsed=d=>usedOn(d,r=>r.offer==='쿠폰');
 const bannerRem=d=>CAPA['배너'].limit-bannerUsed(d);
@@ -518,13 +528,11 @@ const rangeDays=(from,to)=>ALL.filter(x=>x.d>=from&&x.d<=to).map(x=>x.d);
 /* 주기성: 기간 전체를 한 번에 판정 (매일 17~19시 · 매일 1일치 캐파) */
 function periodCheck(c){
   const days=rangeDays(c.from,c.to), blocked=[], busy=[];
-  const s=days[0];
-  /* 캐파는 시작일에만 반영 */
-  if(isPast(s)) blocked.push({d:s,why:'지난 날짜'});
-  else if(c.ch.includes('배너')&&bannerRem(s)<c.qty) blocked.push({d:s,why:`배너 잔여 ${man(bannerRem(s))}만`});
-  else if(c.offer==='쿠폰'&&couponRem(s)<c.qty) blocked.push({d:s,why:`쿠폰 잔여 ${man(couponRem(s))}만`});
-  /* 시간대 점유는 기간 전체 검사 */
   days.forEach(d=>{
+    /* 캐파는 매일 1일치씩 소진되므로 기간 내 모든 날을 검사 */
+    if(isPast(d)){blocked.push({d,why:'지난 날짜'});return}
+    if(c.ch.includes('배너')&&bannerRem(d)<c.qty){blocked.push({d,why:`배너 잔여 ${man(bannerRem(d))}만`});return}
+    if(c.offer==='쿠폰'&&couponRem(d)<c.qty){blocked.push({d,why:`쿠폰 잔여 ${man(couponRem(d))}만`});return}
     const t=takenHours(d), occ=REC_HOURS.filter(h=>t.has(h));
     if(occ.length) busy.push({d,hours:occ});
   });
@@ -720,7 +728,7 @@ function recurringBody(head){
         <div class="qm">주기성은 매일 이 시간대를 점유합니다</div></div>
       <div class="qk"><div class="qt">1일 발송 모수</div>
         <div class="qv num">${man(draft.qty)}만 <small>건</small></div>
-        <div class="qm">기간 합계 ${man(total)}만 · 캐파는 시작일에만 반영</div></div>
+        <div class="qm">기간 합계 ${man(total)}만 · 매일 ${man(draft.qty)}만씩 캐파 소진</div></div>
     </div>
     <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
     <div class="legend">
@@ -731,7 +739,7 @@ function recurringBody(head){
     ${pc.blocked.length
       ? `<div class="blockbox"><b>${pc.blocked.length}일이 캐파를 넘겨 신청할 수 없습니다</b>
           <div>${pc.blocked.slice(0,6).map(x=>`${fmtD(x.d)} ${x.why}`).join(' · ')}${pc.blocked.length>6?` 외 ${pc.blocked.length-6}일`:''}</div>
-          <div class="bm">캐파는 시작일 기준입니다. 1일 타겟수를 줄이거나 시작일을 옮겨 주세요.</div></div>`
+          <div class="bm">1일 타겟수를 줄이거나 기간을 조정해 주세요.</div></div>`
       : secFinal()}
   </div>`;
 }
@@ -748,7 +756,9 @@ function secHour(){
     <div class="hgrid">${HOURS.map(h=>{
       const t=taken.has(h), on=draft.hour===h, r=rec.includes(h);
       return `<div class="hslot ${t?'taken':''}${on?' on':''}${r&&!on?' rec':''}" data-h="${h}">
-        <span class="hh">${h}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
+        <span class="hh">${h}시</span>
+        <span class="hs">${t?'<span class="keep">선점</span><span class="swap">조정 요청</span>':'가능'}</span></div>`}).join('')}</div>
+    ${occupancyList(d)}
     <div class="segnote" style="margin:14px 0 0">잔여 시간대 추천</div>
     <div class="top3">${rec.map((h,i)=>`<div class="t3"><div class="r">추천 ${i+1}</div>
       <div class="h">${h}:00</div><div class="m">${prefRank(h)<2?'반응률이 가장 높은 시간대'
@@ -757,6 +767,27 @@ function secHour(){
       ||'<div class="empty">남은 시간대가 없습니다.</div>'}</div>
   </div>`;
 }
+/* 이 날 시간대를 차지하고 있는 캠페인 — 주기성은 캐파가 시작일에만 잡혀
+   게이지가 비어 보이므로 점유 사유를 목록으로 드러낸다 */
+function occupancyList(d){
+  const on=requests.filter(r=>live(r)&&activeOn(d,r))
+    .sort((a,b)=>hoursOf(a)[0]-hoursOf(b)[0]);
+  if(!on.length) return '';
+  return `<div class="segnote" style="margin:16px 0 0">이 날 배치된 캠페인</div>
+  <div class="daylist">${on.map(r=>{
+    const rep=r.cycle==='주기성';
+    return `<div class="dayrow">
+      <span class="dh2 num">${rep?'17-19시':r.hour+':00'}</span>
+      <span class="dnm">${esc(r.camp)}</span>
+      <span class="dch">${rep?`주기성 · ${fmtD(r.from)}~${fmtD(r.to)}`:r.ch.join('·')+' / '+r.offer}</span>
+      <span class="dq num">${man(r.qty)}만</span>
+      <span class="dw">${r.team} ${r.mk}</span>
+      <span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
+        :r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span>
+    </div>`}).join('')}</div>
+  `;
+}
+
 function gaugeRow(d){
   const g=(name,used,lim)=>{
     if(lim===null) return `<div class="gauge"><div class="gtube"></div>
@@ -1099,7 +1130,7 @@ function renderDay(d){
       <div class="segnote">시간대별 배치 현황</div>
       <div class="hgrid">${HOURS.map(h=>{
         const r=onDay.find(x=>x.hour===h);
-        return `<div class="hslot ${r?'taken':''}" style="cursor:default">
+        return `<div class="hslot ro ${r?'taken':''}">
           <span class="hh">${h}시</span>
           <span class="hs">${r?esc(r.camp.slice(0,6)):'비어 있음'}</span></div>`}).join('')}</div>
       <div class="segnote" style="margin:18px 0 8px">이 날짜의 캠페인</div>
