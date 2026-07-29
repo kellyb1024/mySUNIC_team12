@@ -306,12 +306,36 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .frow3 .fld input{padding:9px 10px;border:1px solid var(--border);border-radius:4px;width:100%}
 .frow3 .fld input:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
 
-/* ── 내 캠페인 상태 요약 ── */
-.stsum{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:10px}
-.stc{border:1px solid var(--border);border-radius:6px;padding:13px 15px}
-.stc .sct{font-size:11.5px;font-weight:500;color:var(--sk-orange-text);margin-bottom:4px}
-.stc .scv{font-size:24px;font-weight:500;color:var(--text-strong);line-height:1.15}
-.stc .scm{font-size:11px;color:var(--text-muted);margin-top:3px}
+/* ── 맨 위 · 내 캠페인 월간 현황 요약 ── */
+.hslot.taken{cursor:pointer}
+.hslot.taken.on{background:var(--waiting-bg);border-color:var(--waiting-border);border-width:2px}
+.hslot.taken.on .hh{color:var(--waiting-text);font-weight:500}
+.hslot.taken.on .hs{color:var(--waiting-text)}
+.drill.final.warn{border-top:1px dashed var(--waiting-border)}
+.conflict{border:1px solid var(--waiting-border);background:var(--waiting-bg);border-radius:6px;
+  padding:12px 14px;margin-bottom:14px}
+.conflict .cft{font-size:12.5px;font-weight:500;color:var(--waiting-text);margin-bottom:7px}
+.conflict .cfr{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--text-strong)}
+.conflict .cfr span:first-child{font-weight:500}
+.conflict .cfm{font-size:11.5px;color:var(--waiting-text);margin-top:7px;line-height:1.55}
+table.list td.rsn{color:var(--text-muted);font-size:11.5px;max-width:210px;
+  overflow:hidden;text-overflow:ellipsis}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:14px 16px;position:relative}
+.kpi .k{font-size:11.5px;color:var(--text-muted);margin-bottom:5px}
+.kpi .v{font-size:26px;font-weight:500;color:var(--text-strong);line-height:1.15;letter-spacing:-.02em}
+.kpi .s{font-size:11.5px;color:var(--text-muted);margin-top:5px}
+.kpi.hero{background:var(--sk-orange-t10);padding-left:19px}
+.kpi.hero::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--sk-orange);border-radius:8px 0 0 8px}
+.kpi.hero .k{color:var(--sk-orange-text);font-weight:500}
+.kpihd{display:flex;align-items:center;gap:9px;margin-bottom:-6px}
+.kpihd .arw{width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:12px}
+.kpihd .arw:hover:not(:disabled){background:var(--motif)}
+.kpihd .arw:disabled{opacity:.3;cursor:not-allowed}
+.kpihd .kml{font-size:14px;font-weight:500;color:var(--text-strong);min-width:74px;text-align:center}
+.kpihd .kmn{font-size:11.5px;color:var(--text-muted)}
 
 /* ── 추천 카드 ── */
 .recs{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
@@ -468,7 +492,7 @@ const rangeDays=(from,to)=>ALL.filter(x=>x.d>=from&&x.d<=to).map(x=>x.d);
 /* ══════════════════════════════════════════════════════════════════════
    상태
    ══════════════════════════════════════════════════════════════════════ */
-let role='mkt', tab='apply', calMonth='2026-08', found=false, scope='mine';
+let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), found=false, scope='mine';
 let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',offer:'쿠폰',qty:15,
            date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk};
 let calFilter={mode:'all',ch:[]}, calDay=null;
@@ -503,12 +527,39 @@ function renderApply(){
     <div class="shell">
       <aside class="side">${sideCond()}</aside>
       <div class="main">
+        ${kpiRow()}
         ${cardApply()}
         ${cardRec()}
         ${cardList()}
       </div>
     </div>
   </div>`;
+}
+
+/* ── 맨 위 · 내 캠페인 월간 현황 요약 ── */
+function kpiRow(){
+  const m=kpiMonth;
+  const mine=requests.filter(r=>r.mk===ME.mk&&r.team===ME.team&&r.date.slice(0,7)===m);
+  const cnt=s=>mine.filter(r=>r.status===s).length;
+  /* 신청 → 담당자 처리 → 조정 필요 | 확정  (발송 완료는 확정을 거친 건) */
+  const adj=cnt('조정 필요'), conf=cnt('확정')+cnt('발송 완료'), wait=cnt('신청');
+  const applied=adj+conf+wait;
+  const parts=[adj?`조정 필요 ${adj}`:'',conf?`확정 ${conf}`:'',wait?`확정 대기 ${wait}`:'']
+    .filter(Boolean).join(' · ')||'신청한 캠페인 없음';
+  const box=(k,v,s,hero)=>`<div class="kpi${hero?' hero':''}">
+    <div class="k">${k}</div><div class="v num">${v||'—'}</div><div class="s">${s}</div></div>`;
+  const mi=MONTHS.indexOf(m);
+  return `<div class="kpihd">
+      <button class="arw" data-km="${MONTHS[mi-1]||''}" ${mi<=0?'disabled':''}>‹</button>
+      <span class="kml num">${m.replace('-','. ')}</span>
+      <button class="arw" data-km="${MONTHS[mi+1]||''}" ${mi>=MONTHS.length-1?'disabled':''}>›</button>
+      <span class="kmn">내가 신청한 캠페인</span>
+    </div>
+    <div class="kpis">
+      ${box('신청',applied,parts)}
+      ${box('조정 필요',adj,'캐파 미달 · 담당자 조정 요청',adj>0)}
+      ${box('확정',conf,'담당자 확정 완료')}
+    </div>`;
 }
 
 /* ── 좌측 · 잔여 일정 확인하기 ── */
@@ -558,7 +609,7 @@ function cardApply(){
   const head=`<div class="card-hd"><div class="rule"></div>
     <div class="lbl"><span>캠페인 신청하기</span></div>
     <h2><span>신청 가능한 날짜</span>
-      <span class="badge">1개 시간대에 1개 캠페인</span></h2></div>`;
+      <span class="badge">선점 시간대는 조정 요청으로 신청</span></h2></div>`;
   if(!found) return `<div class="card">${head}
     <div class="empty">좌측에서 조건을 입력하고 <b>가능한 날 찾기</b>를 눌러 주세요.</div></div>`;
 
@@ -608,7 +659,7 @@ function secHour(){
     ${gaugeRow(d)}
     <div class="hgrid">${HOURS.map(h=>{
       const t=taken.has(h), on=draft.hour===h, r=rec.includes(h);
-      return `<div class="hslot ${t?'taken':''}${on?' on':''}${r&&!on?' rec':''}" ${t?'':`data-h="${h}"`}>
+      return `<div class="hslot ${t?'taken':''}${on?' on':''}${r&&!on?' rec':''}" data-h="${h}">
         <span class="hh">${h}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
     <div class="segnote" style="margin:14px 0 0">잔여 시간대 추천</div>
     <div class="top3">${rec.map((h,i)=>`<div class="t3"><div class="r">추천 ${i+1}</div>
@@ -637,11 +688,22 @@ function gaugeRow(d){
   return `<div class="gauges">${rows.join('')}</div>`;
 }
 
+/* 선택한 날짜·시간대를 이미 점유한 캠페인 */
+const holderOf=(d,h)=>requests.find(r=>r.date===d&&r.hour===h&&live(r))||null;
+const conflict=()=>draft.date&&draft.hour?holderOf(draft.date,draft.hour):null;
+
 /* ── 시간대 선택 후 펼쳐지는 최종 신청 ── */
 function secFinal(){
-  return `<div class="drill final">
-    <div class="drill-hd"><b>최종 신청</b>
+  const c=conflict();
+  return `<div class="drill final${c?' warn':''}">
+    <div class="drill-hd"><b>${c?'조정 요청':'최종 신청'}</b>
       <span>${fmtD(draft.date)} ${draft.hour}:00</span></div>
+    ${c?`<div class="conflict">
+      <div class="cft">이 시간대는 이미 선점되어 있습니다</div>
+      <div class="cfr"><span>${esc(c.camp)}</span><span>${c.team} ${c.mk}</span>
+        <span class="st ${c.status==='신청'?'applied':'confirmed'}">${c.status}</span></div>
+      <div class="cfm">조정 필요 상태로 신청되며, 담당자가 일정을 조정합니다.</div>
+    </div>`:''}
     <div class="frow3">
       <div class="fld"><label>캠페인명</label>
         <input type="text" id="fCamp" value="${esc(draft.camp)}" placeholder="예: 8월 콘텐츠 추천 프로모션"></div>
@@ -649,7 +711,7 @@ function secFinal(){
       <div class="fld"><label>마케터</label><input type="text" id="fMk" value="${esc(draft.mk)}"></div>
     </div>
     <div class="actions">
-      <button class="pill primary" id="submitBtn">신청하기</button>
+      <button class="pill primary" id="submitBtn">${conflict()?'조정 요청하기':'신청하기'}</button>
     </div>
   </div>`;
 }
@@ -679,27 +741,18 @@ function cardRec(){
 
 /* ── 우측 하단 · 캠페인 리스트 ── */
 function cardList(){
-  const mine=requests.filter(r=>r.mk===ME.mk&&r.team===ME.team);
-  const thisMonth=mine.filter(r=>r.date.slice(0,7)===TODAY.slice(0,7));
-  const cnt=s=>thisMonth.filter(r=>r.status===s).length;
   const rows=requests.filter(r=>scope==='mine'?(r.mk===ME.mk&&r.team===ME.team)
                               :scope==='team'?r.team===ME.team:true)
                      .sort((a,b)=>a.date<b.date?-1:1);
   return `<div class="card">
     <div class="card-hd"><div class="rule"></div>
       <div class="lbl"><span>캠페인 리스트</span></div>
-      <h2><span>내 캠페인 상태 요약</span>
+      <h2><span>${({mine:'내 신청',team:'우리 팀',all:'전체'})[scope]}</span>
         <span class="tabs">${[['mine','내 신청'],['team','우리 팀'],['all','전체']].map(([k,n])=>
           `<button data-sc="${k}" class="${scope===k?'on':''}">${n}</button>`).join('')}</span></h2></div>
-    <div class="stsum">
-      ${[['신청','담당자 확정 전'],['조정 필요','일정 재조정 필요'],['확정','담당자 확정 완료']]
-        .map(([s,m])=>`<div class="stc"><div class="sct">${s}</div>
-          <div class="scv num">${cnt(s)||'—'}</div><div class="scm">${m}</div></div>`).join('')}
-    </div>
-    <div class="note" style="margin:0 0 14px">요약 범위: 당월 내가 신청한 캠페인</div>
     <div class="tblwrap"><table class="list">
       <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
-        <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th></tr>
+        <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th><th>사유</th></tr>
       ${rows.map(r=>`<tr class="rw">
         <td class="wrap">${esc(r.camp)}</td>
         <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
@@ -709,7 +762,8 @@ function cardList(){
         <td class="r">${man(r.qty)}만</td>
         <td>${r.team} ${r.mk}</td>
         <td><span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
-             :r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span></td></tr>`).join('')}
+             :r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span></td>
+        <td class="rsn">${esc(r.reason||'—')}</td></tr>`).join('')}
     </table></div>
     ${rows.length?'':'<div class="empty">해당하는 캠페인이 없습니다.</div>'}
   </div>`;
@@ -718,9 +772,12 @@ function cardList(){
 /* ── 신청 확인 팝업 ── */
 const hrow=(k,v)=>`<div class="hr"><span>${k}</span><span>${esc(v)}</span></div>`;
 function confirmModal(){
+  const c=conflict();
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
-    <h3>이 신청 내용이 맞으십니까?</h3>
-    <div class="m-sub">신청 후에는 담당자 확정 전까지 캠페인 리스트에서 수정할 수 있습니다.</div>
+    <h3>${c?'이 내용으로 조정 요청할까요?':'이 신청 내용이 맞으십니까?'}</h3>
+    <div class="m-sub">${c
+      ?`선택한 시간대를 <b>${esc(c.camp)}</b>(${c.team} ${c.mk} · ${c.status})가 선점하고 있습니다.`
+      :'신청 후에는 담당자 확정 전까지 캠페인 리스트에서 수정할 수 있습니다.'}</div>
     <div class="herocard">
       ${hrow('캠페인명',draft.camp)}
       ${hrow('부서 · 마케터',`${draft.dept} · ${draft.mk}`)}
@@ -732,15 +789,17 @@ function confirmModal(){
     </div>
     <div class="m-act">
       <button class="pill ghost" id="mNo">다시 확인</button>
-      <button class="pill primary" id="mYes">신청 확정</button>
+      <button class="pill primary" id="mYes">${c?'조정 요청':'신청'}</button>
     </div></div></div>`;
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
   $('mYes').onclick=()=>{
     requests.push(mkReq({camp:draft.camp,from:draft.from,to:draft.to,ch:[...draft.ch],gnb:draft.gnb,
       cycle:draft.cycle,offer:draft.offer,qty:draft.qty,team:draft.dept,mk:draft.mk,
-      date:draft.date,hour:draft.hour,status:'신청'}));
+      date:draft.date,hour:draft.hour,
+      status:c?'조정 필요':'신청',
+      reason:c?`${c.camp} (${c.team} ${c.mk}) 선점`:''}));
     $('modalSlot').innerHTML='';
-    toast(`신청되었습니다 — ${fmtD(draft.date)} ${draft.hour}:00`);
+    toast(c?`조정 요청되었습니다 — ${c.camp} 선점`:`신청되었습니다 — ${fmtD(draft.date)} ${draft.hour}:00`, !!c);
     draft.camp=''; draft.date=null; draft.hour=null;
     scope='mine'; render();
   };
@@ -772,6 +831,8 @@ function bindApply(){
   document.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.pick;re()});
   document.querySelectorAll('[data-rec]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.rec;draft.hour=null;re()});
   document.querySelectorAll('[data-sc]').forEach(x=>x.onclick=()=>{scope=x.dataset.sc;re()});
+  document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
+    if(x.dataset.km) {kpiMonth=x.dataset.km; re()}});
   const te=$('takeEarly'); if(te) te.onclick=()=>{
     const es=earliestSlot(draft); if(!es) return;
     draft.date=es.d; draft.hour=es.h; re()};
@@ -826,7 +887,7 @@ function renderCal(){
       <div class="card-hd"><div class="rule"></div>
         <div class="lbl"><span>이번 달 발송 현황</span><span>${calMonth.replace('-','.')}</span></div>
         <h2><span>채널 · 오퍼별 요약</span>
-          <span class="badge">시작 기준 ${inMonth.length}건</span></h2></div>
+          <span class="badge">이 달 시작 ${inMonth.length}건</span></h2></div>
       ${chartFor(inMonth)}
     </div>
     <div class="card">
