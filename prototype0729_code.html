@@ -173,7 +173,8 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .cal .ch{font-size:11.5px;color:var(--text-muted);text-align:center;padding:4px 0 6px;font-weight:500}
 .cal .ch.sun{color:var(--sk-red)}
 .ccell{border:1px solid var(--border);border-radius:5px;min-height:112px;padding:6px 7px;background:#fff;
-  display:flex;flex-direction:column;gap:3px;position:relative;overflow:hidden}
+  display:flex;flex-direction:column;gap:3px;position:relative}
+.ccell:hover{z-index:70}
 .ccell.out{background:var(--motif);opacity:.55}
 .ccell.today{border-color:var(--sk-orange);border-width:2px;padding:5px 6px}
 .ccell .cd{font-size:12px;font-family:Roboto;font-weight:500;color:var(--text-strong);margin-bottom:1px}
@@ -183,7 +184,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid var(--text-muted)}
 .ev.start{background:var(--sk-orange-t10);border-left-color:var(--sk-orange);color:var(--sk-orange-text)}
 .ev.end{background:var(--l1);border-left-color:var(--locked-fill);color:var(--text)}
-.ev:hover{overflow:visible;z-index:40}
+.ev:hover{overflow:visible;z-index:80}
+.ev.rt .tip{left:auto;right:0}
+.ev.up .tip{top:auto;bottom:calc(100% + 5px)}
 .ev .tip{display:none;position:absolute;top:calc(100% + 5px);left:0;background:var(--text-strong);color:#fff;
   padding:9px 11px;border-radius:5px;font-size:11px;line-height:1.6;width:222px;white-space:normal;
   z-index:130;box-shadow:0 4px 14px rgba(0,0,0,.2)}
@@ -260,6 +263,79 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .herocard .hr span:first-child{color:var(--sk-orange-text)}
 .herocard .hr span:last-child{color:var(--text-strong);font-weight:500;text-align:right}
 .hide{display:none!important}
+
+
+/* ── 2단 배치 (좌 조건 / 우 카드) ── */
+.shell{display:flex;align-items:flex-start;gap:20px}
+.side{width:250px;flex:0 0 250px;position:sticky;top:112px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;gap:20px}
+.fgroup{margin-bottom:13px}
+.ftitle{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:5px;display:flex;align-items:center}
+.side input[type=date],.side input[type=text]{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:4px;background:#fff}
+.side input:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
+.opt{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:12.5px;color:var(--text-strong);cursor:pointer}
+.opt input{accent-color:var(--sk-orange);width:14px;height:14px;cursor:pointer}
+.qtyrow{display:flex;align-items:center;gap:6px}
+.qtyrow input{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:4px;text-align:right;
+  font-family:Roboto;font-variant-numeric:tabular-nums}
+.qtyrow span{font-size:12px;color:var(--text-muted);white-space:nowrap}
+.findbtn{width:100%;padding:11px;border-radius:999px;background:var(--sk-orange);color:#1F1F1F;
+  font-size:13.5px;font-weight:500;margin-top:4px}
+.findbtn:hover{background:var(--sk-orange-dk)}
+.resetbtn{width:100%;padding:7px;font-size:11px;color:var(--text-muted);text-decoration:underline;margin-top:5px}
+
+/* ── 이번주 신청 가능 / 가장 빠른 슬롯 ── */
+.quicks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.qk{border:1px solid var(--border);border-radius:6px;padding:12px 14px;background:var(--sk-orange-t10)}
+.qk .qt{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:4px}
+.qk .qv{font-size:18px;font-weight:500;color:var(--text-strong);line-height:1.2}
+.qk .qv small{font-size:12px;color:var(--text-muted);font-weight:400}
+.qk .qm{font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5}
+.qk .qb{margin-top:9px;width:100%;padding:6px;border-radius:999px;border:1px solid var(--sk-orange-text);
+  color:var(--sk-orange-text);font-size:11.5px;font-weight:500;background:#fff}
+.qk .qb:hover{background:#fff}
+
+/* ── 카드 안에서 펼쳐지는 단계 ── */
+.drill{border-top:1px solid var(--border);margin-top:18px;padding-top:16px}
+.drill.final{border-top:1px dashed var(--sk-orange-text)}
+.drill-hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px}
+.drill-hd b{font-size:14.5px;font-weight:500;color:var(--text-strong)}
+.drill-hd span{font-size:11.5px;color:var(--text-muted)}
+.frow3{display:grid;grid-template-columns:minmax(0,2fr) 1fr 1fr;gap:14px}
+.frow3 .fld label{font-size:11.5px;font-weight:500;color:var(--sk-orange-text)}
+.frow3 .fld input{padding:9px 10px;border:1px solid var(--border);border-radius:4px;width:100%}
+.frow3 .fld input:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
+
+/* ── 내 캠페인 상태 요약 ── */
+.stsum{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:10px}
+.stc{border:1px solid var(--border);border-radius:6px;padding:13px 15px}
+.stc .sct{font-size:11.5px;font-weight:500;color:var(--sk-orange-text);margin-bottom:4px}
+.stc .scv{font-size:24px;font-weight:500;color:var(--text-strong);line-height:1.15}
+.stc .scm{font-size:11px;color:var(--text-muted);margin-top:3px}
+
+/* ── 추천 카드 ── */
+.recs{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.rec-card{border:1px solid var(--border);border-radius:6px;padding:12px 13px}
+.rec-card .rt{font-size:13.5px;font-weight:500;color:var(--text-strong);margin-bottom:5px}
+.rec-card .rl{font-size:11.5px;color:var(--text-muted);line-height:1.6}
+.rec-card button{width:100%;margin-top:9px;padding:7px;border-radius:999px;border:1px solid var(--sk-orange-text);
+  color:var(--sk-orange-text);font-size:11.5px;font-weight:500;background:#fff}
+.rec-card button:hover{background:var(--sk-orange-t10)}
+
+/* ── 리스트 ── */
+.tabs{display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;width:max-content}
+.tabs button{padding:6px 15px;font-size:12px;color:var(--text-muted);white-space:nowrap}
+.tabs button.on{background:var(--text-strong);color:#fff}
+.tblwrap{overflow-x:auto}
+table.list{width:100%;min-width:1080px;border-collapse:collapse;font-size:12.5px}
+table.list th{font-size:11px;font-weight:400;color:var(--text-muted);text-align:left;padding:8px 9px;
+  border-bottom:1px solid var(--cell-border);white-space:nowrap}
+table.list td{padding:10px 9px;border-bottom:1px solid var(--border);vertical-align:middle;
+  color:var(--text-strong);white-space:nowrap}
+table.list td.wrap{white-space:normal;min-width:200px}
+table.list tr.rw:hover td{background:#FCFCFD}
+table.list .r{text-align:right;font-family:Roboto;font-variant-numeric:tabular-nums}
+.st.needfix{background:var(--waiting-bg);color:var(--waiting-text);border:1px solid var(--waiting-border)}
 
 /* ── 데이터 재정의 예정 배너 ── */
 .wipbar{background:var(--waiting-bg);border:1px solid var(--waiting-border);border-radius:6px;
@@ -340,7 +416,7 @@ let requests=[
  mkReq({camp:'영화 월정액 이용 안내',from:'2026-07-30',to:'2026-08-31',ch:['배너'],gnb:'영화 홈',
    cycle:'주기성',offer:'없음',qty:1,team:'B팀',mk:'훈이',date:'2026-07-30',hour:17,memo:'17시 고정'}),
  mkReq({camp:'여름세일',from:'2026-07-31',to:'2026-08-07',ch:['배너'],
-   offer:'없음',qty:100,team:'A팀',mk:'철수',date:'2026-07-31',hour:14}),
+   offer:'없음',qty:100,team:'A팀',mk:'철수',date:'2026-07-31',hour:14,status:'조정 필요'}),
  mkReq({camp:'8월 콘텐츠 추천',from:'2026-07-29',to:'2026-08-31',ch:['배너'],
    offer:'쿠폰',qty:15,team:'C팀',mk:'유리',date:'2026-07-29',hour:10}),
  mkReq({camp:'주말 극장 동시상영',from:'2026-08-01',to:'2026-08-02',ch:['배너','TV팝업'],
@@ -392,7 +468,7 @@ const rangeDays=(from,to)=>ALL.filter(x=>x.d>=from&&x.d<=to).map(x=>x.d);
 /* ══════════════════════════════════════════════════════════════════════
    상태
    ══════════════════════════════════════════════════════════════════════ */
-let role='mkt', tab='apply', step=1, calMonth='2026-08';
+let role='mkt', tab='apply', calMonth='2026-08', found=false, scope='mine';
 let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',offer:'쿠폰',qty:15,
            date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk};
 let calFilter={mode:'all',ch:[]}, calDay=null;
@@ -417,160 +493,134 @@ function renderTabs(){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   페이지 1 — 캠페인 신청
+   페이지 1 — 캠페인 신청 (마케터 화면)
+   좌: 잔여 일정 확인하기 / 우: 캠페인 신청하기 · 추천 · 캠페인 리스트
    ══════════════════════════════════════════════════════════════════════ */
-const STEP_NAMES=['조건 입력','날짜 선택','시간대 선택','최종 신청'];
-function stepBar(){
-  return `<div class="steps">${STEP_NAMES.map((n,i)=>{
-    const s=i+1, cls=step===s?'on':step>s?'done':'';
-    return `<div class="stp ${cls}"><span class="sn">${step>s?'✓':s}</span>${n}</div>`
-      +(i<3?'<div class="stp-line"></div>':'')}).join('')}</div>`;
-}
 function renderApply(){
-  return `<div class="wrap">
+  return `<div class="wrap wide">
     <div class="wipbar"><b>캐파 기준 재정의 진행 중</b> — 배너 일 400만 / 쿠폰 <b>일 440만</b> /
       TV팝업·토스트팝업 <b>제한 없음</b> / 1개 시간대에 1개 캠페인. 숫자 확정되면 로직 교체합니다.</div>
-    <div class="card">
-      <div class="card-hd"><div class="rule"></div>
-        <div class="lbl"><span>캠페인 신청</span><span>마케터</span></div>
-        <h2><span>${STEP_NAMES[step-1]}</span>
-          <span class="badge">1개 시간대에 1개 캠페인</span></h2></div>
-      ${stepBar()}
-      <div id="stepBody"></div>
+    <div class="shell">
+      <aside class="side">${sideCond()}</aside>
+      <div class="main">
+        ${cardApply()}
+        ${cardRec()}
+        ${cardList()}
+      </div>
     </div>
   </div>`;
 }
-/* 단계 이동: 헤더·스텝바까지 다시 그린다 */
-function goStep(){ $('page').innerHTML=renderApply(); renderStep(); }
-function renderStep(){
-  const b=$('stepBody'); if(!b) return;
-  if(step===1) stepCond(b);
-  else if(step===2) stepDate(b);
-  else if(step===3) stepHour(b);
-  else stepFinal(b);
-}
 
-/* ── Step 1 : 조건 ── */
-function stepCond(b){
-  b.innerHTML=`
-  <div class="frow">
-    <div class="fld"><label>시작일</label>
+/* ── 좌측 · 잔여 일정 확인하기 ── */
+function sideCond(){
+  return `<div class="card">
+    <div class="card-hd"><div class="rule"></div>
+      <div class="lbl"><span>잔여 일정 확인하기</span></div></div>
+    <div class="fgroup"><div class="ftitle">시작일</div>
       <input type="date" id="fFrom" value="${draft.from}" min="${addDays(TODAY,1)}" max="2026-09-30"></div>
-    <div class="fld"><label>종료일</label>
+    <div class="fgroup"><div class="ftitle">종료일</div>
       <input type="date" id="fTo" value="${draft.to}" min="${addDays(TODAY,1)}" max="2026-09-30"></div>
-    <div class="fld"><label>주기<i class="i" data-tip="일회성: 원하는 시간대 1개를 지정합니다.&#10;주기성: 기간 내 매일 같은 시간대에 반복 발송합니다."></i></label>
-      <div class="chips">${['일회성','주기성'].map(v=>
-        `<button class="chip ${draft.cycle===v?'on':''}" data-cy="${v}">${v}</button>`).join('')}</div></div>
-    <div class="fld"><label>오퍼<i class="i" data-tip="쿠폰: 일 440만 건까지 발송할 수 있습니다.&#10;없음: 오퍼 없이 알림만 발송합니다."></i></label>
-      <div class="chips">${['쿠폰','없음'].map(v=>
-        `<button class="chip ${draft.offer===v?'on':''}" data-of="${v}">${v}</button>`).join('')}</div></div>
-  </div>
-  <div class="frow">
-    <div class="fld" style="grid-column:span 2"><label>채널<i class="i" data-tip="복수 선택할 수 있습니다.&#10;TV팝업·토스트팝업은 캐파 제한이 없습니다.&#10;배너만 일 400만 건 한도가 적용됩니다."></i></label>
-      <div class="chips">${CH_LIST.map(v=>
-        `<button class="chip ${draft.ch.includes(v)?'on':''}" data-ch="${v}">${v}</button>`).join('')}</div></div>
-    <div class="fld"><label>GNB</label>
+    <div class="fgroup"><div class="ftitle">채널<i class="i" data-tip="배너 일 400만 건&#10;TV팝업·토스트팝업 제한 없음"></i></div>
+      ${CH_LIST.map(v=>`<label class="opt"><input type="checkbox" data-ch="${v}" ${draft.ch.includes(v)?'checked':''}>${v}</label>`).join('')}
+    </div>
+    <div class="fgroup"><div class="ftitle">GNB</div>
       <input type="text" id="fGnb" value="${esc(draft.gnb)}" placeholder="예: 홈, 영화 홈"></div>
-    <div class="fld"><label>전체 타겟수</label>
-      <div class="unit"><input type="number" id="fQty" value="${draft.qty}" min="1"><span>만 건</span></div>
+    <div class="fgroup"><div class="ftitle">주기<i class="i" data-tip="주기성은 기간 내 매일 같은 시간대에 반복 발송합니다."></i></div>
+      ${['일회성','주기성'].map(v=>`<label class="opt"><input type="radio" name="cy" data-cy="${v}" ${draft.cycle===v?'checked':''}>${v}</label>`).join('')}
+    </div>
+    <div class="fgroup"><div class="ftitle">오퍼<i class="i" data-tip="쿠폰 일 440만 건 (시간당 20만 × 22시간)"></i></div>
+      ${['쿠폰','없음'].map(v=>`<label class="opt"><input type="radio" name="of" data-of="${v}" ${draft.offer===v?'checked':''}>${v}</label>`).join('')}
+    </div>
+    <div class="fgroup"><div class="ftitle">전체 타겟수</div>
+      <div class="qtyrow"><input type="number" id="fQty" value="${draft.qty}" min="1"><span>만 건</span></div>
       <div class="hintline" id="qtyHint"></div></div>
-  </div>
-  <div class="actions">
-    <button class="pill primary" id="goFind">가능한 날짜 찾기</button>
-    <span class="note" style="margin:0">조건에 맞는 날짜만 다음 단계에서 선택할 수 있습니다.</span>
+    <button class="findbtn" id="findBtn">가능한 날 찾기</button>
+    ${found?`<button class="resetbtn" id="resetBtn">조건 지우기</button>`:''}
   </div>`;
+}
 
-  b.querySelectorAll('[data-cy]').forEach(x=>x.onclick=()=>{draft.cycle=x.dataset.cy;renderStep()});
-  b.querySelectorAll('[data-of]').forEach(x=>x.onclick=()=>{draft.offer=x.dataset.of;renderStep()});
-  b.querySelectorAll('[data-ch]').forEach(x=>x.onclick=()=>{
-    const v=x.dataset.ch, i=draft.ch.indexOf(v);
-    if(i<0) draft.ch.push(v); else if(draft.ch.length>1) draft.ch.splice(i,1);
-    renderStep()});
-  $('fFrom').onchange=e=>{draft.from=e.target.value; if(draft.to<draft.from) draft.to=draft.from; renderStep()};
-  $('fTo').onchange=e=>{draft.to=e.target.value; if(draft.to<draft.from) draft.from=draft.to; renderStep()};
-  $('fGnb').oninput=e=>draft.gnb=e.target.value;
-  $('fQty').oninput=e=>{draft.qty=Math.max(0,+e.target.value||0); hintQty()};
-  hintQty();
-  $('goFind').onclick=()=>{step=2; draft.date=null; draft.hour=null; goStep()};
-
-  function hintQty(){
-    const h=$('qtyHint'); if(!h) return;
-    const lim=draft.offer==='쿠폰'?CAPA['쿠폰'].limit:(draft.ch.includes('배너')?CAPA['배너'].limit:null);
-    h.textContent=lim?`일 한도 ${man(lim)}만 건`:'선택한 채널은 캐파 제한이 없습니다';
-    h.style.color=lim&&draft.qty>lim?'var(--sk-red)':'var(--text-muted)';
+/* ── 이번 주 신청 가능 / 가장 빠른 슬롯 ── */
+function thisWeekDays(){
+  const t=new Date(TODAY+'T00:00:00'), off=(t.getDay()+6)%7;   /* 월요일 시작 */
+  const mon=addDays(TODAY,-off);
+  return ALL.filter(x=>x.d>=mon&&x.d<=addDays(mon,6)).map(x=>x.d);
+}
+function earliestSlot(c){
+  for(const x of ALL){
+    if(x.d<draft.from||x.d>draft.to) continue;
+    const r=dayCheck(c,x.d); if(r.ok) return {d:x.d,h:r.free[0]};
   }
+  return null;
 }
 
-/* ── Step 2 : 날짜 (가능한 날만 클릭) ── */
-function stepDate(b){
+/* ── 우측 상단 · 캠페인 신청하기 ── */
+function cardApply(){
+  const head=`<div class="card-hd"><div class="rule"></div>
+    <div class="lbl"><span>캠페인 신청하기</span></div>
+    <h2><span>신청 가능한 날짜</span>
+      <span class="badge">1개 시간대에 1개 캠페인</span></h2></div>`;
+  if(!found) return `<div class="card">${head}
+    <div class="empty">좌측에서 조건을 입력하고 <b>가능한 날 찾기</b>를 눌러 주세요.</div></div>`;
+
   const days=rangeDays(draft.from,draft.to);
+  const okDays=days.filter(d=>dayCheck(draft,d).ok);
+  const wk=thisWeekDays().filter(d=>okDays.includes(d));
+  const es=earliestSlot(draft);
   const first=days[0], lead=dayOf(first)?.dow??0;
-  const okCount=days.filter(d=>dayCheck(draft,d).ok).length;
-  const cells=[...Array(lead)].map(()=>`<div class="dcell blank"></div>`).concat(
+
+  const grid=[...Array(lead)].map(()=>`<div class="dcell blank"></div>`).concat(
     days.map(d=>{
-      const c=dayCheck(draft,d), o=dayOf(d), sun=o.dow===0?' sun':'';
-      const on=draft.date===d?' on':'';
-      return `<div class="dcell ${c.ok?'ok':'no'}${on}${sun}" ${c.ok?`data-d="${d}"`:''}>
-        <span class="wk">${o.w}</span>
-        <span class="dd">${+d.slice(8)}</span>
-        <span class="dm">${c.ok?`${c.free.length}개 시간대`:c.why}</span></div>`;
-    })).join('');
-  b.innerHTML=`
-  <div class="sumbox">
-    <div><div class="sv">기간</div><div class="sd">${fmtD(draft.from)} ~ ${fmtD(draft.to)}</div></div>
-    <div><div class="sv">채널 / 오퍼</div><div class="sd">${draft.ch.join('·')} / ${draft.offer}</div></div>
-    <div><div class="sv">주기 / 타겟수</div><div class="sd">${draft.cycle} · ${man(draft.qty)}만 건</div></div>
-    <div><div class="sv">신청 가능한 날</div><div class="sd">${okCount}일 / ${days.length}일</div></div>
-  </div>
-  <div class="segnote">조건을 모두 만족하는 날짜만 선택할 수 있습니다. 회색 날짜는 사유를 함께 표시합니다.</div>
-  <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${cells}</div>
-  ${okCount?'':`<div class="empty">이 기간에는 신청 가능한 날짜가 없습니다.<br>기간을 넓히거나 타겟수를 줄여 보세요.</div>`}
-  <div class="actions">
-    <button class="pill ghost" id="bk">이전</button>
-    <button class="pill primary" id="nx" ${draft.date?'':'disabled'}>시간대 선택</button>
+      const c=dayCheck(draft,d), o=dayOf(d);
+      return `<div class="dcell ${c.ok?'ok':'no'}${draft.date===d?' on':''}${o.dow===0?' sun':''}"
+          ${c.ok?`data-d="${d}"`:''}>
+        <span class="wk">${o.w}</span><span class="dd">${+d.slice(8)}</span>
+        <span class="dm">${c.ok?`${c.free.length}개 시간대`:c.why}</span></div>`})).join('');
+
+  return `<div class="card">${head}
+    <div class="quicks">
+      <div class="qk"><div class="qt">이번 주 신청 가능</div>
+        <div class="qv num">${wk.length}일</div>
+        <div class="qm">${wk.length?wk.map(fmtD).join(' · '):'이번 주에는 가능한 날이 없습니다'}</div></div>
+      <div class="qk"><div class="qt">가장 빠른 슬롯</div>
+        <div class="qv num">${es?`${fmtD(es.d)} ${es.h}:00`:'—'}</div>
+        <div class="qm">${es?'이 날짜·시간대로 바로 신청할 수 있습니다':'조건을 완화해 주세요'}</div>
+        ${es?`<button class="qb" id="takeEarly">이 슬롯으로 신청</button>`:''}</div>
+      <div class="qk"><div class="qt">기간 내 가능한 날</div>
+        <div class="qv num">${okDays.length}일 <small>/ ${days.length}일</small></div>
+        <div class="qm">${draft.ch.join('·')} / ${draft.offer} · ${man(draft.qty)}만 건 기준</div></div>
+    </div>
+    <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
+    ${okDays.length?'':`<div class="empty">이 기간에는 신청 가능한 날짜가 없습니다.<br>기간을 넓히거나 타겟수를 줄여 보세요.</div>`}
+    ${draft.date?secHour():''}
+    ${draft.date&&draft.hour?secFinal():''}
   </div>`;
-  b.querySelectorAll('[data-d]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.d;draft.hour=null;renderStep()});
-  $('bk').onclick=()=>{step=1;goStep()};
-  $('nx').onclick=()=>{step=3;goStep()};
 }
 
-/* ── Step 3 : 시간대 (비어있는 슬롯만) ── */
-function stepHour(b){
+/* ── 날짜 클릭 후 펼쳐지는 시간대 선택 ── */
+function secHour(){
   const d=draft.date, taken=takenHours(d);
   const free=HOURS.filter(h=>!taken.has(h));
-  /* 추천: 앞뒤로 붙은 캠페인이 적은 한산한 시간대 */
   const score=h=>(taken.has(h-1)?1:0)+(taken.has(h+1)?1:0);
   const rec=[...free].sort((a,c)=>score(a)-score(c)||a-c).slice(0,3);
-  b.innerHTML=`
-  <div class="sumbox">
-    <div><div class="sv">선택한 날짜</div><div class="sd">${fmtD(d)}</div></div>
-    <div><div class="sv">빈 시간대</div><div class="sd">${free.length}개 / 22개</div></div>
-    <div><div class="sv">배너 잔여</div><div class="sd">${man(bannerRem(d))}만 건</div></div>
-    <div><div class="sv">쿠폰 잔여</div><div class="sd">${man(couponRem(d))}만 건</div></div>
-  </div>
-  ${gaugeRow(d)}
-  <div class="segnote">1개 시간대에는 1개 캠페인만 배치됩니다. 빗금 친 시간대는 이미 선점되어 선택할 수 없습니다.</div>
-  <div class="hgrid">${HOURS.map(h=>{
-    const t=taken.has(h), on=draft.hour===h, r=rec.includes(h);
-    return `<div class="hslot ${t?'taken':''}${on?' on':''}${r&&!on?' rec':''}" ${t?'':`data-h="${h}"`}>
-      <span class="hh">${h}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
-  <div class="segnote" style="margin:16px 0 0">잔여 시간대 추천</div>
-  <div class="top3">${rec.map((h,i)=>`<div class="t3"><div class="r">추천 ${i+1}</div>
-    <div class="h">${h}:00</div><div class="m">앞뒤 ${score(h)?'인접 캠페인 있음':'비어 있음'}</div>
-    <button data-pick="${h}">이 시간대 선택</button></div>`).join('')||'<div class="empty">추천할 시간대가 없습니다.</div>'}</div>
-  <div class="actions">
-    <button class="pill ghost" id="bk">이전</button>
-    <button class="pill primary" id="nx" ${draft.hour?'':'disabled'}>최종 신청</button>
+  return `<div class="drill">
+    <div class="drill-hd"><b>${fmtD(d)} · 잔여 시간대</b>
+      <span>빈 시간대 ${free.length}개 / 22개</span></div>
+    ${gaugeRow(d)}
+    <div class="hgrid">${HOURS.map(h=>{
+      const t=taken.has(h), on=draft.hour===h, r=rec.includes(h);
+      return `<div class="hslot ${t?'taken':''}${on?' on':''}${r&&!on?' rec':''}" ${t?'':`data-h="${h}"`}>
+        <span class="hh">${h}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
+    <div class="segnote" style="margin:14px 0 0">잔여 시간대 추천</div>
+    <div class="top3">${rec.map((h,i)=>`<div class="t3"><div class="r">추천 ${i+1}</div>
+      <div class="h">${h}:00</div><div class="m">앞뒤 ${score(h)?'인접 캠페인 있음':'비어 있음'}</div>
+      <button data-pick="${h}">이 시간대 선택</button></div>`).join('')
+      ||'<div class="empty">남은 시간대가 없습니다.</div>'}</div>
   </div>`;
-  b.querySelectorAll('[data-h]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.h;renderStep()});
-  b.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.pick;renderStep()});
-  $('bk').onclick=()=>{step=2;goStep()};
-  $('nx').onclick=()=>{step=4;goStep()};
 }
 function gaugeRow(d){
   const g=(name,used,lim)=>{
-    if(lim===null) return `<div class="gauge"><div class="gtube"><div class="gfill" style="height:0"></div></div>
-      <div class="gmeta"><div class="gt">${name}<i class="i" data-tip="캐파 제한이 없는 채널입니다.&#10;스케줄 배치 시 한도를 계산하지 않습니다."></i></div>
+    if(lim===null) return `<div class="gauge"><div class="gtube"></div>
+      <div class="gmeta"><div class="gt">${name}</div>
       <div class="gn">제한 없음</div></div></div>`;
     const p=Math.min(100,used/lim*100), mine=Math.min(100-p,draft.qty/lim*100);
     return `<div class="gauge"><div class="gtube">
@@ -587,48 +637,97 @@ function gaugeRow(d){
   return `<div class="gauges">${rows.join('')}</div>`;
 }
 
-/* ── Step 4 : 최종 신청 ── */
-function stepFinal(b){
-  b.innerHTML=`
-  <div class="frow">
-    <div class="fld" style="grid-column:span 2"><label>캠페인명</label>
-      <input type="text" id="fCamp" value="${esc(draft.camp)}" placeholder="예: 8월 콘텐츠 추천 프로모션"></div>
-    <div class="fld"><label>부서</label><input type="text" id="fDept" value="${esc(draft.dept)}"></div>
-    <div class="fld"><label>마케터</label><input type="text" id="fMk" value="${esc(draft.mk)}"></div>
-  </div>
-  <div class="herocard">
-    ${hrow('기간',`${fmtD(draft.from)} ~ ${fmtD(draft.to)}`)}
-    ${hrow('발송 일시',`${fmtD(draft.date)} ${draft.hour}:00`)}
-    ${hrow('채널',draft.ch.join(' · '))}
-    ${hrow('GNB',draft.gnb||'—')}
-    ${hrow('주기 / 오퍼',`${draft.cycle} · ${draft.offer}`)}
-    ${hrow('전체 타겟수',`${man(draft.qty)}만 건`)}
-  </div>
-  <div class="actions">
-    <button class="pill ghost" id="bk">이전</button>
-    <button class="pill primary" id="submit">신청하기</button>
+/* ── 시간대 선택 후 펼쳐지는 최종 신청 ── */
+function secFinal(){
+  return `<div class="drill final">
+    <div class="drill-hd"><b>최종 신청</b>
+      <span>${fmtD(draft.date)} ${draft.hour}:00</span></div>
+    <div class="frow3">
+      <div class="fld"><label>캠페인명</label>
+        <input type="text" id="fCamp" value="${esc(draft.camp)}" placeholder="예: 8월 콘텐츠 추천 프로모션"></div>
+      <div class="fld"><label>부서</label><input type="text" id="fDept" value="${esc(draft.dept)}"></div>
+      <div class="fld"><label>마케터</label><input type="text" id="fMk" value="${esc(draft.mk)}"></div>
+    </div>
+    <div class="actions">
+      <button class="pill primary" id="submitBtn">신청하기</button>
+    </div>
   </div>`;
-  $('fCamp').oninput=e=>draft.camp=e.target.value;
-  $('fDept').oninput=e=>draft.dept=e.target.value;
-  $('fMk').oninput=e=>draft.mk=e.target.value;
-  $('bk').onclick=()=>{step=3;goStep()};
-  $('submit').onclick=()=>{
-    if(!draft.camp.trim()){toast('캠페인명을 입력해 주세요.',true);$('fCamp').focus();return}
-    confirmModal();
-  };
 }
-const hrow=(k,v)=>`<div class="hr"><span>${k}</span><span>${esc(v)}</span></div>`;
 
+/* ── 우측 중단 · 추천 ── */
+function cardRec(){
+  const head=`<div class="card-hd"><div class="rule"></div>
+    <div class="lbl"><span>추천</span></div></div>`;
+  if(!found) return `<div class="card">${head}
+    <div class="empty">조건을 입력하면 여유 있는 날짜를 추천해 드립니다.</div></div>`;
+  const okDays=rangeDays(draft.from,draft.to).filter(d=>dayCheck(draft,d).ok);
+  if(!okDays.length) return `<div class="card">${head}
+    <div class="empty">추천할 날짜가 없습니다.</div></div>`;
+  const room=d=>(draft.ch.includes('배너')?bannerRem(d):999)+(draft.offer==='쿠폰'?couponRem(d):999);
+  const roomy=[...okDays].sort((a,b)=>room(b)-room(a))[0];
+  const freest=[...okDays].sort((a,b)=>dayCheck(draft,b).free.length-dayCheck(draft,a).free.length)[0];
+  const soon=okDays[0];
+  const uniq=[...new Set([soon,roomy,freest])];
+  const label={[soon]:'가장 빠른 날',[roomy]:'캐파가 가장 여유로운 날',[freest]:'시간대가 가장 많이 빈 날'};
+  return `<div class="card">${head}
+    <div class="recs">${uniq.map(d=>`<div class="rec-card">
+      <div class="rt">${fmtD(d)}</div>
+      <div class="rl">${label[d]}<br>빈 시간대 ${dayCheck(draft,d).free.length}개</div>
+      <button data-rec="${d}">이 날짜 보기</button></div>`).join('')}</div>
+  </div>`;
+}
+
+/* ── 우측 하단 · 캠페인 리스트 ── */
+function cardList(){
+  const mine=requests.filter(r=>r.mk===ME.mk&&r.team===ME.team);
+  const thisMonth=mine.filter(r=>r.date.slice(0,7)===TODAY.slice(0,7));
+  const cnt=s=>thisMonth.filter(r=>r.status===s).length;
+  const rows=requests.filter(r=>scope==='mine'?(r.mk===ME.mk&&r.team===ME.team)
+                              :scope==='team'?r.team===ME.team:true)
+                     .sort((a,b)=>a.date<b.date?-1:1);
+  return `<div class="card">
+    <div class="card-hd"><div class="rule"></div>
+      <div class="lbl"><span>캠페인 리스트</span></div>
+      <h2><span>내 캠페인 상태 요약</span>
+        <span class="tabs">${[['mine','내 신청'],['team','우리 팀'],['all','전체']].map(([k,n])=>
+          `<button data-sc="${k}" class="${scope===k?'on':''}">${n}</button>`).join('')}</span></h2></div>
+    <div class="stsum">
+      ${[['신청','담당자 확정 전'],['조정 필요','일정 재조정 필요'],['확정','담당자 확정 완료']]
+        .map(([s,m])=>`<div class="stc"><div class="sct">${s}</div>
+          <div class="scv num">${cnt(s)||'—'}</div><div class="scm">${m}</div></div>`).join('')}
+    </div>
+    <div class="note" style="margin:0 0 14px">요약 범위: 당월 내가 신청한 캠페인</div>
+    <div class="tblwrap"><table class="list">
+      <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
+        <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th></tr>
+      ${rows.map(r=>`<tr class="rw">
+        <td class="wrap">${esc(r.camp)}</td>
+        <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
+        <td>${fmtD(r.date)} ${r.hour}:00</td>
+        <td>${r.ch.join('·')}</td><td>${esc(r.gnb)}</td>
+        <td>${r.cycle}</td><td>${r.offer}</td>
+        <td class="r">${man(r.qty)}만</td>
+        <td>${r.team} ${r.mk}</td>
+        <td><span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
+             :r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span></td></tr>`).join('')}
+    </table></div>
+    ${rows.length?'':'<div class="empty">해당하는 캠페인이 없습니다.</div>'}
+  </div>`;
+}
+
+/* ── 신청 확인 팝업 ── */
+const hrow=(k,v)=>`<div class="hr"><span>${k}</span><span>${esc(v)}</span></div>`;
 function confirmModal(){
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
     <h3>이 신청 내용이 맞으십니까?</h3>
     <div class="m-sub">신청 후에는 담당자 확정 전까지 캠페인 리스트에서 수정할 수 있습니다.</div>
     <div class="herocard">
       ${hrow('캠페인명',draft.camp)}
-      ${hrow('부서 / 마케터',`${draft.dept} · ${draft.mk}`)}
+      ${hrow('부서 · 마케터',`${draft.dept} · ${draft.mk}`)}
       ${hrow('발송 일시',`${fmtD(draft.date)} ${draft.hour}:00`)}
       ${hrow('기간',`${fmtD(draft.from)} ~ ${fmtD(draft.to)}`)}
-      ${hrow('채널 / 오퍼',`${draft.ch.join(' · ')} / ${draft.offer}`)}
+      ${hrow('채널 / GNB',`${draft.ch.join(' · ')} / ${draft.gnb||'—'}`)}
+      ${hrow('주기 / 오퍼',`${draft.cycle} · ${draft.offer}`)}
       ${hrow('전체 타겟수',`${man(draft.qty)}만 건`)}
     </div>
     <div class="m-act">
@@ -642,10 +741,57 @@ function confirmModal(){
       date:draft.date,hour:draft.hour,status:'신청'}));
     $('modalSlot').innerHTML='';
     toast(`신청되었습니다 — ${fmtD(draft.date)} ${draft.hour}:00`);
-    calMonth=draft.date.slice(0,7);
-    draft.camp=''; draft.date=null; draft.hour=null; step=1;
-    tab='cal'; render();
+    draft.camp=''; draft.date=null; draft.hour=null;
+    scope='mine'; render();
   };
+}
+
+/* ── 캠페인 신청 탭 이벤트 바인딩 ── */
+function bindApply(){
+  const re=()=>{$('page').innerHTML=renderApply();bindApply()};
+  $('fFrom').onchange=e=>{draft.from=e.target.value;if(draft.to<draft.from)draft.to=draft.from;
+    draft.date=null;draft.hour=null;re()};
+  $('fTo').onchange=e=>{draft.to=e.target.value;if(draft.to<draft.from)draft.from=draft.to;
+    draft.date=null;draft.hour=null;re()};
+  document.querySelectorAll('[data-ch]').forEach(x=>x.onchange=()=>{
+    const v=x.dataset.ch, i=draft.ch.indexOf(v);
+    if(x.checked){if(i<0)draft.ch.push(v)} else if(draft.ch.length>1){draft.ch.splice(i,1)}
+    draft.date=null;draft.hour=null;re()});
+  document.querySelectorAll('[data-cy]').forEach(x=>x.onchange=()=>{draft.cycle=x.dataset.cy;
+    draft.date=null;draft.hour=null;re()});
+  document.querySelectorAll('[data-of]').forEach(x=>x.onchange=()=>{draft.offer=x.dataset.of;
+    draft.date=null;draft.hour=null;re()});
+  $('fGnb').oninput=e=>draft.gnb=e.target.value;
+  $('fQty').oninput=e=>{draft.qty=Math.max(0,+e.target.value||0);hintQty()};
+  hintQty();
+  $('findBtn').onclick=()=>{found=true;draft.date=null;draft.hour=null;re()};
+  const rb=$('resetBtn'); if(rb) rb.onclick=()=>{found=false;draft.date=null;draft.hour=null;re()};
+
+  document.querySelectorAll('[data-d]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.d;draft.hour=null;re()});
+  document.querySelectorAll('[data-h]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.h;re()});
+  document.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.pick;re()});
+  document.querySelectorAll('[data-rec]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.rec;draft.hour=null;re()});
+  document.querySelectorAll('[data-sc]').forEach(x=>x.onclick=()=>{scope=x.dataset.sc;re()});
+  const te=$('takeEarly'); if(te) te.onclick=()=>{
+    const es=earliestSlot(draft); if(!es) return;
+    draft.date=es.d; draft.hour=es.h; re()};
+
+  const cf=$('fCamp');
+  if(cf){
+    cf.oninput=e=>draft.camp=e.target.value;
+    $('fDept').oninput=e=>draft.dept=e.target.value;
+    $('fMk').oninput=e=>draft.mk=e.target.value;
+    $('submitBtn').onclick=()=>{
+      if(!draft.camp.trim()){toast('캠페인명을 입력해 주세요.',true);cf.focus();return}
+      confirmModal();
+    };
+  }
+  function hintQty(){
+    const h=$('qtyHint'); if(!h) return;
+    const lim=draft.offer==='쿠폰'?CAPA['쿠폰'].limit:(draft.ch.includes('배너')?CAPA['배너'].limit:null);
+    h.textContent=lim?`일 한도 ${man(lim)}만 건`:'선택한 채널은 캐파 제한이 없습니다';
+    h.style.color=lim&&draft.qty>lim?'var(--sk-red)':'var(--text-muted)';
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -704,23 +850,24 @@ function renderCal(){
       </div>
       <div class="cal">
         ${WD.map((w,i)=>`<div class="ch${i===0?' sun':''}">${w}</div>`).join('')}
-        ${cells.map(c=>calCell(c)).join('')}
+        ${cells.map((c,i)=>calCell(c,i,cells.length/7)).join('')}
       </div>
       <div class="legend">
         <span><i style="background:var(--sk-orange-t10);border-left:2px solid var(--sk-orange)"></i>시작 캠페인</span>
         <span><i style="background:var(--l1);border-left:2px solid var(--locked-fill)"></i>종료 캠페인</span>
-        <span>캠페인명에 커서를 올리면 채널·오퍼·모수 요약이 표시됩니다.</span>
       </div>
     </div>
   </div>`;
 }
-function calCell(c){
+function calCell(c,idx,rows){
+  const col=idx%7, row=Math.floor(idx/7);
+  const flip=(col>=5?' rt':'')+(row>=rows-2?' up':'');
   const o=dayOf(c.d), evs=c.out?[]:eventsOn(c.d);
   const show=evs.slice(0,3), rest=evs.length-show.length;
   return `<div class="ccell${c.out?' out':''}${o&&o.dow===0?' sun':''}${c.d===TODAY?' today':''}"
       ${c.out?'':`data-cd="${c.d}"`}>
     <div class="cd">${+c.d.slice(8)}</div>
-    ${show.map(e=>`<div class="ev ${e.t}">${e.t==='end'?'▪ ':''}${esc(e.r.camp)}
+    ${show.map(e=>`<div class="ev ${e.t}${flip}">${e.t==='end'?'▪ ':''}${esc(e.r.camp)}
       <div class="tip"><b>${esc(e.r.camp)}</b>
         <div class="tr"><span>구분</span><span>${e.t==='start'?'시작':'종료'}</span></div>
         <div class="tr"><span>채널</span><span>${e.r.ch.join('·')}</span></div>
@@ -751,11 +898,9 @@ function chartFor(rows){
         <div class="cl"><i class="sw" style="background:${color[s.c]}"></i>${s.c}</div>
         <div class="cbtrack"><b style="width:${s.q/maxQ*100}%;background:${color[s.c]}"></b></div>
         <div class="cn">${s.n}건 · ${man(s.q)}만</div></div>`).join('')}
-      <div class="note">캠페인 건수와 발송 모수는 <b>시작일 기준</b>으로 집계했습니다.
-        쿠폰은 채널과 별개로 오퍼 기준으로 함께 표시합니다.</div>
     </div>
     <div class="sparkwrap">
-      <div class="st2">일자별 발송 모수<i class="i" data-tip="해당 일자에 발송되는 캠페인의 전체 타겟수 합계입니다.&#10;막대에 커서를 올리면 정확한 수치가 표시됩니다."></i></div>
+      <div class="st2">일자별 발송 모수</div>
       <div class="spark">${perDay.map(x=>
         `<div class="sb" data-tip="${+x.d.slice(8)}일 · ${man(x.q)}만 건">
           <b style="height:${x.q/maxD*100}%"></b></div>`).join('')}</div>
@@ -788,7 +933,7 @@ function renderDay(d){
         <div><div class="sv">배너 잔여</div><div class="sd">${man(bannerRem(d))}만 건</div></div>
         <div><div class="sv">쿠폰 잔여</div><div class="sd">${man(couponRem(d))}만 건</div></div>
       </div>
-      <div class="segnote">시간대별 배치 현황 — 빗금 친 칸은 이미 캠페인이 배치된 시간대입니다.</div>
+      <div class="segnote">시간대별 배치 현황</div>
       <div class="hgrid">${HOURS.map(h=>{
         const r=onDay.find(x=>x.hour===h);
         return `<div class="hslot ${r?'taken':''}" style="cursor:default">
@@ -805,8 +950,7 @@ function renderDay(d){
         </div>`).join('')}</div>`
         :`<div class="empty">이 날짜에 배치된 캠페인이 없습니다.</div>`}
       ${past?'':`<div class="actions">
-        <button class="pill primary" id="applyHere">이 날짜로 캠페인 신청</button>
-        <span class="note" style="margin:0">신청 화면의 시간대 선택 단계로 바로 이동합니다.</span></div>`}
+        <button class="pill primary" id="applyHere">이 날짜로 캠페인 신청</button></div>`}
     </div>
   </div>`;
 }
@@ -829,7 +973,7 @@ function renderManage(){
    ══════════════════════════════════════════════════════════════════════ */
 function render(){
   renderTabs();
-  if(tab==='apply'){ $('page').innerHTML=renderApply(); renderStep(); }
+  if(tab==='apply'){ $('page').innerHTML=renderApply(); bindApply(); }
   else if(tab==='cal'&&calDay){
     $('page').innerHTML=renderDay(calDay);
     $('backCal').onclick=()=>{calDay=null;render()};
@@ -840,7 +984,7 @@ function render(){
       draft.date=calDay; draft.hour=null;
       if(draft.from>calDay) draft.from=calDay;
       if(draft.to<calDay) draft.to=calDay;
-      calDay=null; tab='apply'; step=3; render();
+      calDay=null; tab='apply'; found=true; render();
     };
   }
   else if(tab==='cal'){
