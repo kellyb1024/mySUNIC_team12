@@ -436,6 +436,12 @@ table.list .r{text-align:right;font-family:Roboto;font-variant-numeric:tabular-n
 
 /* ── 담당자 화면 ── */
 .pill.xs{padding:5px 11px;font-size:11.5px;border-radius:999px}
+table.list.adm td.cap{white-space:nowrap;line-height:1.6}
+.cp{display:block;font-size:11.5px;font-family:Roboto;font-variant-numeric:tabular-nums;color:var(--text-strong)}
+.cp em{font-style:normal;color:var(--text-muted);font-size:10.5px}
+.cp.warn{color:var(--sk-orange-text);font-weight:500}
+.cp.hot{color:var(--sk-red);font-weight:500}
+.cp.none{color:var(--text-muted);font-family:inherit;font-size:11px}
 table.list.adm td.act{white-space:nowrap;text-align:right}
 table.list.adm td.act .pill{margin-left:5px}
 table.list.adm th:last-child,table.list.adm td.act{width:1%}
@@ -446,16 +452,36 @@ table.list.adm th:last-child,table.list.adm td.act{width:1%}
 .fixrow > span{flex:0 0 56px;font-size:11.5px;color:var(--text-muted);padding-top:6px}
 .daychips{display:flex;gap:6px;flex-wrap:wrap}
 .hgrid.adm{grid-template-columns:repeat(11,minmax(0,1fr));flex:1}
-.capabd{display:flex;flex-direction:column;gap:11px}
-.capaday{display:flex;gap:14px;align-items:center}
-.capaday .cdlbl{flex:0 0 76px;font-size:12px;color:var(--text-strong)}
-.capaday .cdbars{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
-.capaday .cbrow .cl{flex:0 0 68px;width:68px;font-size:11px;white-space:nowrap}
-.capaday .cbtrack{height:14px}
-.capaday .cn{flex:0 0 130px;width:130px;font-size:11.5px}
-.capaday .cn small{font-size:10px;color:var(--text-muted)}
-.capaday .cbrow.nolimit .cbtrack{background:repeating-linear-gradient(90deg,
-  var(--l1) 0 6px,transparent 6px 8px)}
+/* 주간 캐파 매트릭스 */
+.wknav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.wknav .arw{width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:#fff}
+.wknav .arw:hover:not(:disabled){background:var(--motif)}
+.wknav .arw:disabled{opacity:.3;cursor:not-allowed}
+.wknav .lab{font-size:14px;font-weight:500;color:var(--text-strong);min-width:170px;text-align:center}
+table.capamx{width:100%;border-collapse:separate;border-spacing:5px;margin:-5px}
+table.capamx th{font-size:11.5px;font-weight:400;color:var(--text-muted);text-align:center;padding-bottom:2px}
+table.capamx th span{display:block;font-size:10.5px}
+table.capamx th.sun{color:var(--sk-red)}
+table.capamx th.today{color:var(--sk-orange-text);font-weight:500}
+table.capamx td.chn{width:104px;font-size:12px;color:var(--text-strong);white-space:nowrap;padding-right:6px}
+table.capamx td.chn small{display:block;font-size:10px;color:var(--text-muted);margin-left:14px}
+table.capamx td.chn .sw{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:5px}
+td.mx{height:50px;border-radius:4px;border:1px solid var(--cell-border);text-align:center;
+  font-family:Roboto;font-variant-numeric:tabular-nums;background:var(--l1)}
+td.mx b{display:block;font-size:14px;font-weight:500;line-height:1.1}
+td.mx small{font-size:10px;opacity:.8}
+td.mx.zero{background:var(--motif);border-style:dashed;border-color:var(--border);
+  color:var(--text-muted);font-size:11px}
+td.mx.lv1{background:var(--l1);color:var(--l1t)}
+td.mx.lv2{background:var(--l2);color:var(--l2t)}
+td.mx.lv3{background:var(--l3);color:var(--l3t)}
+td.mx.lv4{background:var(--l4);color:var(--l4t)}
+td.mx.free{background:repeating-linear-gradient(45deg,#F3F4F5 0 5px,#E7E9EB 5px 10px);color:var(--text-strong)}
+.cellsw{display:inline-block;width:11px;height:11px;border-radius:2px;
+  border:1px solid var(--cell-border);margin-right:5px;vertical-align:-1px}
+.cellsw.lv1{background:var(--l1)} .cellsw.lv2{background:var(--l2)}
+.cellsw.lv3{background:var(--l3)} .cellsw.lv4{background:var(--l4)}
+.cellsw.free{background:repeating-linear-gradient(45deg,#F3F4F5 0 3px,#E7E9EB 3px 6px)}
 
 /* ── 수정 중 배너 ── */
 .editbar{background:var(--sk-orange-t10);border:1px solid var(--sk-orange);border-radius:6px;
@@ -704,6 +730,7 @@ let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일�
            date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null};
 let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false;
 let admFix={no:null,date:null,hour:null};   /* 담당자 재배정 대상 */
+let capaFrom='2026-07-27';                  /* 주간 캐파 현황 시작일 (월요일) */
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
@@ -1532,7 +1559,8 @@ function renderManage(){
           ${wait.length?`<button class="pill primary sm" id="okAll">전체 확정</button>`:''}</h2></div>
       ${wait.length?`<div class="tblwrap"><table class="list adm">
         <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널 / GNB</th>
-          <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th></th></tr>
+          <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>발송일 잔여 캐파</th>
+          <th>부서 · 마케터</th><th></th></tr>
         ${wait.map(r=>`<tr class="rw">
           <td class="nm">${esc(r.camp)}</td>
           <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
@@ -1540,6 +1568,7 @@ function renderManage(){
           <td>${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}</td>
           <td>${r.cycle}</td><td>${r.offer}</td>
           <td class="r">${man(r.qty)}만</td>
+          <td class="cap">${remCell(r)}</td>
           <td>${r.team} ${r.mk}</td>
           <td class="act"><button class="pill primary xs" data-ok="${r.no}">확정</button>
             <button class="pill ghost xs" data-rej="${r.no}">조정 필요</button></td></tr>`).join('')}
@@ -1555,12 +1584,28 @@ function renderManage(){
 
     <div class="card">
       <div class="card-hd"><div class="rule"></div>
-        <div class="lbl"><span>캐파 현황</span><span>${kpiMonth.replace('-','.')}</span></div>
-        <h2><span>일자별 소진</span>
+        <div class="lbl"><span>주간 캐파 현황</span></div>
+        <h2><span>채널별 소진</span>
           <span class="badge">배너 일 ${man(CAPA['배너'].limit)}만 · 쿠폰 일 ${man(CAPA['쿠폰'].limit)}만</span></h2></div>
       ${capaBoard()}
     </div>
   </div>`;
+}
+
+/* 이 건을 확정했을 때 그 날짜에 남는 캐파
+   (신청 건도 이미 소진에 반영되어 있으므로 = 현재 잔여) */
+function remCell(r){
+  const parts=[];
+  const put=(name,rem,lim)=>{
+    const pct=(lim-rem)/lim*100;
+    parts.push(`<span class="cp${pct>=90?' hot':pct>=80?' warn':''}">${name} ${man(rem)}<em>/${man(lim)}만</em></span>`);
+  };
+  if(r.ch.includes('배너')) put('배너',bannerRem(r.date),CAPA['배너'].limit);
+  if(r.offer==='쿠폰')      put('쿠폰',couponRem(r.date),CAPA['쿠폰'].limit);
+  const free=r.ch.filter(c=>CAPA[c]&&CAPA[c].limit===null);
+  if(!parts.length&&free.length) return `<span class="cp none">${free.join('·')} 제한 없음</span>`;
+  if(free.length) parts.push(`<span class="cp none">${free.join('·')} 제한 없음</span>`);
+  return parts.join('');
 }
 
 /* 조정 필요 1건 — 신청 내용, 선점 사유, 재배정 */
@@ -1628,36 +1673,54 @@ function admFixPanel(r){
   </div>`;
 }
 
-/* 일자별 소진 — 캘린더 차트와 같은 순서·색
-   TV팝업·토스트팝업은 캐파가 없어 한도 대비가 아니라 물량만 표시한다 */
+/* 주간 캐파 현황 — 채널(행) × 요일(열) 매트릭스
+   한 주가 한 화면에 들어오도록 하고, 주 단위로 넘긴다 */
 const CH_COLOR={'TV팝업':'var(--ch-tv)','배너':'var(--ch-banner)',
   '토스트팝업':'var(--ch-toast)','쿠폰':'var(--ch-coupon)'};
 const usedByName=(d,name)=>name==='쿠폰'
   ? couponUsed(d) : usedOn(d,r=>r.ch.includes(name));
+const mondayOf=d=>{const t=new Date(d+'T00:00:00');return addDays(d,-((t.getDay()+6)%7))};
 
 function capaBoard(){
-  const days=monthDayList(kpiMonth);
+  const days=[...Array(7)].map((_,i)=>addDays(capaFrom,i));
   const order=['TV팝업','배너','토스트팝업','쿠폰'];
-  /* 한도 없는 채널은 그 달 최대치를 기준으로 상대 비교 */
+  const first=ALL[0].d, last=ALL[ALL.length-1].d;
+  const lv=p=>p>=95?4:p>=80?3:p>=50?2:1;
+  /* 한도 없는 채널은 그 주 최대치를 기준으로 상대 비교 */
   const freeMax=Math.max(1,...days.flatMap(d=>
-    order.filter(n=>CAPA[n]&&CAPA[n].limit===null).map(n=>usedByName(d,n))));
+    order.filter(n=>CAPA[n].limit===null).map(n=>usedByName(d,n))));
 
-  const row=(name,used)=>{
-    const lim=CAPA[name]?CAPA[name].limit:null;
-    const pct=lim?Math.min(100,used/lim*100):used/freeMax*100;
-    const hot=lim&&used/lim>=.9;
-    return `<div class="cbrow${lim?'':' nolimit'}">
-      <div class="cl"><i class="sw" style="background:${CH_COLOR[name]}"></i>${name}</div>
-      <div class="cbtrack"><b style="width:${pct}%;background:${hot?'var(--sk-red)':CH_COLOR[name]}"></b></div>
-      <div class="cn">${lim?`${man(used)} / ${man(lim)}만`:`${man(used)}만 <small>제한 없음</small>`}</div></div>`;
-  };
-  return `<div class="capabd">${days.map(d=>{
-    const rows=order.filter(n=>usedByName(d,n)>0);
-    if(!rows.length) return '';
-    return `<div class="capaday">
-      <div class="cdlbl">${fmtD(d)}</div>
-      <div class="cdbars">${rows.map(n=>row(n,usedByName(d,n))).join('')}</div>
-    </div>`}).join('')||'<div class="empty">이 달에 배정된 캠페인이 없습니다.</div>'}</div>`;
+  return `<div class="wknav">
+      <button class="arw" id="cwPrev" ${capaFrom<=first?'disabled':''}>‹</button>
+      <span class="lab">${fmtD(days[0])} ~ ${fmtD(days[6])}</span>
+      <button class="arw" id="cwNext" ${addDays(capaFrom,7)>last?'disabled':''}>›</button>
+      <button class="chip sm" id="cwToday">이번 주</button>
+    </div>
+    <table class="capamx">
+      <tr><th></th>${days.map(d=>{
+        const o=dayOf(d);
+        return `<th class="${o&&o.dow===0?'sun':o&&o.dow===6?'sat':''}${d===TODAY?' today':''}">
+          <span>${o?o.w:''}</span>${+d.slice(8)}</th>`}).join('')}</tr>
+      ${order.map(n=>{
+        const lim=CAPA[n].limit;
+        return `<tr>
+          <td class="chn"><i class="sw" style="background:${CH_COLOR[n]}"></i>${n}
+            <small>${lim?`일 ${man(lim)}만`:'제한 없음'}</small></td>
+          ${days.map(d=>{
+            const u=usedByName(d,n);
+            if(!u) return `<td class="mx zero">—</td>`;
+            const pct=lim?u/lim*100:u/freeMax*100;
+            return `<td class="mx ${lim?'lv'+lv(pct):'free'}">
+              <b>${man(u)}</b>${lim?`<small>${Math.round(pct)}%</small>`:''}</td>`}).join('')}
+        </tr>`}).join('')}
+    </table>
+    <div class="legend">
+      <span><i class="cellsw lv1"></i>50% 미만</span>
+      <span><i class="cellsw lv2"></i>50~80%</span>
+      <span><i class="cellsw lv3"></i>80~95%</span>
+      <span><i class="cellsw lv4"></i>95% 이상</span>
+      <span><i class="cellsw free"></i>제한 없는 채널 · 그 주 최대치 대비</span>
+    </div>`;
 }
 
 /* ── 담당자 화면 이벤트 ── */
@@ -1692,6 +1755,11 @@ function bindManage(){
     admFix={no:null,date:null,hour:null}; re()});
   document.querySelectorAll('[data-fd]').forEach(x=>x.onclick=()=>{admFix.date=x.dataset.fd;re()});
   document.querySelectorAll('[data-fh]').forEach(x=>x.onclick=()=>{admFix.hour=+x.dataset.fh;re()});
+
+  const cp=$('cwPrev'), cn=$('cwNext'), ct=$('cwToday');
+  if(cp) cp.onclick=()=>{capaFrom=addDays(capaFrom,-7);re()};
+  if(cn) cn.onclick=()=>{capaFrom=addDays(capaFrom,7);re()};
+  if(ct) ct.onclick=()=>{capaFrom=mondayOf(TODAY);re()};
 
   document.querySelectorAll('[data-fixok]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.fixok); if(!r) return;
