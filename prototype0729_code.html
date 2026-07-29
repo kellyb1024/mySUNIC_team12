@@ -432,6 +432,13 @@ table.list tr.rw:hover td{background:#FCFCFD}
 table.list .r{text-align:right;font-family:Roboto;font-variant-numeric:tabular-nums}
 .st.needfix{background:var(--waiting-bg);color:var(--waiting-text);border:1px solid var(--waiting-border)}
 
+/* ── 수정 중 배너 ── */
+.editbar{background:var(--sk-orange-t10);border:1px solid var(--sk-orange);border-radius:6px;
+  padding:10px 14px;font-size:12.5px;color:var(--sk-orange-text);display:flex;align-items:center;gap:8px}
+.editbar b{font-weight:500}
+.editbar button{margin-left:auto;font-size:11.5px;color:var(--sk-orange-text);
+  text-decoration:underline;padding:2px 4px}
+
 /* ── 데이터 재정의 예정 배너 ── */
 .wipbar{background:var(--waiting-bg);border:1px solid var(--waiting-border);border-radius:6px;
   padding:10px 14px;font-size:12px;color:var(--waiting-text);line-height:1.6}
@@ -544,7 +551,11 @@ let requests=[
  mkReq({camp:'인기 예능 몰아보기',from:'2026-08-26',to:'2026-08-30',ch:['배너'],
    offer:'없음',qty:90,team:'B팀',mk:'훈이',date:'2026-08-26',hour:21}),
 ];
+/* 자리를 실제로 차지하는 상태 — '조정 필요'는 아직 자리를 잡은 게 아니라 제외 */
 const live=r=>['확정','발송 완료','신청'].includes(r.status);
+/* 수정 중인 건은 자기 자신과 충돌하면 안 되므로 판정에서 제외한다 */
+const excNo=()=>tab==='apply'?draft.editNo:null;
+const inScope=r=>live(r)&&r.no!==excNo();
 
 /* ── 점유 모델 (0728 미팅 확인) ──
    일회성 : 시작일 1회 발송. 기간은 고객 노출 기간(고객이 TV를 켠 최초 시점에 1회 노출)
@@ -561,7 +572,7 @@ const prefRank=h=>PREF.indexOf(h);
 const activeOn=(d,r)=>r.cycle==='주기성' ? (d>=r.from&&d<=r.to) : (r.date===d);
 
 /* ── 사용량: 그 날 실제로 나가는 물량 ── */
-const usedOn=(d,pred)=>requests.filter(r=>live(r)&&activeOn(d,r)&&pred(r)).reduce((s,r)=>s+r.qty,0);
+const usedOn=(d,pred)=>requests.filter(r=>inScope(r)&&activeOn(d,r)&&pred(r)).reduce((s,r)=>s+r.qty,0);
 const bannerUsed=d=>usedOn(d,r=>r.ch.includes('배너'));
 const couponUsed=d=>usedOn(d,r=>r.offer==='쿠폰');
 const bannerRem=d=>CAPA['배너'].limit-bannerUsed(d);
@@ -596,10 +607,10 @@ function clashWhy(a,b){
   return `${dup.map(k=>k.replace('@',' · ')).join(', ')} 지면이 겹칩니다`;
 }
 /* 그 날 그 시각에 배치된 캠페인 전부 (표시용) */
-const liveAt=(d,h)=>requests.filter(r=>live(r)&&activeOn(d,r)&&r.hour===h);
+const liveAt=(d,h)=>requests.filter(r=>inScope(r)&&activeOn(d,r)&&r.hour===h);
 const takenHours=d=>new Set(requests.filter(r=>live(r)&&activeOn(d,r)).map(r=>r.hour));
 /* 조건 c 로 신청할 때 실제로 막히는 시간대 (판정용) */
-const blockedHours=(d,c)=>new Set(requests.filter(r=>live(r)&&activeOn(d,r)&&slotClash(c,r)).map(r=>r.hour));
+const blockedHours=(d,c)=>new Set(requests.filter(r=>inScope(r)&&activeOn(d,r)&&slotClash(c,r)).map(r=>r.hour));
 const isPast=d=>d<=TODAY;
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -638,7 +649,7 @@ function periodCheck(c){
    ══════════════════════════════════════════════════════════════════════ */
 let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), found=false, scope='mine';
 let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',offer:'쿠폰',qty:15,
-           date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:''};
+           date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null};
 let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
@@ -666,6 +677,10 @@ function renderTabs(){
    ══════════════════════════════════════════════════════════════════════ */
 function renderApply(){
   return `<div class="wrap wide">
+    ${draft.editNo?(()=>{const o=requests.find(r=>r.no===draft.editNo);
+      return `<div class="editbar">
+        <b>수정 중</b> ${o?esc(o.camp):''} — 다시 신청하면 기존 건이 교체됩니다.
+        <button id="cancelEdit">수정 취소</button></div>`})():''}
     <div class="shell">
       <aside class="side">${sideCond()}</aside>
       <div class="main">
@@ -1092,7 +1107,8 @@ const cfRow=(k,v)=>`<div class="cfg"><span>${k}</span><b>${v}</b></div>`;
 function confirmModal(){
   const c=conflict();
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
-    <h3>${c?'이 내용으로 조정 요청할까요?':'이 신청 내용이 맞으십니까?'}</h3>
+    <h3>${draft.editNo!=null?'이 내용으로 수정할까요?'
+        :c?'이 내용으로 조정 요청할까요?':'이 신청 내용이 맞으십니까?'}</h3>
     <div class="m-sub">${c
       ?`선택한 시간대를 <b>${esc(c.camp)}</b>(${c.team} ${c.mk} · ${c.status})가 선점하고 있습니다.`
       :'신청 후에는 담당자 확정 전까지 캠페인 리스트에서 수정할 수 있습니다.'}</div>
@@ -1108,19 +1124,23 @@ function confirmModal(){
     </div>
     <div class="m-act">
       <button class="pill ghost" id="mNo">다시 확인</button>
-      <button class="pill primary" id="mYes">${c?'조정 요청':'신청'}</button>
+      <button class="pill primary" id="mYes">${draft.editNo!=null?'수정':c?'조정 요청':'신청'}</button>
     </div></div></div>`;
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
   $('mYes').onclick=()=>{
-    requests.push(mkReq({camp:draft.camp,from:draft.from,to:draft.to,ch:[...draft.ch],gnb:draft.gnb,
+    const body={camp:draft.camp,from:draft.from,to:draft.to,ch:[...draft.ch],gnb:draft.gnb,
       cycle:draft.cycle,offer:draft.offer,qty:draft.qty,team:draft.dept,mk:draft.mk,
       date:draft.date,hour:draft.hour,
       status:c?'조정 필요':'신청',
       reason:c?`${c.camp} (${c.team} ${c.mk}) 선점`:'',
-      note:c?draft.note.trim():''}));
+      note:c?draft.note.trim():''};
+    const ex=draft.editNo!=null?requests.find(r=>r.no===draft.editNo):null;
+    if(ex) Object.assign(ex,body); else requests.push(mkReq(body));
     $('modalSlot').innerHTML='';
-    toast(c?`조정 요청되었습니다 — ${c.camp} 선점`:`신청되었습니다 — ${fmtD(draft.date)} ${draft.hour}:00`, !!c);
-    draft.camp=''; draft.note=''; draft.date=null; draft.hour=null;
+    toast(ex ? `수정되었습니다 — ${body.camp}`
+             : c ? `조정 요청되었습니다 — ${c.camp} 선점`
+                 : `신청되었습니다 — ${fmtD(draft.date)} ${draft.hour}:00`, !!c);
+    draft.camp=''; draft.note=''; draft.date=null; draft.hour=null; draft.editNo=null;
     scope='mine'; render();
   };
 }
@@ -1174,11 +1194,13 @@ function bindApply(){
     re()});
   document.querySelectorAll('[data-move]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.move); if(!r) return;
-    const i=requests.indexOf(r); requests.splice(i,1);
     Object.assign(draft,{cycle:r.cycle,from:r.from,to:r.to,ch:[...r.ch],gnb:r.gnb,
       offer:r.offer,qty:r.qty,camp:r.camp,dept:r.team,mk:r.mk,note:r.note||'',
-      date:r.cycle==='주기성'?r.from:r.date,hour:r.hour});
-    adjOpen=false; found=true; toast('내용을 수정한 뒤 다시 신청해 주세요.'); re()});
+      date:r.cycle==='주기성'?r.from:r.date,hour:r.hour,editNo:r.no});
+    adjOpen=false; found=true; toast(`수정 중 — ${r.camp}`); re()});
+  const ce=$('cancelEdit'); if(ce) ce.onclick=()=>{
+    draft.editNo=null; draft.camp=''; draft.note=''; draft.date=null; draft.hour=null;
+    found=false; toast('수정을 취소했습니다. 기존 신청은 그대로 있습니다.'); re()};
   const te=$('takeEarly'); if(te) te.onclick=()=>{
     const es=earliestSlot(draft); if(!es) return;
     draft.date=es.d; draft.hour=es.h; re()};
