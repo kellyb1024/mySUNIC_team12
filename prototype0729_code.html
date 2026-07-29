@@ -483,6 +483,8 @@ td.mx.free{background:repeating-linear-gradient(45deg,#F3F4F5 0 5px,#E7E9EB 5px 
 .cellsw.lv1{background:var(--l1)} .cellsw.lv2{background:var(--l2)}
 .cellsw.lv3{background:var(--l3)} .cellsw.lv4{background:var(--l4)}
 .cellsw.free{background:repeating-linear-gradient(45deg,#F3F4F5 0 3px,#E7E9EB 3px 6px)}
+.legend .lgt{color:var(--text-strong);font-weight:500}
+.legend .sep2{width:1px;height:12px;background:var(--border);display:inline-block}
 
 /* ── 수정 중 배너 ── */
 .editbar{background:var(--sk-orange-t10);border:1px solid var(--sk-orange);border-radius:6px;
@@ -1586,7 +1588,7 @@ function renderManage(){
     <div class="card">
       <div class="card-hd"><div class="rule"></div>
         <div class="lbl"><span>주간 캐파 현황</span></div>
-        <h2><span>채널별 소진</span>
+        <h2><span>채널별 사용량</span>
           <span class="badge">배너 일 ${man(CAPA['배너'].limit)}만 · 쿠폰 일 ${man(CAPA['쿠폰'].limit)}만</span></h2></div>
       ${capaBoard()}
     </div>
@@ -1716,11 +1718,13 @@ function capaBoard(){
         </tr>`}).join('')}
     </table>
     <div class="legend">
+      <span class="lgt">한도 대비</span>
       <span><i class="cellsw lv1"></i>50% 미만</span>
       <span><i class="cellsw lv2"></i>50~80%</span>
       <span><i class="cellsw lv3"></i>80~95%</span>
       <span><i class="cellsw lv4"></i>95% 이상</span>
-      <span><i class="cellsw free"></i>제한 없는 채널 · 그 주 최대치 대비</span>
+      <span class="sep2"></span>
+      <span><i class="cellsw free"></i>한도 없는 채널 — 사용량만 표시</span>
     </div>`;
 }
 
