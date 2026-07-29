@@ -396,6 +396,9 @@ table.list td.rsn .rn{color:var(--waiting-text)}
 .adjwhy{margin-top:10px;font-size:12px;color:var(--waiting-text);background:var(--waiting-bg);
   border-radius:4px;padding:7px 10px;display:flex;gap:8px}
 .adjwhy span{font-weight:500;flex:0 0 auto}
+.adjnote{margin-top:7px;font-size:12px;color:var(--text);background:var(--motif);
+  border-radius:4px;padding:7px 10px;display:flex;gap:8px;line-height:1.55}
+.adjnote span{font-weight:500;color:var(--text-muted);flex:0 0 auto}
 .adjbtns{display:flex;gap:8px;margin-top:11px}
 .pill.sm{padding:7px 14px;font-size:12px}
 .kpihd{display:flex;align-items:center;gap:9px;margin-bottom:-6px}
@@ -515,7 +518,9 @@ let requests=[
  mkReq({camp:'영화 월정액 이용 안내',from:'2026-08-10',to:'2026-08-14',ch:['배너'],gnb:'영화 홈',
    cycle:'주기성',offer:'없음',qty:30,team:'B팀',mk:'훈이',date:'2026-08-10',hour:17,memo:'17시 고정'}),
  mkReq({camp:'여름세일',from:'2026-07-31',to:'2026-08-07',ch:['배너'],
-   offer:'없음',qty:100,team:'A팀',mk:'철수',date:'2026-07-31',hour:14,status:'조정 필요'}),
+   offer:'없음',qty:100,team:'A팀',mk:'철수',date:'2026-07-31',hour:14,status:'조정 필요',
+   reason:'프리미엄 무료체험 안내 (B팀 훈이) 선점',
+   note:'세일 오픈 시각이 대외 공지되어 있어 시간대를 옮기기 어렵습니다'}),
  mkReq({camp:'8월 콘텐츠 추천',from:'2026-07-29',to:'2026-08-31',ch:['배너'],
    offer:'쿠폰',qty:15,team:'C팀',mk:'유리',date:'2026-07-29',hour:10}),
  mkReq({camp:'주말 극장 동시상영',from:'2026-08-01',to:'2026-08-02',ch:['배너','TV팝업'],
@@ -724,13 +729,9 @@ function adjPanel(m){
         ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
       </div>
       ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
-      <div class="reasonfld" style="margin:11px 0 0">
-        <label>조정 요청 사유</label>
-        <textarea rows="2" data-note="${r.no}"
-          placeholder="사유를 입력하세요">${esc(r.note||'')}</textarea>
-      </div>
+      ${r.note?`<div class="adjnote"><span>신청 시 작성한 사유</span>${esc(r.note)}</div>`:''}
       <div class="adjbtns">
-        <button class="pill ghost sm" data-move="${r.no}">시간대 다시 고르기</button>
+        <button class="pill ghost sm" data-move="${r.no}">수정하기</button>
         <button class="pill ghost sm" data-drop="${r.no}">요청 취소</button>
       </div>
     </div>`).join('')}
@@ -1167,8 +1168,6 @@ function bindApply(){
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
     if(x.dataset.km) {kpiMonth=x.dataset.km; re()}});
   document.querySelectorAll('[data-adj]').forEach(x=>x.onclick=()=>{adjOpen=!adjOpen;re()});
-  document.querySelectorAll('[data-note]').forEach(x=>x.oninput=()=>{
-    const r=requests.find(q=>q.no===+x.dataset.note); if(r) r.note=x.value});
   document.querySelectorAll('[data-drop]').forEach(x=>x.onclick=()=>{
     const i=requests.findIndex(q=>q.no===+x.dataset.drop);
     if(i>=0){const r=requests[i]; requests.splice(i,1); toast(`요청을 취소했습니다 — ${r.camp}`)}
@@ -1179,7 +1178,7 @@ function bindApply(){
     Object.assign(draft,{cycle:r.cycle,from:r.from,to:r.to,ch:[...r.ch],gnb:r.gnb,
       offer:r.offer,qty:r.qty,camp:r.camp,dept:r.team,mk:r.mk,note:r.note||'',
       date:r.cycle==='주기성'?r.from:r.date,hour:r.hour});
-    adjOpen=false; found=true; toast('시간대를 다시 골라 주세요.'); re()});
+    adjOpen=false; found=true; toast('내용을 수정한 뒤 다시 신청해 주세요.'); re()});
   const te=$('takeEarly'); if(te) te.onclick=()=>{
     const es=earliestSlot(draft); if(!es) return;
     draft.date=es.d; draft.hour=es.h; re()};
