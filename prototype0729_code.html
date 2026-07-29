@@ -529,10 +529,11 @@ const couponUsed=d=>usedOn(d,r=>r.offer==='쿠폰');
 const bannerRem=d=>CAPA['배너'].limit-bannerUsed(d);
 const couponRem=d=>CAPA['쿠폰'].limit-couponUsed(d);
 /* ── 시간대 충돌 규칙 ──
-   · 일회성 ↔ 일회성 : 같은 자원(채널·쿠폰)을 쓸 때만 충돌. 배너와 토스트팝업은 동시 발송 가능
+   · 일회성 ↔ 일회성 : 같은 채널을 쓸 때만 충돌. 배너와 토스트팝업은 동시 발송 가능
+     쿠폰은 일 440만 기준이라 시간대 자원이 아니다 (0728 피드백)
    · 주기성이 한쪽에라도 있으면 : 채널 무관하게 그 시간대를 독점
      (주기성은 메일 시스템을 타서 다른 캠페인의 방해를 받으면 안 됨 — 0728 미팅) */
-const slotKeys=r=>[...(r.ch||[]), ...(r.offer==='쿠폰'?['쿠폰']:[])];
+const slotKeys=r=>r.ch||[];
 function slotClash(a,b){
   if(a.cycle==='주기성'||b.cycle==='주기성') return true;
   const bk=slotKeys(b);
@@ -543,7 +544,7 @@ function clashWhy(a,b){
   if(b.cycle==='주기성') return '주기성 캠페인이 이 시간대를 독점합니다';
   if(a.cycle==='주기성') return '주기성은 기간 내내 이 시간대를 독점해야 합니다';
   const bk=slotKeys(b), dup=slotKeys(a).filter(k=>bk.includes(k));
-  return `${dup.join('·')}이(가) 겹칩니다`;
+  return `${dup.join('·')} 채널이 겹칩니다`;
 }
 /* 그 날 그 시각에 배치된 캠페인 전부 (표시용) */
 const liveAt=(d,h)=>requests.filter(r=>live(r)&&activeOn(d,r)&&r.hour===h);
