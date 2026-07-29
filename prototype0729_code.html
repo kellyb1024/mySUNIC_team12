@@ -401,6 +401,9 @@ table.list td.rsn .rn{color:var(--waiting-text)}
 .adjnote{margin-top:7px;font-size:12px;color:var(--text);background:var(--motif);
   border-radius:4px;padding:7px 10px;display:flex;gap:8px;line-height:1.55}
 .adjnote span{font-weight:500;color:var(--text-muted);flex:0 0 auto}
+.adjrej{margin-top:7px;font-size:12px;color:var(--sk-red);background:#FFF5F6;
+  border:1px solid #F5C2C8;border-radius:4px;padding:7px 10px;display:flex;gap:8px;line-height:1.55}
+.adjrej span{font-weight:500;flex:0 0 auto}
 .adjbtns{display:flex;gap:8px;margin-top:11px}
 .pill.sm{padding:7px 14px;font-size:12px}
 .kpihd{display:flex;align-items:center;gap:9px;margin-bottom:-6px}
@@ -734,6 +737,7 @@ let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일�
 let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false;
 let admFix={no:null,date:null,hour:null};   /* 담당자 재배정 대상 */
 let capaFrom='2026-07-27';                  /* 주간 캐파 현황 시작일 (월요일) */
+let admRej={no:null,text:''};               /* 담당자 반려 사유 입력 대상 */
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
@@ -767,7 +771,7 @@ function renderApply(){
     <div class="shell">
       <aside class="side">${sideCond()}</aside>
       <div class="main">
-        ${kpiRow()}
+        ${role==='mkt'?kpiRow():''}
         ${cardApply()}
         ${cardRec()}
         ${cardList()}
@@ -827,6 +831,7 @@ function adjPanel(m){
       </div>
       ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
       ${r.note?`<div class="adjnote"><span>신청 시 작성한 사유</span>${esc(r.note)}</div>`:''}
+      ${r.admNote?`<div class="adjrej"><span>담당자 반려</span>${esc(r.admNote)}</div>`:''}
       <div class="adjbtns">
         <button class="pill ghost sm" data-move="${r.no}">수정하기</button>
         <button class="pill ghost sm" data-drop="${r.no}">요청 취소</button>
@@ -1155,15 +1160,16 @@ function recRecurring(head){
 
 /* ── 우측 하단 · 캠페인 리스트 ── */
 function cardList(){
-  const rows=requests.filter(r=>scope==='mine'?(r.mk===ME.mk&&r.team===ME.team)
-                              :scope==='team'?r.team===ME.team:true)
+  const sc=role==='adm'?'all':scope;
+  const rows=requests.filter(r=>sc==='mine'?(r.mk===ME.mk&&r.team===ME.team)
+                              :sc==='team'?r.team===ME.team:true)
                      .sort((a,b)=>a.date<b.date?-1:1);
   return `<div class="card">
     <div class="card-hd"><div class="rule"></div>
       <div class="lbl"><span>캠페인 리스트</span></div>
-      <h2><span>${({mine:'내 신청',team:'우리 팀',all:'전체'})[scope]}</span>
-        <span class="tabs">${[['mine','내 신청'],['team','우리 팀'],['all','전체']].map(([k,n])=>
-          `<button data-sc="${k}" class="${scope===k?'on':''}">${n}</button>`).join('')}</span></h2></div>
+      <h2><span>${role==='adm'?'전체':({mine:'내 신청',team:'우리 팀',all:'전체'})[scope]}</span>
+        ${role==='mkt'?`<span class="tabs">${[['mine','내 신청'],['team','우리 팀'],['all','전체']].map(([k,n])=>
+          `<button data-sc="${k}" class="${scope===k?'on':''}">${n}</button>`).join('')}</span>`:''}</h2></div>
     <div class="tblwrap"><table class="list">
       <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
         <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th><th>사유</th></tr>
@@ -1215,7 +1221,7 @@ function confirmModal(){
       date:draft.date,hour:draft.hour,
       status:c?'조정 필요':'신청',
       reason:c?`${c.camp} (${c.team} ${c.mk}) 선점`:'',
-      note:c?draft.note.trim():''};
+      note:c?draft.note.trim():'', admNote:''};
     const ex=draft.editNo!=null?requests.find(r=>r.no===draft.editNo):null;
     if(ex) Object.assign(ex,body); else requests.push(mkReq(body));
     $('modalSlot').innerHTML='';
@@ -1617,6 +1623,7 @@ function admItem(r){
   return `<div class="adjitem${open?' on':''}">
     <div class="adjhd"><b>${esc(r.camp)}</b>
       <span class="st needfix">조정 필요</span>
+      ${r.admNote?`<span class="st sent">마케터 확인 대기</span>`:''}
       <span class="adjwhen">${r.cycle==='주기성'
         ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
         : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
@@ -1630,10 +1637,20 @@ function admItem(r){
     </div>
     ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
     ${r.note?`<div class="adjnote"><span>마케터 사유</span>${esc(r.note)}</div>`:''}
-    ${open?admFixPanel(r):`<div class="adjbtns">
-      <button class="pill primary sm" data-fix="${r.no}">재배정</button>
-      <button class="pill ghost sm" data-okadj="${r.no}">그대로 확정</button>
-    </div>`}
+    ${r.admNote?`<div class="adjrej"><span>담당자 반려</span>${esc(r.admNote)}</div>`:''}
+    ${open?admFixPanel(r)
+      :admRej.no===r.no?`<div class="reasonfld" style="margin:12px 0 0">
+          <label>반려 사유</label>
+          <textarea id="rejNote" rows="2"
+            placeholder="예: 선점 캠페인의 우선순위가 높아 조정이 어렵습니다">${esc(admRej.text)}</textarea>
+          <div class="adjbtns" style="margin-top:9px">
+            <button class="pill primary sm" data-rejok="${r.no}">반려</button>
+            <button class="pill ghost sm" data-rejno="1">취소</button>
+          </div></div>`
+      :`<div class="adjbtns">
+          <button class="pill primary sm" data-fix="${r.no}">재배정</button>
+          ${r.admNote?'':`<button class="pill ghost sm" data-rej2="${r.no}">반려</button>`}
+        </div>`}
   </div>`;
 }
 
@@ -1749,9 +1766,15 @@ function bindManage(){
     r.reason=r.reason||'담당자 조정 요청';
     toast(`조정 필요로 넘겼습니다 — ${r.camp}`,true); re()});
 
-  document.querySelectorAll('[data-okadj]').forEach(x=>x.onclick=()=>{
-    const r=requests.find(q=>q.no===+x.dataset.okadj); if(!r) return;
-    r.status='확정'; toast(`그대로 확정했습니다 — ${r.camp}`); re()});
+  document.querySelectorAll('[data-rej2]').forEach(x=>x.onclick=()=>{
+    admRej={no:+x.dataset.rej2,text:''}; admFix={no:null,date:null,hour:null}; re()});
+  document.querySelectorAll('[data-rejno]').forEach(x=>x.onclick=()=>{admRej={no:null,text:''};re()});
+  const rn=$('rejNote'); if(rn) rn.oninput=e=>admRej.text=e.target.value;
+  document.querySelectorAll('[data-rejok]').forEach(x=>x.onclick=()=>{
+    const r=requests.find(q=>q.no===+x.dataset.rejok); if(!r) return;
+    if(!admRej.text.trim()){toast('반려 사유를 입력해 주세요.',true); if(rn) rn.focus(); return}
+    r.admNote=admRej.text.trim(); admRej={no:null,text:''};
+    toast(`반려했습니다 — ${r.camp}`,true); re()});
 
   document.querySelectorAll('[data-fix]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.fix); if(!r) return;
@@ -1773,7 +1796,7 @@ function bindManage(){
     if(admFix.hour) r.hour=admFix.hour;
     r.status='확정';
     r.memo=`담당자 재배정 (${was} → ${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`})`;
-    r.reason='';
+    r.reason=''; r.admNote='';
     admFix={no:null,date:null,hour:null};
     toast(`재배정 후 확정했습니다 — ${r.camp}`); re()});
 }
