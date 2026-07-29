@@ -450,9 +450,12 @@ table.list th:last-child,table.list td.act{width:1%}
 .capaday{display:flex;gap:14px;align-items:center}
 .capaday .cdlbl{flex:0 0 76px;font-size:12px;color:var(--text-strong)}
 .capaday .cdbars{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
-.capaday .cbrow .cl{flex:0 0 54px;width:54px;font-size:11px}
+.capaday .cbrow .cl{flex:0 0 68px;width:68px;font-size:11px;white-space:nowrap}
 .capaday .cbtrack{height:14px}
-.capaday .cn{flex:0 0 120px;width:120px;font-size:11.5px}
+.capaday .cn{flex:0 0 130px;width:130px;font-size:11.5px}
+.capaday .cn small{font-size:10px;color:var(--text-muted)}
+.capaday .cbrow.nolimit .cbtrack{background:repeating-linear-gradient(90deg,
+  var(--l1) 0 6px,transparent 6px 8px)}
 
 /* ── 수정 중 배너 ── */
 .editbar{background:var(--sk-orange-t10);border:1px solid var(--sk-orange);border-radius:6px;
@@ -572,6 +575,33 @@ let requests=[
    offer:'쿠폰',qty:22,team:'A팀',mk:'짱아',date:'2026-08-24',hour:18}),
  mkReq({camp:'인기 예능 몰아보기',from:'2026-08-26',to:'2026-08-30',ch:['배너'],
    offer:'없음',qty:90,team:'B팀',mk:'훈이',date:'2026-08-26',hour:21}),
+
+ /* ── 확정 대기 (마케터가 1차 배치한 신청 건) ── */
+ mkReq({camp:'가을 편성표 사전 안내',from:'2026-08-17',to:'2026-08-23',ch:['배너'],gnb:'홈',
+   offer:'없음',qty:60,team:'A팀',mk:'짱아',date:'2026-08-17',hour:11,
+   status:'신청',reqAt:'2026-08-13 09:20'}),
+ mkReq({camp:'키즈 콘텐츠 신규 오픈',from:'2026-08-18',to:'2026-08-25',ch:['토스트팝업'],gnb:'홈',
+   offer:'쿠폰',qty:15,team:'B팀',mk:'짱구',date:'2026-08-18',hour:15,
+   status:'신청',reqAt:'2026-08-13 14:05'}),
+ mkReq({camp:'프로야구 포스트시즌 예고',from:'2026-08-19',to:'2026-08-22',ch:['TV팝업'],gnb:'홈',
+   offer:'없음',qty:120,team:'C팀',mk:'맹구',date:'2026-08-19',hour:20,
+   status:'신청',reqAt:'2026-08-14 10:41'}),
+ mkReq({camp:'월정액 업셀 리마인드',from:'2026-08-21',to:'2026-08-28',ch:['배너'],gnb:'영화 홈',
+   offer:'쿠폰',qty:45,team:'A팀',mk:'철수',date:'2026-08-21',hour:18,
+   status:'신청',reqAt:'2026-08-14 16:12'}),
+ mkReq({camp:'주말 특선 편성 안내',from:'2026-08-24',to:'2026-08-26',ch:['배너'],gnb:'홈',
+   cycle:'주기성',offer:'없음',qty:12,team:'B팀',mk:'훈이',date:'2026-08-24',hour:19,
+   status:'신청',reqAt:'2026-08-17 09:03'}),
+ mkReq({camp:'신규 가입자 온보딩',from:'2026-08-26',to:'2026-09-05',ch:['토스트팝업'],gnb:'영화 홈',
+   offer:'없음',qty:30,team:'C팀',mk:'유리',date:'2026-08-26',hour:9,
+   status:'신청',reqAt:'2026-08-18 11:30'}),
+
+ /* ── 조정 필요 (선점 충돌로 담당자 조율 대기) ── */
+ mkReq({camp:'추석 선물 프로모션',from:'2026-08-24',to:'2026-08-30',ch:['배너'],gnb:'홈',
+   offer:'쿠폰',qty:80,team:'B팀',mk:'훈이',date:'2026-08-24',hour:18,
+   status:'조정 필요',reqAt:'2026-08-18 15:47',
+   reason:'추석 특선영화 안내 (A팀 짱아) 선점',
+   note:'추석 연휴 첫날 저녁 발송으로 대외 확정되어 날짜·시간 변경이 어렵습니다'}),
 ];
 /* 자리를 실제로 차지하는 상태 — '조정 필요'는 아직 자리를 잡은 게 아니라 제외 */
 const live=r=>['확정','발송 완료','신청'].includes(r.status);
@@ -1518,7 +1548,7 @@ function renderManage(){
 
     <div class="card">
       <div class="card-hd"><div class="rule"></div>
-        <div class="lbl"><span>조정 필요</span><span>재배정 후 확정</span></div>
+        <div class="lbl"><span>조정 필요</span></div>
         <h2><span>${adj.length}건</span></h2></div>
       ${adj.length?adj.map(r=>admItem(r)).join(''):`<div class="empty">조정할 건이 없습니다.</div>`}
     </div>
@@ -1598,20 +1628,35 @@ function admFixPanel(r){
   </div>`;
 }
 
-/* 일자별 캐파 소진 */
+/* 일자별 소진 — 캘린더 차트와 같은 순서·색
+   TV팝업·토스트팝업은 캐파가 없어 한도 대비가 아니라 물량만 표시한다 */
+const CH_COLOR={'TV팝업':'var(--ch-tv)','배너':'var(--ch-banner)',
+  '토스트팝업':'var(--ch-toast)','쿠폰':'var(--ch-coupon)'};
+const usedByName=(d,name)=>name==='쿠폰'
+  ? couponUsed(d) : usedOn(d,r=>r.ch.includes(name));
+
 function capaBoard(){
   const days=monthDayList(kpiMonth);
-  const row=(name,lim,used)=>`<div class="cbrow">
-    <div class="cl"><i class="sw" style="background:${name==='배너'?'var(--ch-banner)':'var(--ch-coupon)'}"></i>${name}</div>
-    <div class="cbtrack"><b style="width:${Math.min(100,used/lim*100)}%;background:${
-      used/lim>=.9?'var(--sk-red)':name==='배너'?'var(--ch-banner)':'var(--ch-coupon)'}"></b></div>
-    <div class="cn">${man(used)} / ${man(lim)}만</div></div>`;
+  const order=['TV팝업','배너','토스트팝업','쿠폰'];
+  /* 한도 없는 채널은 그 달 최대치를 기준으로 상대 비교 */
+  const freeMax=Math.max(1,...days.flatMap(d=>
+    order.filter(n=>CAPA[n]&&CAPA[n].limit===null).map(n=>usedByName(d,n))));
+
+  const row=(name,used)=>{
+    const lim=CAPA[name]?CAPA[name].limit:null;
+    const pct=lim?Math.min(100,used/lim*100):used/freeMax*100;
+    const hot=lim&&used/lim>=.9;
+    return `<div class="cbrow${lim?'':' nolimit'}">
+      <div class="cl"><i class="sw" style="background:${CH_COLOR[name]}"></i>${name}</div>
+      <div class="cbtrack"><b style="width:${pct}%;background:${hot?'var(--sk-red)':CH_COLOR[name]}"></b></div>
+      <div class="cn">${lim?`${man(used)} / ${man(lim)}만`:`${man(used)}만 <small>제한 없음</small>`}</div></div>`;
+  };
   return `<div class="capabd">${days.map(d=>{
-    const b=bannerUsed(d), c=couponUsed(d);
-    if(!b&&!c) return '';
+    const rows=order.filter(n=>usedByName(d,n)>0);
+    if(!rows.length) return '';
     return `<div class="capaday">
       <div class="cdlbl">${fmtD(d)}</div>
-      <div class="cdbars">${row('배너',CAPA['배너'].limit,b)}${row('쿠폰',CAPA['쿠폰'].limit,c)}</div>
+      <div class="cdbars">${rows.map(n=>row(n,usedByName(d,n))).join('')}</div>
     </div>`}).join('')||'<div class="empty">이 달에 배정된 캠페인이 없습니다.</div>'}</div>`;
 }
 
