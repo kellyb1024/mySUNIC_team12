@@ -188,7 +188,33 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .filters .fl{font-size:11.5px;color:var(--text-muted);margin-right:2px}
 .filters .sep{width:1px;height:18px;background:var(--border);margin:0 4px}
 
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.calhd{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.calwk{position:relative;margin-bottom:5px}
+.wcells{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.lanegap{flex:0 0 auto}
+.wspans{position:absolute;left:0;right:0;top:26px;display:grid;
+  grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:18px;row-gap:3px;
+  pointer-events:none}
+.span{pointer-events:auto;background:var(--waiting-bg);border:1px solid var(--waiting-border);
+  border-radius:2px;font-size:10.5px;line-height:16px;padding:0 7px;color:var(--waiting-text);
+  cursor:pointer;position:relative;min-width:0}
+.span .sl{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.span.head{border-left-width:3px;border-radius:3px 2px 2px 3px}
+.span.tail{border-radius:2px 3px 3px 2px}
+.span.head.tail{border-radius:3px}
+.span:not(.head){border-left:none}
+.span:not(.tail){border-right:none}
+.span:hover{background:#FFEAA8}
+.span .tip{display:none;position:absolute;top:calc(100% + 5px);left:0;background:var(--text-strong);
+  color:#fff;padding:9px 11px;border-radius:5px;font-size:11px;line-height:1.6;width:222px;
+  white-space:normal;z-index:130;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.span:hover .tip{display:block}
+.span .tip b{display:block;font-weight:500;margin-bottom:4px;font-size:11.5px;color:#fff}
+.span .tip .tr{display:flex;justify-content:space-between;gap:10px;color:#D6D8DA}
+.span .tip .tr span:last-child{font-family:Roboto;color:#fff}
+.span.rt .tip{left:auto;right:0}
+.span.up .tip{top:auto;bottom:calc(100% + 5px)}
+.cal{display:block}
 .cal .ch{font-size:11.5px;color:var(--text-muted);text-align:center;padding:4px 0 6px;font-weight:500}
 .cal .ch.sun{color:var(--sk-red)}
 .ccell{border:1px solid var(--border);border-radius:5px;min-height:112px;padding:6px 7px;background:#fff;
@@ -203,6 +229,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid var(--text-muted)}
 .ev.start{background:var(--sk-orange-t10);border-left-color:var(--sk-orange);color:var(--sk-orange-text)}
 .ev.end{background:var(--l1);border-left-color:var(--locked-fill);color:var(--text)}
+.ev.rep{background:var(--waiting-bg);border-left-color:var(--waiting-border);color:var(--waiting-text)}
 .ev:hover{overflow:visible;z-index:80}
 .ev.rt .tip{left:auto;right:0}
 .ev.up .tip{top:auto;bottom:calc(100% + 5px)}
@@ -458,8 +485,8 @@ let requests=[
    cycle:'주기성',offer:'쿠폰',qty:5,team:'C팀',mk:'유리',date:'2026-07-24',hour:17}),
  mkReq({camp:'<군체> 론칭 안내',from:'2026-07-29',to:'2026-08-02',ch:['TV팝업'],
    offer:'없음',qty:300,team:'C팀',mk:'맹구',date:'2026-07-29',hour:20}),
- mkReq({camp:'영화 월정액 이용 안내',from:'2026-07-30',to:'2026-08-31',ch:['배너'],gnb:'영화 홈',
-   cycle:'주기성',offer:'없음',qty:1,team:'B팀',mk:'훈이',date:'2026-07-30',hour:17,memo:'17시 고정'}),
+ mkReq({camp:'영화 월정액 이용 안내',from:'2026-08-10',to:'2026-08-14',ch:['배너'],gnb:'영화 홈',
+   cycle:'주기성',offer:'없음',qty:30,team:'B팀',mk:'훈이',date:'2026-08-10',hour:17,memo:'17시 고정'}),
  mkReq({camp:'여름세일',from:'2026-07-31',to:'2026-08-07',ch:['배너'],
    offer:'없음',qty:100,team:'A팀',mk:'철수',date:'2026-07-31',hour:14,status:'조정 필요'}),
  mkReq({camp:'8월 콘텐츠 추천',from:'2026-07-29',to:'2026-08-31',ch:['배너'],
@@ -992,6 +1019,7 @@ function bindApply(){
    페이지 2 — 캘린더
    ══════════════════════════════════════════════════════════════════════ */
 const MONTHS=['2026-07','2026-08','2026-09'];
+const monthDayList=m=>ALL.filter(x=>x.d.slice(0,7)===m).map(x=>x.d);
 function monthDays(m){
   const [y,mm]=m.split('-').map(Number);
   const first=new Date(y,mm-1,1), lastD=new Date(y,mm,0).getDate();
@@ -1005,22 +1033,45 @@ const passFilter=r=>{
   if(!calFilter.ch.length) return true;
   return calFilter.ch.some(f=>f==='쿠폰'?r.offer==='쿠폰':r.ch.includes(f));
 };
+/* 일회성 — 시작·종료 시점만 칸 안에 표기 */
 function eventsOn(d){
-  const out=[];
-  if(calFilter.mode!=='end') requests.filter(r=>r.from===d&&passFilter(r)).forEach(r=>out.push({r,t:'start'}));
-  if(calFilter.mode!=='start') requests.filter(r=>r.to===d&&passFilter(r)).forEach(r=>out.push({r,t:'end'}));
+  const out=[], m=calFilter.mode;
+  requests.filter(r=>r.cycle!=='주기성'&&passFilter(r)).forEach(r=>{
+    if(r.from===d&&m!=='end') out.push({r,t:'start'});
+    else if(r.to===d&&m!=='start') out.push({r,t:'end'});
+  });
   return out;
+}
+
+/* 주기성 — 기간 내내 매일 발송되므로 주 단위로 이어진 바를 그린다 */
+function weekSpans(week){
+  const a=week[0].d, b=week[6].d, m=calFilter.mode, segs=[];
+  requests.filter(r=>r.cycle==='주기성'&&passFilter(r)).forEach(r=>{
+    if(r.to<a||r.from>b) return;
+    if(m==='start'&&!(r.from>=a&&r.from<=b)) return;
+    if(m==='end'&&!(r.to>=a&&r.to<=b)) return;
+    const si=week.findIndex(x=>x.d===r.from), ei=week.findIndex(x=>x.d===r.to);
+    segs.push({r, s:si<0?0:si, e:ei<0?6:ei, head:r.from>=a, tail:r.to<=b});
+  });
+  const lanes=[];
+  segs.forEach(g=>{
+    let L=0;
+    while(lanes[L]&&lanes[L].some(o=>!(g.e<o.s||g.s>o.e))) L++;
+    (lanes[L]=lanes[L]||[]).push(g); g.lane=L;
+  });
+  return {segs, lanes:lanes.length};
 }
 function renderCal(){
   const mi=MONTHS.indexOf(calMonth);
   const cells=monthDays(calMonth);
-  const inMonth=requests.filter(r=>r.from.slice(0,7)===calMonth&&passFilter(r));
+  const mDays=monthDayList(calMonth);
+  const inMonth=requests.filter(r=>passFilter(r)&&mDays.some(d=>activeOn(d,r)));
   return `<div class="wrap wide">
     <div class="card">
       <div class="card-hd"><div class="rule"></div>
         <div class="lbl"><span>이번 달 발송 현황</span><span>${calMonth.replace('-','.')}</span></div>
         <h2><span>채널 · 오퍼별 요약</span>
-          <span class="badge">이 달 시작 ${inMonth.length}건</span></h2></div>
+          <span class="badge">이 달 발송 ${inMonth.length}건</span></h2></div>
       ${chartFor(inMonth)}
     </div>
     <div class="card">
@@ -1043,17 +1094,24 @@ function renderCal(){
         ${calFilter.ch.length?`<button class="chip sm" data-f="__clear">필터 해제</button>`:''}
       </div>
       <div class="cal">
-        ${WD.map((w,i)=>`<div class="ch${i===0?' sun':''}">${w}</div>`).join('')}
-        ${cells.map((c,i)=>calCell(c,i,cells.length/7)).join('')}
+        <div class="calhd">${WD.map((w,i)=>`<div class="ch${i===0?' sun':''}">${w}</div>`).join('')}</div>
+        ${(()=>{const wks=[];for(let i=0;i<cells.length;i+=7)wks.push(cells.slice(i,i+7));
+          return wks.map((wk,wi)=>{
+            const {segs,lanes}=weekSpans(wk);
+            return `<div class="calwk" style="--lanes:${lanes}">
+              <div class="wcells">${wk.map((c,ci)=>calCell(c,wi*7+ci,wks.length,lanes)).join('')}</div>
+              ${segs.length?`<div class="wspans">${segs.map(g=>spanBar(g,wi,wks.length)).join('')}</div>`:''}
+            </div>`}).join('')})()}
       </div>
       <div class="legend">
         <span><i style="background:var(--sk-orange-t10);border-left:2px solid var(--sk-orange)"></i>시작 캠페인</span>
         <span><i style="background:var(--l1);border-left:2px solid var(--locked-fill)"></i>종료 캠페인</span>
+        <span><i style="background:var(--waiting-bg);border-left:2px solid var(--waiting-border)"></i>↻ 주기성 (기간 내 매일 17~19시)</span>
       </div>
     </div>
   </div>`;
 }
-function calCell(c,idx,rows){
+function calCell(c,idx,rows,lanes){
   const col=idx%7, row=Math.floor(idx/7);
   const flip=(col>=5?' rt':'')+(row>=rows-2?' up':'');
   const o=dayOf(c.d), evs=c.out?[]:eventsOn(c.d);
@@ -1061,29 +1119,53 @@ function calCell(c,idx,rows){
   return `<div class="ccell${c.out?' out':''}${o&&o.dow===0?' sun':''}${c.d===TODAY?' today':''}"
       ${c.out?'':`data-cd="${c.d}"`}>
     <div class="cd">${+c.d.slice(8)}</div>
-    ${show.map(e=>`<div class="ev ${e.t}${flip}">${e.t==='end'?'▪ ':''}${esc(e.r.camp)}
+    ${lanes?`<div class="lanegap" style="height:${lanes*21}px"></div>`:''}
+    ${show.map(e=>`<div class="ev ${e.rep?'rep':e.t}${flip}">${
+        e.rep?'↻ ':e.t==='end'?'▪ ':''}${esc(e.r.camp)}
       <div class="tip"><b>${esc(e.r.camp)}</b>
-        <div class="tr"><span>구분</span><span>${e.t==='start'?'시작':'종료'}</span></div>
-        <div class="tr"><span>채널</span><span>${e.r.ch.join('·')}</span></div>
+        <div class="tr"><span>구분</span><span>${e.rep
+          ? '주기성 · '+(e.t==='start'?'시작':e.t==='end'?'종료':'발송 중')
+          : '일회성 · '+(e.t==='start'?'시작':'종료')}</span></div>
+        <div class="tr"><span>기간</span><span>${fmtD(e.r.from)}~${fmtD(e.r.to)}</span></div>
+        <div class="tr"><span>채널</span><span>${e.r.ch.join('·')||'—'}</span></div>
         <div class="tr"><span>오퍼</span><span>${e.r.offer}</span></div>
-        <div class="tr"><span>모수</span><span>${man(e.r.qty)}만 건</span></div>
-        <div class="tr"><span>발송</span><span>${e.r.hour}:00</span></div>
+        <div class="tr"><span>${e.rep?'1일 모수':'모수'}</span><span>${man(e.r.qty)}만 건</span></div>
+        <div class="tr"><span>발송</span><span>${e.rep?'17~19시':e.r.hour+':00'}</span></div>
         <div class="tr"><span>담당</span><span>${e.r.team} ${e.r.mk}</span></div>
       </div></div>`).join('')}
     ${rest>0?`<div class="cmore">+${rest}건 더</div>`:''}
   </div>`;
 }
+function spanBar(g,wi,rows){
+  const r=g.r, flip=(g.s>=5?' rt':'')+(wi>=rows-2?' up':'');
+  return `<div class="span${g.head?' head':''}${g.tail?' tail':''}${flip}" data-cd="${r.from}"
+      style="grid-column:${g.s+1}/${g.e+2};grid-row:${g.lane+1}">
+    <span class="sl">↻ ${esc(r.camp)}</span>
+    <div class="tip"><b>${esc(r.camp)}</b>
+      <div class="tr"><span>구분</span><span>주기성 · 매일 발송</span></div>
+      <div class="tr"><span>기간</span><span>${fmtD(r.from)}~${fmtD(r.to)}</span></div>
+      <div class="tr"><span>채널</span><span>${r.ch.join('·')||'—'}</span></div>
+      <div class="tr"><span>오퍼</span><span>${r.offer}</span></div>
+      <div class="tr"><span>1일 모수</span><span>${man(r.qty)}만 건</span></div>
+      <div class="tr"><span>발송</span><span>17~19시</span></div>
+      <div class="tr"><span>담당</span><span>${r.team} ${r.mk}</span></div>
+    </div></div>`;
+}
+
 function chartFor(rows){
+  const mDays=monthDayList(calMonth);
   const chStat=CH_LIST.concat('쿠폰').map(c=>{
     const rs=c==='쿠폰'?rows.filter(r=>r.offer==='쿠폰'):rows.filter(r=>r.ch.includes(c));
-    return {c,n:rs.length,q:rs.reduce((s,r)=>s+r.qty,0)};
+    /* 모수는 그 달에 실제로 나가는 물량 — 주기성은 걸친 일수만큼 합산 */
+    const q=rs.reduce((s,r)=>s+r.qty*mDays.filter(d=>activeOn(d,r)).length,0);
+    return {c,n:rs.length,q};
   });
   const maxQ=Math.max(1,...chStat.map(s=>s.q));
   const color={'배너':'var(--ch-banner)','TV팝업':'var(--ch-tv)','토스트팝업':'var(--ch-toast)','쿠폰':'var(--ch-coupon)'};
   const [y,mm]=calMonth.split('-').map(Number), lastD=new Date(y,mm,0).getDate();
   const perDay=[...Array(lastD)].map((_,i)=>{
     const d=iso(new Date(y,mm-1,i+1));
-    return {d,q:requests.filter(r=>r.date===d&&passFilter(r)).reduce((s,r)=>s+r.qty,0)};
+    return {d,q:requests.filter(r=>live(r)&&activeOn(d,r)&&passFilter(r)).reduce((s,r)=>s+r.qty,0)};
   });
   const maxD=Math.max(1,...perDay.map(x=>x.q));
   return `<div class="chartbox">
@@ -1107,7 +1189,7 @@ function chartFor(rows){
 /* ── 일자 상세 (먼슬리뷰에서 날짜 클릭 → 구체화) ── */
 function renderDay(d){
   const taken=takenHours(d);
-  const onDay=requests.filter(r=>r.date===d&&live(r)).sort((a,b)=>a.hour-b.hour);
+  const onDay=requests.filter(r=>live(r)&&activeOn(d,r)).sort((a,b)=>hoursOf(a)[0]-hoursOf(b)[0]);
   const starts=requests.filter(r=>r.from===d), ends=requests.filter(r=>r.to===d);
   const past=isPast(d);
   return `<div class="wrap wide">
@@ -1129,15 +1211,16 @@ function renderDay(d){
       </div>
       <div class="segnote">시간대별 배치 현황</div>
       <div class="hgrid">${HOURS.map(h=>{
-        const r=onDay.find(x=>x.hour===h);
+        const r=onDay.find(x=>hoursOf(x).includes(h));
         return `<div class="hslot ro ${r?'taken':''}">
           <span class="hh">${h}시</span>
           <span class="hs">${r?esc(r.camp.slice(0,6)):'비어 있음'}</span></div>`}).join('')}</div>
       <div class="segnote" style="margin:18px 0 8px">이 날짜의 캠페인</div>
       ${onDay.length?`<div class="daylist">${onDay.map(r=>`<div class="dayrow">
-          <span class="dh2 num">${r.hour}:00</span>
-          <span class="dnm">${esc(r.camp)}</span>
-          <span class="dch">${r.ch.join('·')} / ${r.offer}</span>
+          <span class="dh2 num">${r.cycle==='주기성'?'17-19시':r.hour+':00'}</span>
+          <span class="dnm">${r.cycle==='주기성'?'↻ ':''}${esc(r.camp)}</span>
+          <span class="dch">${r.cycle==='주기성'
+            ? `주기성 · ${fmtD(r.from)}~${fmtD(r.to)}` : (r.ch.join('·')||'—')+' / '+r.offer}</span>
           <span class="dq num">${man(r.qty)}만</span>
           <span class="dw">${r.team} ${r.mk}</span>
           <span class="st ${r.status==='신청'?'applied':r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span>
