@@ -1362,7 +1362,10 @@ function confirmModal(){
     </div></div></div>`;
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
   $('mYes').onclick=()=>{
-    const body={camp:draft.camp,from:draft.from,to:draft.to,ch:[...draft.ch],gnb:draft.gnb,
+    /* 일회성은 시작일에 1회 발송한다 — 고른 날이 곧 캠페인 시작일이다.
+       마케터가 입력한 시작일~종료일은 '언제쯤 나가고 싶은지' 탐색 범위로 쓰인다. */
+    const from=draft.cycle==='주기성'?draft.from:draft.date;
+    const body={camp:draft.camp,from,to:draft.to,ch:[...draft.ch],gnb:draft.gnb,
       cycle:draft.cycle,offer:draft.offer,qty:draft.qty,team:draft.dept,mk:draft.mk,
       date:draft.date,hour:draft.hour,
       status:c?'조정 필요':'신청', adjBy:c?'mkt':null,
@@ -1847,10 +1850,10 @@ function fixHolder(r,days,h){
    합의가 이미 됐으므로 선점 건은 '확정'을 유지한 채 일정만 바뀐다. */
 function swapPanel(r,rSpan,h,hd){
   const s=admSwap, sh=s.hour||hd.hour;
-  const span=fixSpan(hd,s);
+  const span=fixSpan(hd,s), rep=hd.cycle==='주기성', hours=rep?REC_HOURS:HOURS;
   /* 조정 요청 건이 넘겨받을 자리는 다시 고를 수 없다 */
   const busy=new Set();
-  HOURS.forEach(x=>{
+  hours.forEach(x=>{
     const hit=span.some(dd=>(x===h&&rSpan.includes(dd))
       ||requests.some(q=>q.no!==hd.no&&q.no!==r.no&&live(q)&&activeOn(dd,q)&&q.hour===x&&slotClash(hd,q)));
     if(hit) busy.add(x);
@@ -1866,7 +1869,7 @@ function swapPanel(r,rSpan,h,hd){
     ${fixDates('sw',hd,s)}
     <div class="fixrow"><span>캐파</span>${gaugeRow(gd,hd,activeOn(gd,hd)?0:hd.qty,'이 건')}</div>
     <div class="fixrow"><span>시간대</span>
-      <div class="hgrid adm">${HOURS.map(x=>{
+      <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(x=>{
         const t=busy.has(x);
         return `<div class="hslot ${t?'taken':''}${x===sh?' on':''}" data-sh="${x}">
           <span class="hh">${x}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
@@ -1901,9 +1904,9 @@ function fixDates(id,r,s){
 }
 function admFixPanel(r){
   const s=admFix, h=s.hour||r.hour;
-  const span=fixSpan(r,s);
+  const span=fixSpan(r,s), rep=r.cycle==='주기성', hours=rep?REC_HOURS:HOURS;
   const busy=new Set();
-  HOURS.forEach(x=>{ if(span.some(dd=>blockedHours(dd,r).has(x))) busy.add(x) });
+  hours.forEach(x=>{ if(span.some(dd=>blockedHours(dd,r).has(x))) busy.add(x) });
   const capaBad=span.some(dd=>
     (r.ch.includes('배너')&&bannerRem(dd)<r.qty)||(r.offer==='쿠폰'&&couponRem(dd)<r.qty));
   const ok=!busy.has(h)&&!capaBad;
@@ -1913,7 +1916,7 @@ function admFixPanel(r){
     ${fixDates('fx',r,s)}
     <div class="fixrow"><span>캐파</span>${gaugeRow(gd,r,r.qty,'이 건')}</div>
     <div class="fixrow"><span>시간대</span>
-      <div class="hgrid adm">${HOURS.map(x=>{
+      <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(x=>{
         const t=busy.has(x);
         return `<div class="hslot ${t?'taken':''}${x===h?' on':''}" data-fh="${x}">
           <span class="hh">${x}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
