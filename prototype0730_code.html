@@ -173,11 +173,11 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .sumbox .sd{font-size:14px;color:var(--text-strong);font-weight:500}
 .gauges{display:flex;gap:22px;flex-wrap:wrap;margin:4px 0 14px}
 .gauge{display:flex;gap:10px;align-items:flex-end}
-.gtube{width:40px;height:84px;border:1px solid var(--cell-border);border-radius:3px;position:relative;overflow:hidden;background:var(--l1)}
-/* 소진된 캐파 = SK 오렌지 / 내가 신청하려는 분량 = 연한 톤 빗금 */
+.gtube{width:40px;height:84px;border:1px solid var(--border);border-radius:3px;position:relative;overflow:hidden;background:#fff}
+/* 아래부터 — 이미 소진(진한 오렌지) · 이 건이 더할 분량(연한 오렌지) · 남은 여유(흰색).
+   한 색의 두 톤만 쓰고, 빈 자리는 비워 둔다 */
 .gfill{position:absolute;left:0;right:0;bottom:0;background:var(--sk-orange)}
-.gghost{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,
-  var(--sk-orange-t25) 0 4px,#FFFFFF 4px 8px);border-top:1px solid var(--sk-orange-t25)}
+.gghost{position:absolute;left:0;right:0;background:var(--sk-orange-t25)}
 .gmeta{font-size:11.5px;line-height:1.6}
 .gmeta .gt{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:2px;display:flex;align-items:center}
 .gmeta .gn{font-family:Roboto;font-variant-numeric:tabular-nums;color:var(--text-strong)}
@@ -774,8 +774,8 @@ let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일�
            date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null};
 let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false, listSt='all';
 let admFix={no:null,date:null,hour:null};   /* 담당자 재배정 대상 */
-let admSwap={no:null,date:null,hour:null,note:''}; /* 자리를 넘겨줄 선점 건 */
-const noSwap=()=>admSwap={no:null,date:null,hour:null,note:''};
+let admSwap={no:null,date:null,hour:null}; /* 자리를 넘겨줄 선점 건 */
+const noSwap=()=>admSwap={no:null,date:null,hour:null};
 let capaFrom='2026-07-27';                  /* 주간 캐파 현황 시작일 (월요일) */
 let admRej={no:null,text:''};               /* 담당자 취소 사유 입력 대상 */
 const $=id=>document.getElementById(id);
@@ -1069,23 +1069,28 @@ function occupancyList(d){
   `;
 }
 
-function gaugeRow(d){
+/* 캐파 게이지 — 신청 화면과 담당자 조정 화면이 같이 쓴다.
+   add = 이 건이 아직 그 날 소진에 안 잡혀 있을 때 더해질 분량 (0 이면 숨김) */
+function gaugeRow(d,c=draft,add=c.qty,lab='내 신청'){
   const g=(name,used,lim)=>{
+    /* 한도가 없어도 얼마나 나가는지는 보여준다 */
     if(lim===null) return `<div class="gauge"><div class="gtube"></div>
       <div class="gmeta"><div class="gt">${name}</div>
-      <div class="gn">제한 없음</div></div></div>`;
-    const p=Math.min(100,used/lim*100), mine=Math.min(100-p,draft.qty/lim*100);
+      <div class="gn">${man(used)}만 사용</div>
+      <div style="color:var(--text-muted)">한도 없음</div></div></div>`;
+    const p=Math.min(100,used/lim*100), mine=Math.min(100-p,add/lim*100);
     return `<div class="gauge"><div class="gtube">
         <div class="gfill" style="height:${p}%"></div>
         <div class="gghost" style="bottom:${p}%;height:${mine}%"></div></div>
       <div class="gmeta"><div class="gt">${name}</div>
         <div class="gn">${man(used)} / ${man(lim)}만</div>
-        <div style="color:var(--text-muted)">내 신청 +${man(draft.qty)}만</div></div></div>`;
+        <div style="color:var(--text-muted)">${add?`${lab} +${man(add)}만`:'이미 반영됨'}</div></div></div>`;
   };
   const rows=[];
-  if(draft.ch.includes('배너')) rows.push(g('배너',bannerUsed(d),CAPA['배너'].limit));
-  if(draft.offer==='쿠폰')      rows.push(g('쿠폰',couponUsed(d),CAPA['쿠폰'].limit));
-  draft.ch.filter(c=>CAPA[c].limit===null).forEach(c=>rows.push(g(c,0,null)));
+  if(c.ch.includes('배너')) rows.push(g('배너',bannerUsed(d),CAPA['배너'].limit));
+  if(c.offer==='쿠폰')      rows.push(g('쿠폰',couponUsed(d),CAPA['쿠폰'].limit));
+  c.ch.filter(x=>CAPA[x]&&CAPA[x].limit===null)
+      .forEach(x=>rows.push(g(x,usedOn(d,q=>q.ch.includes(x)),null)));
   return `<div class="gauges">${rows.join('')}</div>`;
 }
 
@@ -1249,7 +1254,7 @@ function cardList(){
           const adm=r.adjBy==='adm'&&r.admNote;
           const from=cancByAdm?'담당자 취소':r.moved?'담당자 일정 조정':adm?'담당자 사유':r.reason;
           const txt =cancByAdm?r.admNote
-                    :r.moved?`${r.moved.from} → ${r.moved.to} · ${r.moved.note}`
+                    :r.moved?`${r.moved.from} → ${r.moved.to}`
                     :adm?r.admNote:r.note;
           return from?`<span class="src">${esc(from)}</span>${txt?`<br>${esc(txt)}`:''}`:'—'})()}</td>
         </tr>`).join('')}
@@ -1297,7 +1302,6 @@ function cancelModal(no,ask){
       ${hrow('부서 · 마케터',`${r.team} ${r.mk}`)}
       ${r.status==='취소'&&r.admNote?hrow('취소 사유',r.admNote):''}
       ${r.moved?hrow('일정 조정',`${r.moved.from} → ${r.moved.to}`):''}
-      ${r.moved?hrow('조정 사유',r.moved.note):''}
       ${r.reason?hrow('사유',r.reason+(r.note?` — ${r.note}`:'')):''}
     </div>
     <div class="m-act">
@@ -1741,9 +1745,9 @@ function remCell(r){
   };
   if(r.ch.includes('배너')) put('배너',bannerRem(r.date),CAPA['배너'].limit);
   if(r.offer==='쿠폰')      put('쿠폰',couponRem(r.date),CAPA['쿠폰'].limit);
-  const free=r.ch.filter(c=>CAPA[c]&&CAPA[c].limit===null);
-  if(!parts.length&&free.length) return `<span class="cp none">${free.join('·')} 제한 없음</span>`;
-  if(free.length) parts.push(`<span class="cp none">${free.join('·')} 제한 없음</span>`);
+  /* 한도가 없어도 얼마나 나가는지는 보여준다 */
+  r.ch.filter(c=>CAPA[c]&&CAPA[c].limit===null).forEach(c=>
+    parts.push(`<span class="cp none">${c} ${man(usedOn(r.date,q=>q.ch.includes(c)))}<em>만 · 한도 없음</em></span>`));
   return parts.join('');
 }
 
@@ -1757,11 +1761,13 @@ function admItem(r){
         ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
         : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
     <div class="cfgrid">
+      ${cfRow('발송 일시',r.cycle==='주기성'
+        ? `${fmtD(r.from)}~${fmtD(r.to)} 매일 ${r.hour}:00` : `${fmtD(r.date)} ${r.hour}:00`)}
       ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
       ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
       ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
       ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
-      ${cfRow('신청자',`${r.team} ${r.mk}`)}
+      ${cfRow('부서 · 마케터',`${r.team} ${r.mk}`)}
       ${r.reqAt?cfRow('신청 시각',r.reqAt):''}
     </div>
     ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
@@ -1831,44 +1837,39 @@ function fixHolder(r,d,h){
    합의가 이미 됐으므로 선점 건은 '확정'을 유지하고 시간만 옮긴다. */
 function swapPanel(r,d,h,hd){
   const rep=hd.cycle==='주기성';
-  const sd=admSwap.date||hd.date, sh=admSwap.hour||hd.hour;
-  const days=rangeDays(hd.from,hd.to).filter(x=>!isPast(x));
-  const hours=rep?REC_HOURS:HOURS;
+  const sd=admSwap.date||(rep?hd.from:hd.date), sh=admSwap.hour||hd.hour;
+  const days=fixDays(hd), span=fixSpan(hd,sd);
   /* 조정 요청 건이 넘겨받을 자리는 다시 고를 수 없다 */
   const rOn=dd=>r.cycle==='주기성'?(dd>=r.from&&dd<=r.to):(dd===d);
   const busy=new Set();
-  hours.forEach(x=>{
+  HOURS.forEach(x=>{
     const chk=dd=>(x===h&&rOn(dd))||requests.some(q=>q.no!==hd.no&&q.no!==r.no
       &&live(q)&&activeOn(dd,q)&&q.hour===x&&slotClash(hd,q));
-    if(rep?days.some(chk):chk(sd)) busy.add(x);
+    if(span.some(chk)) busy.add(x);
   });
-  /* 같은 날 안에서 시간만 옮기면 캐파는 그대로다 — 날짜가 바뀔 때만 본다 */
-  const capaBad=(!rep&&sd!==hd.date)
-    &&((hd.ch.includes('배너')&&bannerRem(sd)<hd.qty)||(hd.offer==='쿠폰'&&couponRem(sd)<hd.qty));
-  const changed=rep?sh!==hd.hour:(sd!==hd.date||sh!==hd.hour);
+  /* 원래 나가던 날이 아닌 날만 캐파를 새로 본다 */
+  const wasOn=dd=>activeOn(dd,hd);
+  const capaBad=span.filter(dd=>!wasOn(dd)).some(dd=>
+    (hd.ch.includes('배너')&&bannerRem(dd)<hd.qty)||(hd.offer==='쿠폰'&&couponRem(dd)<hd.qty));
+  const changed=rep?(sd!==hd.from||sh!==hd.hour):(sd!==hd.date||sh!==hd.hour);
   const ok=!busy.has(sh)&&!capaBad&&changed;
   const when=(dd,hh)=>rep?`매일 ${hh}:00`:`${fmtD(dd)} ${hh}:00`;
   return `<div class="fixpanel">
     <div class="fixhd">선점 건 옮기기 — ${esc(hd.camp)} (${hd.team} ${hd.mk})</div>
-    <div class="segnote">협의된 자리를 고르면 이 건은 <b>확정을 유지한 채</b> 시간만 옮겨지고,
-      조정 요청 건이 ${when(d,h)} 자리를 넘겨받습니다.
-      ${rep?`주기성이라 기간(${fmtD(hd.from)}~${fmtD(hd.to)}) 내내 같은 시간대를 씁니다.`:''}</div>
-    ${rep?'':`<div class="fixrow"><span>발송일</span>
+    ${rep?`<div class="segnote">기간 ${span.length}일 · 고른 날부터 ${fmtD(span[span.length-1])}까지 매일</div>`:''}
+    <div class="fixrow"><span>${rep?'시작일':'발송일'}</span>
       <div class="daychips">${days.map(x=>`<button class="chip sm ${x===sd?'on':''}" data-sd="${x}">${fmtD(x)}</button>`).join('')}</div>
-    </div>`}
+    </div>
+    <div class="fixrow"><span>캐파</span>${
+      gaugeRow(sd,hd,activeOn(sd,hd)?0:hd.qty,'이 건')}</div>
     <div class="fixrow"><span>시간대</span>
-      <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(x=>{
+      <div class="hgrid adm">${HOURS.map(x=>{
         const t=busy.has(x);
         return `<div class="hslot ${t?'taken':''}${x===sh?' on':''}" data-sh="${x}">
           <span class="hh">${x}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
     </div>
     ${capaBad?`<div class="blockbox"><b>캐파를 넘겨 옮길 수 없습니다</b>
-      <div>${fmtD(sd)} 잔여가 부족합니다 · 배너 ${man(bannerRem(sd))}만 / 쿠폰 ${man(couponRem(sd))}만</div></div>`:''}
-    <div class="reasonfld" style="margin:12px 0 0">
-      <label>조정 사유<i class="i" data-tip="양쪽 마케터 화면에 그대로 남습니다.&#10;협의 내용을 적어 주세요."></i></label>
-      <textarea id="swapNote" rows="2"
-        placeholder="예: 3사 협의 결과 유리 팀 주기성 캠페인을 우선하기로 함">${esc(admSwap.note)}</textarea>
-    </div>
+      <div>${rep?'기간 내 어느 날의':fmtD(sd)} 잔여가 부족합니다 · 배너 ${man(bannerRem(sd))}만 / 쿠폰 ${man(couponRem(sd))}만</div></div>`:''}
     <div class="adjbtns">
       <button class="pill primary sm" data-swapok="${hd.no}" ${ok?'':'disabled'}>두 건 함께 반영</button>
       <button class="pill ghost sm" data-swapno="1">취소</button>
@@ -1879,30 +1880,45 @@ function swapPanel(r,d,h,hd){
 }
 
 /* 재배정 — 날짜·시간대를 다시 고른다 (자기 자신은 충돌에서 제외) */
+/* 일정 이동 — 주기성은 기간 길이를 유지한 채 통째로 옮긴다 */
+function moveTo(r,date,hour){
+  if(date){
+    if(r.cycle==='주기성'){
+      const len=rangeDays(r.from,r.to).length;
+      r.from=date; r.to=addDays(date,len-1); r.date=date;
+    } else r.date=date;
+  }
+  if(hour) r.hour=hour;
+}
+
+/* 담당자 재배정·이동에서 고를 수 있는 날짜.
+   일회성은 캠페인 기간 안의 하루, 주기성은 기간을 통째로 옮길 시작일(±7일). */
+const fixDays=r=>r.cycle==='주기성'
+  ? rangeDays(addDays(r.from,-7),addDays(r.from,7)).filter(x=>!isPast(x))
+  : rangeDays(r.from,r.to).filter(x=>!isPast(x));
+/* 그 날짜로 옮겼을 때 실제로 발송이 걸리는 날들 */
+const fixSpan=(r,d)=>r.cycle==='주기성'
+  ? rangeDays(d,addDays(d,rangeDays(r.from,r.to).length-1)) : [d];
+
 function admFixPanel(r){
   const rep=r.cycle==='주기성';
-  const d=admFix.date||r.date, h=admFix.hour||r.hour;
-  const days=rangeDays(r.from,r.to).filter(x=>!isPast(x));
-  const hours=rep?REC_HOURS:HOURS;
+  const d=admFix.date||(rep?r.from:r.date), h=admFix.hour||r.hour;
+  const days=fixDays(r), span=fixSpan(r,d);
   /* 주기성은 기간 내내 같은 시간대를 잡아야 하므로 전 기간을 검사 */
   const busy=new Set();
-  hours.forEach(x=>{
-    const hit=rep ? days.some(dd=>blockedHours(dd,r).has(x)) : blockedHours(d,r).has(x);
-    if(hit) busy.add(x);
-  });
-  const capaBad=(()=>{
-    const chk=dd=>(r.ch.includes('배너')&&bannerRem(dd)<r.qty)||(r.offer==='쿠폰'&&couponRem(dd)<r.qty);
-    return rep?days.some(chk):chk(d);
-  })();
+  HOURS.forEach(x=>{ if(span.some(dd=>blockedHours(dd,r).has(x))) busy.add(x) });
+  const capaBad=span.some(dd=>
+    (r.ch.includes('배너')&&bannerRem(dd)<r.qty)||(r.offer==='쿠폰'&&couponRem(dd)<r.qty));
   const ok=!busy.has(h)&&!capaBad;
   return `<div class="fixpanel">
     <div class="fixhd">재배정</div>
-    ${rep?`<div class="segnote">주기성은 기간(${fmtD(r.from)}~${fmtD(r.to)}) 내내 같은 시간대를 씁니다.</div>`
-      :`<div class="fixrow"><span>발송일</span>
-        <div class="daychips">${days.map(x=>`<button class="chip sm ${x===d?'on':''}" data-fd="${x}">${fmtD(x)}</button>`).join('')}</div>
-      </div>`}
+    ${rep?`<div class="segnote">기간 ${span.length}일 · 고른 날부터 ${fmtD(span[span.length-1])}까지 매일</div>`:''}
+    <div class="fixrow"><span>${rep?'시작일':'발송일'}</span>
+      <div class="daychips">${days.map(x=>`<button class="chip sm ${x===d?'on':''}" data-fd="${x}">${fmtD(x)}</button>`).join('')}</div>
+    </div>
+    <div class="fixrow"><span>캐파</span>${gaugeRow(d,r,r.qty,'이 건')}</div>
     <div class="fixrow"><span>시간대</span>
-      <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(x=>{
+      <div class="hgrid adm">${HOURS.map(x=>{
         const t=busy.has(x);
         return `<div class="hslot ${t?'taken':''}${x===h?' on':''}" data-fh="${x}">
           <span class="hh">${x}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
@@ -2016,25 +2032,21 @@ function bindManage(){
 
   document.querySelectorAll('[data-swapon]').forEach(x=>x.onclick=()=>{
     const hd=requests.find(q=>q.no===+x.dataset.swapon); if(!hd) return;
-    admSwap={no:hd.no,date:hd.date,hour:hd.hour,note:''}; re()});
+    admSwap={no:hd.no,date:hd.cycle==='주기성'?hd.from:hd.date,hour:hd.hour}; re()});
   document.querySelectorAll('[data-sd]').forEach(x=>x.onclick=()=>{admSwap.date=x.dataset.sd;re()});
   document.querySelectorAll('[data-sh]').forEach(x=>x.onclick=()=>{admSwap.hour=+x.dataset.sh;re()});
   document.querySelectorAll('[data-swapno]').forEach(x=>x.onclick=()=>{noSwap();re()});
-  const sn=$('swapNote'); if(sn) sn.oninput=e=>admSwap.note=e.target.value;
 
   /* 두 건 함께 반영 — 선점 건은 합의된 자리로, 조정 요청 건은 원하던 자리로 */
   document.querySelectorAll('[data-swapok]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===admFix.no), hd=requests.find(q=>q.no===+x.dataset.swapok);
     if(!r||!hd) return;
-    const note=admSwap.note.trim();
-    if(!note){toast('조정 사유를 입력해 주세요.',true); if(sn) sn.focus(); return}
-    const when=q=>q.cycle==='주기성'?`매일 ${q.hour}:00`:`${fmtD(q.date)} ${q.hour}:00`;
+    const when=q=>q.cycle==='주기성'
+      ? `${fmtD(q.from)}~${fmtD(q.to)} 매일 ${q.hour}:00` : `${fmtD(q.date)} ${q.hour}:00`;
     const hWas=when(hd), rWas=when(r);
-    if(hd.cycle!=='주기성'&&admSwap.date) hd.date=admSwap.date;
-    if(admSwap.hour) hd.hour=admSwap.hour;
-    hd.moved={from:hWas,to:when(hd),note,peer:r.camp};
-    if(r.cycle!=='주기성'&&admFix.date) r.date=admFix.date;
-    if(admFix.hour) r.hour=admFix.hour;
+    moveTo(hd,admSwap.date,admSwap.hour);
+    hd.moved={from:hWas,to:when(hd),peer:r.camp};
+    moveTo(r,admFix.date,admFix.hour);
     r.status='확정'; r.reason=''; r.note=''; r.admNote=''; r.adjBy=null;
     r.memo=`담당자 재배정 (${rWas} → ${when(r)})`;
     admFix={no:null,date:null,hour:null}; noSwap();
@@ -2048,9 +2060,9 @@ function bindManage(){
 
   document.querySelectorAll('[data-fixok]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.fixok); if(!r) return;
-    const was=r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`;
-    if(r.cycle!=='주기성'&&admFix.date) r.date=admFix.date;
-    if(admFix.hour) r.hour=admFix.hour;
+    const was=r.cycle==='주기성'
+      ? `${fmtD(r.from)}~${fmtD(r.to)} 매일 ${r.hour}:00` : `${fmtD(r.date)} ${r.hour}:00`;
+    moveTo(r,admFix.date,admFix.hour);
     r.status='확정';
     r.memo=`담당자 재배정 (${was} → ${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`})`;
     r.reason=''; r.note=''; r.admNote=''; r.adjBy=null;
