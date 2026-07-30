@@ -298,11 +298,12 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .modal .m-sub{font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6}
 .modal .m-act{display:flex;gap:9px;justify-content:flex-end;margin-top:18px}
 .herocard{border:1px solid var(--sk-orange);border-radius:7px;background:var(--sk-orange-t10);padding:15px 17px}
-.herocard .hr{display:flex;justify-content:space-between;gap:14px;padding:6px 0;font-size:12.5px;
+.herocard .hr{display:flex;gap:14px;padding:6px 0;font-size:12.5px;
   border-bottom:1px dashed var(--sk-orange-t25)}
 .herocard .hr:last-child{border-bottom:none}
-.herocard .hr span:first-child{color:var(--sk-orange-text)}
-.herocard .hr span:last-child{color:var(--text-strong);font-weight:500;text-align:right}
+/* 항목은 한 줄로 고정 폭, 내용도 같은 왼쪽 정렬 */
+.herocard .hr span:first-child{color:var(--sk-orange-text);flex:0 0 104px;white-space:nowrap}
+.herocard .hr span:last-child{color:var(--text-strong);font-weight:500;text-align:left}
 .hide{display:none!important}
 
 
@@ -1238,7 +1239,9 @@ function cancelModal(no,ask){
       ? '취소하면 신청이 철회되고, 해당 날짜의 캐파와 시간대가 다시 예약 가능 상태로 변경됩니다. 이 작업은 되돌릴 수 없습니다.'
       : r.status==='확정' ? '확정된 캠페인입니다. 일정을 바꾸려면 담당자에게 문의해 주세요.'
       : r.status==='발송 완료' ? '발송이 완료된 캠페인입니다.'
-      : r.status==='취소' ? '취소된 캠페인입니다.' : '담당자 확정을 기다리는 중입니다.'}</div>
+      : r.status==='취소' ? '취소된 캠페인입니다.'
+      : r.status==='조정 필요' ? '담당자가 조정이 필요하다고 표시한 건입니다. 사유를 확인하고 수정해 주세요.'
+      : '담당자 확정을 기다리는 중입니다.'}</div>
     <div class="herocard">
       ${ask?hrow('캠페인명',r.camp):''}
       ${hrow('상태',r.status==='신청'?'확정 대기':r.status)}
