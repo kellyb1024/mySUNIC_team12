@@ -911,8 +911,7 @@ function sideCond(){
       ${['쿠폰','없음'].map(v=>`<label class="opt"><input type="radio" name="of" data-of="${v}" ${draft.offer===v?'checked':''}>${v}</label>`).join('')}
     </div>
     <div class="fgroup"><div class="ftitle">전체 타겟수</div>
-      <div class="qtyrow"><input type="number" id="fQty" value="${draft.qty}" min="1"><span>만 건</span></div>
-      <div class="hintline" id="qtyHint"></div></div>
+      <div class="qtyrow"><input type="number" id="fQty" value="${draft.qty}" min="1"><span>만 건</span></div></div>
     <button class="findbtn" id="findBtn">가능한 날 찾기</button>
     ${found?`<button class="resetbtn" id="resetBtn">조건 지우기</button>`:''}
   </div>`;
@@ -1404,8 +1403,7 @@ function bindApply(){
   document.querySelectorAll('[data-of]').forEach(x=>x.onchange=()=>{draft.offer=x.dataset.of;
     draft.date=null;draft.hour=null;re()});
   $('fGnb').oninput=e=>draft.gnb=e.target.value;
-  $('fQty').oninput=e=>{draft.qty=Math.max(0,+e.target.value||0);hintQty()};
-  hintQty();
+  $('fQty').oninput=e=>{draft.qty=Math.max(0,+e.target.value||0)};
   $('findBtn').onclick=()=>{found=true;
     if(draft.cycle==='주기성'){draft.date=draft.from;draft.hour=REC_HOURS[0]}
     else{draft.date=null;draft.hour=null}
@@ -1449,12 +1447,6 @@ function bindApply(){
         toast('조정 요청 사유를 입력해 주세요.',true); if(nt) nt.focus(); return}
       confirmModal();
     };
-  }
-  function hintQty(){
-    const h=$('qtyHint'); if(!h) return;
-    const lim=draft.offer==='쿠폰'?CAPA['쿠폰'].limit:(draft.ch.includes('배너')?CAPA['배너'].limit:null);
-    h.textContent=lim?`일 한도 ${man(lim)}만 건`:'선택한 채널은 캐파 제한이 없습니다';
-    h.style.color=lim&&draft.qty>lim?'var(--sk-red)':'var(--text-muted)';
   }
 }
 
