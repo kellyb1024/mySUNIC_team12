@@ -661,7 +661,6 @@ let requests=[
  mkReq({camp:'가을 신작 라인업 안내',from:'2026-08-13',to:'2026-08-19',ch:['배너'],gnb:'홈',
    offer:'쿠폰',qty:120,team:'A팀',mk:'철수',date:'2026-08-13',hour:19,
    status:'조정 필요',reqAt:'2026-08-06 10:12',adjBy:'adm',
-   reason:'담당자 조정 요청',
    admNote:'8/13 배너 캐파가 빠듯합니다. 발송일을 8/17 이후로 옮기거나 모수를 줄여 주세요.'}),
 
  /* ── 조정 필요 · 경로 1 — 마케터가 선점 시간대에 조정 요청 ── */
@@ -1784,6 +1783,40 @@ function admItem(r){
   </div>`;
 }
 
+/* 확정 대기 건을 조정 필요로 넘긴다.
+   마케터가 무엇을 고쳐야 하는지 알 수 있도록 사유를 반드시 받는다. */
+function adjAskModal(no){
+  const r=requests.find(q=>q.no===no); if(!r) return;
+  $('modalSlot').innerHTML=`<div class="modal"><div class="box">
+    <h3>조정 필요로 넘길까요?</h3>
+    <div class="m-sub">사유는 마케터 화면에 그대로 표시됩니다.</div>
+    <div class="herocard">
+      ${hrow('캠페인명',r.camp)}
+      ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`)}
+      ${hrow('채널 / GNB',`${r.ch.join(' · ')||'—'} / ${r.gnb||'—'}`)}
+      ${hrow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+      ${hrow('부서 · 마케터',`${r.team} ${r.mk}`)}
+    </div>
+    <div class="reasonfld" style="margin:14px 0 0">
+      <label>조정 사유</label>
+      <textarea id="adjNote" rows="2"
+        placeholder="예: 8/13 배너 캐파가 빠듯합니다. 발송일을 8/17 이후로 옮겨 주세요"></textarea>
+    </div>
+    <div class="m-act">
+      <button class="pill ghost" id="aNo">돌아가기</button>
+      <button class="pill primary" id="aYes">조정 필요로 넘기기</button>
+    </div></div></div>`;
+  $('aNo').onclick=()=>$('modalSlot').innerHTML='';
+  $('aYes').onclick=()=>{
+    const t=$('adjNote').value.trim();
+    if(!t){toast('조정 사유를 입력해 주세요.',true); $('adjNote').focus(); return}
+    r.status='조정 필요'; r.adjBy='adm'; r.admNote=t; r.reason='';
+    $('modalSlot').innerHTML='';
+    toast(`조정 필요로 넘겼습니다 — ${r.camp}`,true);
+    render();
+  };
+}
+
 /* 재배정하려는 자리를 이미 쓰고 있는 건 (자기 자신은 제외) */
 function fixHolder(r,d,h){
   const days=r.cycle==='주기성'?rangeDays(r.from,r.to):[d];
@@ -1960,11 +1993,7 @@ function bindManage(){
     requests.forEach(r=>{if(r.status==='신청') r.status='확정'});
     toast(`${n}건을 확정했습니다`); re()};
 
-  document.querySelectorAll('[data-rej]').forEach(x=>x.onclick=()=>{
-    const r=requests.find(q=>q.no===+x.dataset.rej); if(!r) return;
-    r.status='조정 필요'; r.adjBy='adm';
-    r.reason=r.reason||'담당자 조정 요청';
-    toast(`조정 필요로 넘겼습니다 — ${r.camp}`,true); re()});
+  document.querySelectorAll('[data-rej]').forEach(x=>x.onclick=()=>adjAskModal(+x.dataset.rej));
 
   document.querySelectorAll('[data-rej2]').forEach(x=>x.onclick=()=>{
     admRej={no:+x.dataset.rej2,text:''}; admFix={no:null,date:null,hour:null}; noSwap(); re()});
