@@ -464,10 +464,6 @@ table.list.adm td.act{white-space:nowrap;text-align:right}
 table.list.adm td.act .pill{margin-left:5px}
 table.list.adm th:last-child,table.list.adm td.act{width:1%}
 .adjitem.on{border-color:var(--sk-orange)}
-/* 선점 건 안내 — 새 색을 쓰지 않고 기존 모티프 톤만 쓴다 */
-.swapask{margin-top:11px;background:var(--motif);border-radius:5px;padding:10px 12px;font-size:12px}
-.swapask b{font-weight:500;color:var(--text-strong)}
-.swapask .sub{color:var(--text-muted);margin:4px 0 9px;line-height:1.55}
 .fixpanel{margin-top:12px;padding-top:12px;border-top:1px dashed var(--sk-orange)}
 .fixhd{font-size:12px;font-weight:500;color:var(--sk-orange-text);margin-bottom:10px}
 .fixrow{display:flex;gap:12px;align-items:flex-start;margin-bottom:11px}
@@ -1802,7 +1798,6 @@ function adjAskModal(no){
   const r=requests.find(q=>q.no===no); if(!r) return;
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
     <h3>조정 필요로 넘길까요?</h3>
-    <div class="m-sub">사유는 마케터 화면에 그대로 표시됩니다.</div>
     <div class="herocard">
       ${hrow('캠페인명',r.camp)}
       ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`)}
@@ -1925,9 +1920,7 @@ function admFixPanel(r){
       const hd=fixHolder(r,span,h);
       if(!hd) return '<div class="segnote" style="margin-top:11px">선점된 시간대입니다. 다른 시간대를 골라 주세요.</div>';
       if(admSwap.no===hd.no) return swapPanel(r,span,h,hd);
-      return `<div class="swapask">
-        <div><b>${esc(hd.camp)}</b> (${hd.team} ${hd.mk} · ${hd.status})가 이 자리를 쓰고 있습니다.</div>
-        <div class="sub">협의가 끝났다면 그 건의 일정을 조정하고 이 자리를 넘길 수 있습니다.</div>
+      return `<div class="adjbtns" style="margin-top:11px">
         <button class="pill ghost sm" data-swapon="${hd.no}">선점 건 일정 조정</button>
       </div>`})()}
   </div>`;
