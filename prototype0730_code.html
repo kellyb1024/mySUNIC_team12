@@ -589,7 +589,7 @@ const addDays=(d,n)=>{const t=new Date(d+'T00:00:00');t.setDate(t.getDate()+n);r
    ══════════════════════════════════════════════════════════════════════ */
 let seq=0; const ME={team:'A팀',mk:'철수'};
 /* adjBy — '조정 필요' 로 들어온 경로. 다음에 움직일 사람이 다르다.
-   'mkt' 마케터가 선점 시간대에 조정 요청 → 담당자가 재배정·반려
+   'mkt' 마케터가 선점 시간대에 조정 요청 → 담당자가 재배정 또는 신청 취소
    'adm' 담당자가 확정 대기 건을 넘김        → 마케터가 수정해 재신청 */
 const mkReq=o=>Object.assign({no:++seq,gnb:'홈',cycle:'일회성',memo:'',status:'확정',adjBy:null},o);
 let requests=[
@@ -778,7 +778,7 @@ let admFix={no:null,date:null,hour:null};   /* 담당자 재배정 대상 */
 let admSwap={no:null,date:null,hour:null,note:''}; /* 자리를 넘겨줄 선점 건 */
 const noSwap=()=>admSwap={no:null,date:null,hour:null,note:''};
 let capaFrom='2026-07-27';                  /* 주간 캐파 현황 시작일 (월요일) */
-let admRej={no:null,text:''};               /* 담당자 반려 사유 입력 대상 */
+let admRej={no:null,text:''};               /* 담당자 취소 사유 입력 대상 */
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
@@ -877,8 +877,7 @@ function adjPanel(m){
         ?`<div class="adjwhy"><span>${r.adjBy==='adm'?'사유':'선점'}</span>${
           esc(r.adjBy==='adm'?r.reason:r.reason.replace(/\s*선점$/,''))}</div>`:''}
       ${r.note?`<div class="adjnote"><span>신청 시 작성한 사유</span>${esc(r.note)}</div>`:''}
-      ${r.admNote?`<div class="${r.adjBy==='adm'?'adjnote':'adjrej'}"><span>${
-        r.adjBy==='adm'?'담당자 사유':'담당자 반려'}</span>${esc(r.admNote)}</div>`:''}
+      ${r.admNote?`<div class="adjnote"><span>담당자 사유</span>${esc(r.admNote)}</div>`:''}
       <div class="adjbtns">
         <button class="pill ghost sm" data-move="${r.no}">수정하기</button>
         <button class="pill ghost sm" data-cancel="${r.no}">신청 취소</button>
@@ -1247,9 +1246,11 @@ function cardList(){
              r.status==='신청'?'확정 대기':r.status}</span></td>
         <td class="rsn">${(()=>{
           /* 윗줄 = 이 사유가 누구 것인지, 아랫줄 = 사유 설명 */
+          const cancByAdm=r.status==='취소'&&r.admNote;
           const adm=r.adjBy==='adm'&&r.admNote;
-          const from=r.moved?'담당자 일정 조정':adm?'담당자 사유':r.reason;
-          const txt =r.moved?`${r.moved.from} → ${r.moved.to} · ${r.moved.note}`
+          const from=cancByAdm?'담당자 취소':r.moved?'담당자 일정 조정':adm?'담당자 사유':r.reason;
+          const txt =cancByAdm?r.admNote
+                    :r.moved?`${r.moved.from} → ${r.moved.to} · ${r.moved.note}`
                     :adm?r.admNote:r.note;
           return from?`<span class="src">${esc(from)}</span>${txt?`<br>${esc(txt)}`:''}`:'—'})()}</td>
         </tr>`).join('')}
@@ -1279,7 +1280,9 @@ function cancelModal(no,ask){
           ? `협의에 따라 담당자가 일정을 조정했습니다. (${r.moved.from} → ${r.moved.to})`
           : '확정된 캠페인입니다. 일정을 바꾸려면 담당자에게 문의해 주세요.')
       : r.status==='발송 완료' ? '발송이 완료된 캠페인입니다.'
-      : r.status==='취소' ? '취소된 캠페인입니다.'
+      : r.status==='취소' ? (r.admNote
+          ? '담당자가 취소한 캠페인입니다. 사유를 확인하고 필요하면 새로 신청해 주세요.'
+          : '취소된 캠페인입니다.')
       : r.status==='조정 필요' ? (r.adjBy==='adm'
           ? '담당자가 조정을 요청했습니다. 사유를 확인하고 수정해 주세요.'
           : '담당자가 시간대를 조정하고 있습니다.')
@@ -1293,6 +1296,7 @@ function cancelModal(no,ask){
       ${hrow('주기 / 오퍼',`${r.cycle} / ${r.offer}`)}
       ${hrow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
       ${hrow('부서 · 마케터',`${r.team} ${r.mk}`)}
+      ${r.status==='취소'&&r.admNote?hrow('취소 사유',r.admNote):''}
       ${r.moved?hrow('일정 조정',`${r.moved.from} → ${r.moved.to}`):''}
       ${r.moved?hrow('조정 사유',r.moved.note):''}
       ${r.reason?hrow('사유',r.reason+(r.note?` — ${r.note}`:'')):''}
@@ -1750,7 +1754,6 @@ function admItem(r){
   return `<div class="adjitem${open?' on':''}">
     <div class="adjhd"><b>${esc(r.camp)}</b>
       <span class="st needfix">조정 필요</span>
-      ${r.admNote?`<span class="st sent">마케터 확인 대기</span>`:''}
       <span class="adjwhen">${r.cycle==='주기성'
         ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
         : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
@@ -1764,20 +1767,19 @@ function admItem(r){
     </div>
     ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
     ${r.note?`<div class="adjnote"><span>마케터 사유</span>${esc(r.note)}</div>`:''}
-    ${r.admNote?`<div class="${r.adjBy==='adm'?'adjnote':'adjrej'}"><span>${
-        r.adjBy==='adm'?'담당자 사유':'담당자 반려'}</span>${esc(r.admNote)}</div>`:''}
+    ${r.admNote?`<div class="adjnote"><span>담당자 사유</span>${esc(r.admNote)}</div>`:''}
     ${open?admFixPanel(r)
       :admRej.no===r.no?`<div class="reasonfld" style="margin:12px 0 0">
-          <label>반려 사유</label>
+          <label>취소 사유<i class="i" data-tip="마케터 화면에 그대로 남습니다.&#10;왜 진행할 수 없는지 적어 주세요."></i></label>
           <textarea id="rejNote" rows="2"
-            placeholder="예: 선점 캠페인의 우선순위가 높아 조정이 어렵습니다">${esc(admRej.text)}</textarea>
+            placeholder="예: 선점 캠페인의 우선순위가 높아 이번 일정으로는 조정이 어렵습니다">${esc(admRej.text)}</textarea>
           <div class="adjbtns" style="margin-top:9px">
-            <button class="pill primary sm" data-rejok="${r.no}">반려</button>
-            <button class="pill ghost sm" data-rejno="1">취소</button>
+            <button class="pill danger sm" data-rejok="${r.no}">신청 취소</button>
+            <button class="pill ghost sm" data-rejno="1">돌아가기</button>
           </div></div>`
       :`<div class="adjbtns">
           <button class="pill primary sm" data-fix="${r.no}">재배정</button>
-          ${r.admNote?'':`<button class="pill ghost sm" data-rej2="${r.no}">반려</button>`}
+          <button class="pill ghost sm" data-rej2="${r.no}">신청 취소</button>
         </div>`}
   </div>`;
 }
@@ -1970,9 +1972,10 @@ function bindManage(){
   const rn=$('rejNote'); if(rn) rn.oninput=e=>admRej.text=e.target.value;
   document.querySelectorAll('[data-rejok]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.rejok); if(!r) return;
-    if(!admRej.text.trim()){toast('반려 사유를 입력해 주세요.',true); if(rn) rn.focus(); return}
-    r.admNote=admRej.text.trim(); admRej={no:null,text:''};
-    toast(`반려했습니다 — ${r.camp}`,true); re()});
+    if(!admRej.text.trim()){toast('취소 사유를 입력해 주세요.',true); if(rn) rn.focus(); return}
+    /* 담당자 취소 — 사유(admNote)가 남아 마케터 취소와 구분된다 */
+    r.status='취소'; r.admNote=admRej.text.trim(); admRej={no:null,text:''};
+    toast(`신청을 취소했습니다 — ${r.camp}`,true); re()});
 
   document.querySelectorAll('[data-fix]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.fix); if(!r) return;
