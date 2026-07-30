@@ -596,7 +596,7 @@ const addDays=(d,n)=>{const t=new Date(d+'T00:00:00');t.setDate(t.getDate()+n);r
    ══════════════════════════════════════════════════════════════════════ */
 let seq=0; const ME={team:'A팀',mk:'철수'};
 /* adjBy — '조정 필요' 로 들어온 경로. 다음에 움직일 사람이 다르다.
-   'mkt' 마케터가 선점 시간대에 조정 요청 → 담당자가 재배정 또는 신청 취소
+   'mkt' 마케터가 선점 시간대에 조정 요청 → 담당자가 일정 조정 또는 신청 취소
    'adm' 담당자가 확정 대기 건을 넘김        → 마케터가 수정해 재신청 */
 const mkReq=o=>Object.assign({no:++seq,gnb:'홈',cycle:'일회성',memo:'',status:'확정',adjBy:null},o);
 let requests=[
@@ -780,9 +780,9 @@ let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), foun
 let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',offer:'쿠폰',qty:15,
            date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null};
 let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false, listSt='all';
-let admFix={no:null,from:null,to:null,date:null,hour:null}; /* 담당자 재배정 대상 */
-let admSwap={no:null,from:null,to:null,date:null,hour:null}; /* 자리를 넘겨줄 선점 건 */
-const noSwap=()=>admSwap={no:null,from:null,to:null,date:null,hour:null};
+let admFix={no:null,from:null,to:null,hour:null}; /* 담당자 일정 조정 대상 */
+let admSwap={no:null,from:null,to:null,hour:null}; /* 자리를 넘겨줄 선점 건 */
+const noSwap=()=>admSwap={no:null,from:null,to:null,hour:null};
 let capaFrom='2026-07-27';                  /* 주간 캐파 현황 시작일 (월요일) */
 let admRej={no:null,text:''};               /* 담당자 취소 사유 입력 대상 */
 const $=id=>document.getElementById(id);
@@ -1672,7 +1672,7 @@ function renderDay(d){
 /* ══════════════════════════════════════════════════════════════════════
    페이지 3 — 캠페인 관리 (담당자)
    · 마케터가 1차 배치해 신청한 건을 확인하고 확정
-   · 조정 요청 들어온 건을 재배정해서 확정
+   · 조정 요청 들어온 건의 일정을 조정해서 확정
    ══════════════════════════════════════════════════════════════════════ */
 const byWhen=(a,b)=>a.date<b.date?-1:a.date>b.date?1:a.hour-b.hour;
 
@@ -1758,7 +1758,7 @@ function remCell(r){
   return parts.join('');
 }
 
-/* 조정 필요 1건 — 신청 내용, 선점 사유, 재배정 */
+/* 조정 필요 1건 — 신청 내용, 선점 사유, 일정 조정 */
 function admItem(r){
   const open=admFix.no===r.no;
   return `<div class="adjitem${open?' on':''}">
@@ -1790,7 +1790,7 @@ function admItem(r){
             <button class="pill ghost sm" data-rejno="1">돌아가기</button>
           </div></div>`
       :`<div class="adjbtns">
-          <button class="pill primary sm" data-fix="${r.no}">재배정</button>
+          <button class="pill primary sm" data-fix="${r.no}">일정 조정</button>
           <button class="pill ghost sm" data-rej2="${r.no}">신청 취소</button>
         </div>`}
   </div>`;
@@ -1839,27 +1839,26 @@ function fixHolder(r,days,h){
   return null;
 }
 
-/* 선점 건 이동 — 담당자·양 팀이 협의를 끝낸 뒤 그 결과를 반영하는 화면.
-   합의가 이미 됐으므로 선점 건은 '확정'을 유지하고 시간만 옮긴다. */
+/* 선점 건 일정 조정 — 담당자·양 팀이 협의를 끝낸 뒤 그 결과를 반영하는 화면.
+   합의가 이미 됐으므로 선점 건은 '확정'을 유지한 채 일정만 바뀐다. */
 function swapPanel(r,rSpan,h,hd){
   const s=admSwap, sh=s.hour||hd.hour;
-  const bad=fixBad(hd,s), span=bad?[]:fixSpan(hd,s);
+  const span=fixSpan(hd,s);
   /* 조정 요청 건이 넘겨받을 자리는 다시 고를 수 없다 */
   const busy=new Set();
-  if(!bad) HOURS.forEach(x=>{
+  HOURS.forEach(x=>{
     const hit=span.some(dd=>(x===h&&rSpan.includes(dd))
       ||requests.some(q=>q.no!==hd.no&&q.no!==r.no&&live(q)&&activeOn(dd,q)&&q.hour===x&&slotClash(hd,q)));
     if(hit) busy.add(x);
   });
   /* 원래 나가던 날이 아닌 날만 캐파를 새로 본다 */
-  const capaBad=!bad&&span.filter(dd=>!activeOn(dd,hd)).some(dd=>
+  const capaBad=span.filter(dd=>!activeOn(dd,hd)).some(dd=>
     (hd.ch.includes('배너')&&bannerRem(dd)<hd.qty)||(hd.offer==='쿠폰'&&couponRem(dd)<hd.qty));
-  const changed=s.from!==hd.from||s.to!==hd.to||sh!==hd.hour
-    ||(hd.cycle!=='주기성'&&s.date!==hd.date);
-  const ok=!bad&&!busy.has(sh)&&!capaBad&&changed;
-  const gd=span[0]||s.from;
+  const changed=s.from!==hd.from||sh!==hd.hour;
+  const ok=!busy.has(sh)&&!capaBad&&changed;
+  const gd=span[0];
   return `<div class="fixpanel">
-    <div class="fixhd">선점 건 옮기기 — ${esc(hd.camp)} (${hd.team} ${hd.mk})</div>
+    <div class="fixhd">선점 건 일정 조정 — ${esc(hd.camp)} (${hd.team} ${hd.mk})</div>
     ${fixDates('sw',hd,s)}
     <div class="fixrow"><span>캐파</span>${gaugeRow(gd,hd,activeOn(gd,hd)?0:hd.qty,'이 건')}</div>
     <div class="fixrow"><span>시간대</span>
@@ -1868,57 +1867,45 @@ function swapPanel(r,rSpan,h,hd){
         return `<div class="hslot ${t?'taken':''}${x===sh?' on':''}" data-sh="${x}">
           <span class="hh">${x}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
     </div>
-    ${bad?`<div class="blockbox"><b>기간과 발송일이 맞지 않습니다</b>
-      <div>발송일은 기간 안에 있어야 하고, 종료일은 시작일 이후여야 합니다.</div></div>`:''}
     ${capaBad?`<div class="blockbox"><b>캐파를 넘겨 옮길 수 없습니다</b>
       <div>${hd.cycle==='주기성'?'기간 내 어느 날의':fmtD(gd)} 잔여가 부족합니다 · 배너 ${man(bannerRem(gd))}만 / 쿠폰 ${man(couponRem(gd))}만</div></div>`:''}
     <div class="adjbtns">
-      <button class="pill primary sm" data-swapok="${hd.no}" ${ok?'':'disabled'}>두 건 함께 반영</button>
+      <button class="pill primary sm" data-swapok="${hd.no}" ${ok?'':'disabled'}>두 건 함께 확정</button>
       <button class="pill ghost sm" data-swapno="1">취소</button>
-      ${!bad&&busy.has(sh)?`<span class="note" style="margin:0">이미 찬 시간대입니다.</span>`
-        :!changed?`<span class="note" style="margin:0">옮길 자리를 골라 주세요.</span>`:''}
+      ${busy.has(sh)?`<span class="note" style="margin:0">이미 찬 시간대입니다.</span>`
+        :!changed?`<span class="note" style="margin:0">조정할 자리를 골라 주세요.</span>`:''}
     </div>
   </div>`;
 }
 
-/* 재배정 — 날짜·시간대를 다시 고른다 (자기 자신은 충돌에서 제외) */
-/* 일정 이동 — 담당자가 고른 기간·발송일·시간대를 그대로 반영한다 */
+/* 일정 조정 — 기간·시간대를 다시 고른다 (자기 자신은 충돌에서 제외) */
+/* 일정 이동 — 담당자가 고른 기간·시간대를 그대로 반영한다.
+   발송일은 늘 기간 첫 날이다 (일회성은 시작일 1회, 주기성은 시작일부터 매일) */
 function moveTo(r,s){
-  r.from=s.from; r.to=s.to;
-  r.date=r.cycle==='주기성'?s.from:s.date;
-  r.hour=s.hour;
+  r.from=s.from; r.to=s.to; r.date=s.from; r.hour=s.hour;
 }
 /* 그 설정으로 실제 발송이 걸리는 날들 */
-const fixSpan=(r,s)=>r.cycle==='주기성'?rangeDays(s.from,s.to):[s.date];
-/* 기간·발송일이 앞뒤가 맞는지 */
-const fixBad=(r,s)=>s.to<s.from||(r.cycle!=='주기성'&&(s.date<s.from||s.date>s.to));
+const fixSpan=(r,s)=>r.cycle==='주기성'?rangeDays(s.from,s.to):[s.from];
 
-/* 기간·발송일 입력 — 신청 화면과 같은 달력 입력 */
+/* 발송 시작일만 고른다. 기간 길이는 그대로이므로 종료일이 따라 움직인다. */
 function fixDates(id,r,s){
-  const lo=addDays(TODAY,1), hi='2026-09-30';
-  return `<div class="fixrow"><span>기간</span>
+  return `<div class="fixrow"><span>발송 시작일</span>
       <div class="fdates">
-        <input type="date" id="${id}From" value="${s.from}" min="${lo}" max="${hi}">
-        <span class="tl">~</span>
-        <input type="date" id="${id}To" value="${s.to}" min="${s.from}" max="${hi}">
-      </div></div>
-    <div class="fixrow"><span>발송일</span>
-      <div class="fdates">${r.cycle==='주기성'
-        ? `<span class="tl">기간 내내 매일</span>`
-        : `<input type="date" id="${id}Date" value="${s.date}" min="${s.from}" max="${s.to}">`}</div>
-    </div>`;
+        <input type="date" id="${id}From" value="${s.from}" min="${addDays(TODAY,1)}" max="2026-09-30">
+        <span class="tl">~ ${fmtD(s.to)} · ${r.cycle==='주기성'?'기간 내내 매일':'시작일 1회'}</span>
+      </div></div>`;
 }
 function admFixPanel(r){
   const s=admFix, h=s.hour||r.hour;
-  const bad=fixBad(r,s), span=bad?[]:fixSpan(r,s);
+  const span=fixSpan(r,s);
   const busy=new Set();
-  if(!bad) HOURS.forEach(x=>{ if(span.some(dd=>blockedHours(dd,r).has(x))) busy.add(x) });
-  const capaBad=!bad&&span.some(dd=>
+  HOURS.forEach(x=>{ if(span.some(dd=>blockedHours(dd,r).has(x))) busy.add(x) });
+  const capaBad=span.some(dd=>
     (r.ch.includes('배너')&&bannerRem(dd)<r.qty)||(r.offer==='쿠폰'&&couponRem(dd)<r.qty));
-  const ok=!bad&&!busy.has(h)&&!capaBad;
-  const gd=span[0]||s.from;
+  const ok=!busy.has(h)&&!capaBad;
+  const gd=span[0];
   return `<div class="fixpanel">
-    <div class="fixhd">재배정</div>
+    <div class="fixhd">일정 조정</div>
     ${fixDates('fx',r,s)}
     <div class="fixrow"><span>캐파</span>${gaugeRow(gd,r,r.qty,'이 건')}</div>
     <div class="fixrow"><span>시간대</span>
@@ -1927,8 +1914,6 @@ function admFixPanel(r){
         return `<div class="hslot ${t?'taken':''}${x===h?' on':''}" data-fh="${x}">
           <span class="hh">${x}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
     </div>
-    ${bad?`<div class="blockbox"><b>기간과 발송일이 맞지 않습니다</b>
-      <div>발송일은 기간 안에 있어야 하고, 종료일은 시작일 이후여야 합니다.</div></div>`:''}
     ${capaBad?`<div class="blockbox"><b>캐파를 넘겨 배정할 수 없습니다</b>
       <div>${r.cycle==='주기성'?'기간 내 어느 날의':fmtD(gd)} 잔여가 부족합니다 · 배너 ${man(bannerRem(gd))}만 / 쿠폰 ${man(couponRem(gd))}만</div></div>`:''}
     <div class="adjbtns">
@@ -1936,14 +1921,14 @@ function admFixPanel(r){
       <button class="pill ghost sm" data-fixno="1">취소</button>
     </div>
     ${(()=>{
-      if(bad||!busy.has(h)) return '';
+      if(!busy.has(h)) return '';
       const hd=fixHolder(r,span,h);
       if(!hd) return '<div class="segnote" style="margin-top:11px">선점된 시간대입니다. 다른 시간대를 골라 주세요.</div>';
       if(admSwap.no===hd.no) return swapPanel(r,span,h,hd);
       return `<div class="swapask">
         <div><b>${esc(hd.camp)}</b> (${hd.team} ${hd.mk} · ${hd.status})가 이 자리를 쓰고 있습니다.</div>
-        <div class="sub">협의가 끝났다면 그 건을 다른 시간대로 옮기고 이 자리를 넘길 수 있습니다.</div>
-        <button class="pill ghost sm" data-swapon="${hd.no}">선점 건 옮기기</button>
+        <div class="sub">협의가 끝났다면 그 건의 일정을 조정하고 이 자리를 넘길 수 있습니다.</div>
+        <button class="pill ghost sm" data-swapon="${hd.no}">선점 건 일정 조정</button>
       </div>`})()}
   </div>`;
 }
@@ -2004,7 +1989,7 @@ function capaBoard(){
 function bindManage(){
   const re=()=>{$('page').innerHTML=renderManage();bindManage()};
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
-    if(x.dataset.km){kpiMonth=x.dataset.km;admFix={no:null,from:null,to:null,date:null,hour:null};noSwap();re()}});
+    if(x.dataset.km){kpiMonth=x.dataset.km;admFix={no:null,from:null,to:null,hour:null};noSwap();re()}});
 
   document.querySelectorAll('[data-ok]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.ok); if(!r) return;
@@ -2018,7 +2003,7 @@ function bindManage(){
   document.querySelectorAll('[data-rej]').forEach(x=>x.onclick=()=>adjAskModal(+x.dataset.rej));
 
   document.querySelectorAll('[data-rej2]').forEach(x=>x.onclick=()=>{
-    admRej={no:+x.dataset.rej2,text:''}; admFix={no:null,from:null,to:null,date:null,hour:null}; noSwap(); re()});
+    admRej={no:+x.dataset.rej2,text:''}; admFix={no:null,from:null,to:null,hour:null}; noSwap(); re()});
   document.querySelectorAll('[data-rejno]').forEach(x=>x.onclick=()=>{admRej={no:null,text:''};re()});
   const rn=$('rejNote'); if(rn) rn.oninput=e=>admRej.text=e.target.value;
   document.querySelectorAll('[data-rejok]').forEach(x=>x.onclick=()=>{
@@ -2030,19 +2015,18 @@ function bindManage(){
 
   document.querySelectorAll('[data-fix]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.fix); if(!r) return;
-    admFix={no:r.no,from:r.from,to:r.to,date:r.date,hour:r.hour}; noSwap(); re()});
+    admFix={no:r.no,from:r.from,to:r.to,len:rangeDays(r.from,r.to).length,hour:r.hour}; noSwap(); re()});
   document.querySelectorAll('[data-fixno]').forEach(x=>x.onclick=()=>{
-    admFix={no:null,from:null,to:null,date:null,hour:null}; noSwap(); re()});
-  /* 기간·발송일 달력 입력 — 앞뒤가 뒤집히면 붙잡아 준다 */
+    admFix={no:null,from:null,to:null,hour:null}; noSwap(); re()});
+  /* 발송 시작일 — 기간 길이를 유지한 채 종료일이 따라 움직인다 */
   const bindDates=(id,st,after)=>{
-    const f=$(id+'From'), t=$(id+'To'), d=$(id+'Date');
+    const f=$(id+'From'); if(!f) return;
     const lo=addDays(TODAY,1);
-    const clamp=()=>{ if(st.from<lo) st.from=lo; if(st.to<st.from) st.to=st.from;
-      if(st.date<st.from) st.date=st.from; if(st.date>st.to) st.date=st.to };
-    if(f) f.onchange=e=>{st.from=e.target.value;clamp();after&&after();re()};
-    if(t) t.onchange=e=>{st.to=e.target.value; if(st.from>st.to) st.from=st.to;
-      clamp();after&&after();re()};
-    if(d) d.onchange=e=>{st.date=e.target.value;clamp();after&&after();re()};
+    f.onchange=e=>{
+      st.from=e.target.value<lo?lo:e.target.value;
+      st.to=addDays(st.from,st.len-1);
+      after&&after(); re();
+    };
   };
   bindDates('fx',admFix,noSwap);
   bindDates('sw',admSwap);
@@ -2050,7 +2034,7 @@ function bindManage(){
 
   document.querySelectorAll('[data-swapon]').forEach(x=>x.onclick=()=>{
     const hd=requests.find(q=>q.no===+x.dataset.swapon); if(!hd) return;
-    admSwap={no:hd.no,from:hd.from,to:hd.to,date:hd.date,hour:hd.hour}; re()});
+    admSwap={no:hd.no,from:hd.from,to:hd.to,len:rangeDays(hd.from,hd.to).length,hour:hd.hour}; re()});
   document.querySelectorAll('[data-sh]').forEach(x=>x.onclick=()=>{admSwap.hour=+x.dataset.sh;re()});
   document.querySelectorAll('[data-swapno]').forEach(x=>x.onclick=()=>{noSwap();re()});
 
@@ -2065,9 +2049,9 @@ function bindManage(){
     hd.moved={from:hWas,to:when(hd),peer:r.camp};
     moveTo(r,admFix);
     r.status='확정'; r.reason=''; r.note=''; r.admNote=''; r.adjBy=null;
-    r.memo=`담당자 재배정 (${rWas} → ${when(r)})`;
-    admFix={no:null,from:null,to:null,date:null,hour:null}; noSwap();
-    toast(`두 건을 반영했습니다 — ${r.camp} 확정 · ${hd.camp} ${when(hd)}`);
+    r.memo=`담당자 일정 조정 (${rWas} → ${when(r)})`;
+    admFix={no:null,from:null,to:null,hour:null}; noSwap();
+    toast(`두 건을 확정했습니다 — ${r.camp} · ${hd.camp} ${when(hd)}`);
     re()});
 
   const cp=$('cwPrev'), cn=$('cwNext'), ct=$('cwToday');
@@ -2081,10 +2065,10 @@ function bindManage(){
       ? `${fmtD(r.from)}~${fmtD(r.to)} 매일 ${r.hour}:00` : `${fmtD(r.date)} ${r.hour}:00`;
     moveTo(r,admFix);
     r.status='확정';
-    r.memo=`담당자 재배정 (${was} → ${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`})`;
+    r.memo=`담당자 일정 조정 (${was} → ${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`})`;
     r.reason=''; r.note=''; r.admNote=''; r.adjBy=null;
-    admFix={no:null,from:null,to:null,date:null,hour:null}; noSwap();
-    toast(`재배정 후 확정했습니다 — ${r.camp}`); re()});
+    admFix={no:null,from:null,to:null,hour:null}; noSwap();
+    toast(`일정을 조정해 확정했습니다 — ${r.camp}`); re()});
 }
 
 /* ══════════════════════════════════════════════════════════════════════
