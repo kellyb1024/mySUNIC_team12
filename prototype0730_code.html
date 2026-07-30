@@ -304,9 +304,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
 /* 항목은 한 줄로 고정 폭, 내용도 같은 왼쪽 정렬 */
 .herocard .hr span:first-child{color:var(--sk-orange-text);flex:0 0 104px;white-space:nowrap}
 .herocard .hr span:last-child{color:var(--text-strong);font-weight:500;text-align:left}
-/* 조정 필요 — 마케터가 손대야 하는 건만 색으로 구분 */
-.adjrole{font-size:10.5px;color:var(--text-muted);margin-left:6px;white-space:nowrap}
-.adjrole.act{color:var(--sk-orange-text);font-weight:500}
+/* 조정 필요 — 다음에 움직일 사람. 색은 하나로 두고 문구로만 구분 */
+.adjrole{font-size:10.5px;color:var(--sk-orange-text);font-weight:500;
+  margin-left:6px;white-space:nowrap}
 td .adjrole{display:block;margin:3px 0 0}
 .hide{display:none!important}
 
@@ -843,7 +843,7 @@ function adjPanel(m){
     ${rows.map(r=>`<div class="adjitem">
       <div class="adjhd"><b>${esc(r.camp)}</b>
         <span class="st needfix">조정 필요</span>
-        <span class="adjrole${r.adjBy==='adm'?' act':''}">${adjLab(r)}</span>
+        <span class="adjrole">${adjLab(r)}</span>
         <span class="adjwhen">${r.cycle==='주기성'
           ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
           : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
@@ -1223,8 +1223,7 @@ function cardList(){
         <td><span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
              :r.status==='취소'?'cancel':r.status==='발송 완료'?'sent':'confirmed'}">${
              r.status==='신청'?'확정 대기':r.status}</span>${
-             r.status==='조정 필요'?`<div class="adjrole${
-               r.adjBy==='adm'?' act':''}">${adjLab(r)}</div>`:''}</td>
+             r.status==='조정 필요'?`<div class="adjrole">${adjLab(r)}</div>`:''}</td>
         <td class="rsn">${r.reason?`${esc(r.reason)}${r.note?`<br><span class="rn">${esc(r.note)}</span>`:''}`:'—'}</td>
         </tr>`).join('')}
     </table></div>
