@@ -818,7 +818,7 @@ function renderApply(){
       <div class="main">
         ${role==='mkt'?kpiRow():''}
         ${cardApply()}
-        ${cardRec()}
+        ${found?cardRec():''}
         ${cardList()}
       </div>
     </div>
@@ -1159,8 +1159,6 @@ function secFinal(){
 function cardRec(){
   const head=`<div class="card-hd"><div class="rule"></div>
     <div class="lbl"><span>추천</span></div></div>`;
-  if(!found) return `<div class="card">${head}
-    <div class="empty">조건을 입력하면 여유 있는 날짜를 추천해 드립니다.</div></div>`;
   if(draft.cycle==='주기성') return recRecurring(head);
   const okDays=rangeDays(draft.from,draft.to).filter(d=>dayCheck(draft,d).ok);
   if(!okDays.length) return `<div class="card">${head}
