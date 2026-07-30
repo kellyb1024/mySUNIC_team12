@@ -1150,7 +1150,8 @@ function secFinal(){
       <div class="fld"><label>마케터</label><input type="text" id="fMk" value="${esc(draft.mk)}"></div>
     </div>
     <div class="actions">
-      <button class="pill primary" id="submitBtn">${conflict()?'조정 요청하기':'신청하기'}</button>
+      <button class="pill primary" id="submitBtn">${
+        conflict()?'조정 요청하기':draft.editNo!=null?'선택하기':'신청하기'}</button>
     </div>
   </div>`;
 }
@@ -1339,8 +1340,8 @@ const cfRow=(k,v)=>`<div class="cfg"><span>${k}</span><b>${v}</b></div>`;
 function confirmModal(){
   const c=conflict();
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
-    <h3>${draft.editNo!=null?'이 내용으로 수정할까요?'
-        :c?'이 내용으로 조정 요청할까요?':'이 신청 내용이 맞으십니까?'}</h3>
+    <h3>${c?'이 내용으로 조정 요청할까요?'
+        :draft.editNo!=null?'이 일정으로 선택할까요?':'이 신청 내용이 맞으십니까?'}</h3>
     <div class="m-sub">${c
       ?`선택한 시간대를 <b>${esc(c.camp)}</b>(${c.team} ${c.mk} · ${c.status})가 선점하고 있습니다.`
       :'신청 후에는 담당자 확정 전까지 캠페인 리스트에서 수정할 수 있습니다.'}</div>
@@ -1356,7 +1357,8 @@ function confirmModal(){
     </div>
     <div class="m-act">
       <button class="pill ghost" id="mNo">다시 확인</button>
-      <button class="pill primary" id="mYes">${draft.editNo!=null?'수정':c?'조정 요청':'신청'}</button>
+      <button class="pill primary" id="mYes">${
+        c?'조정 요청':draft.editNo!=null?'선택하기':'신청'}</button>
     </div></div></div>`;
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
   $('mYes').onclick=()=>{
@@ -1369,7 +1371,7 @@ function confirmModal(){
     const ex=draft.editNo!=null?requests.find(r=>r.no===draft.editNo):null;
     if(ex) Object.assign(ex,body); else requests.push(mkReq(body));
     $('modalSlot').innerHTML='';
-    toast(ex ? `수정되었습니다 — ${body.camp}`
+    toast(ex ? `선택한 일정으로 변경되었습니다 — ${body.camp}`
              : c ? `조정 요청되었습니다 — ${c.camp} 선점`
                  : `신청되었습니다 — ${fmtD(draft.date)} ${draft.hour}:00`, !!c);
     draft.camp=''; draft.note=''; draft.date=null; draft.hour=null; draft.editNo=null;
