@@ -2053,7 +2053,7 @@ function bindManage(){
     if(admFix.hour) r.hour=admFix.hour;
     r.status='확정';
     r.memo=`담당자 재배정 (${was} → ${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`})`;
-    r.reason=''; r.admNote='';
+    r.reason=''; r.note=''; r.admNote=''; r.adjBy=null;
     admFix={no:null,date:null,hour:null}; noSwap();
     toast(`재배정 후 확정했습니다 — ${r.camp}`); re()});
 }
