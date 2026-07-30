@@ -1363,9 +1363,11 @@ function confirmModal(){
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
   $('mYes').onclick=()=>{
     /* 일회성은 시작일에 1회 발송한다 — 고른 날이 곧 캠페인 시작일이다.
-       마케터가 입력한 시작일~종료일은 '언제쯤 나가고 싶은지' 탐색 범위로 쓰인다. */
-    const from=draft.cycle==='주기성'?draft.from:draft.date;
-    const body={camp:draft.camp,from,to:draft.to,ch:[...draft.ch],gnb:draft.gnb,
+       노출 기간의 길이는 마케터가 입력한 그대로 유지하고, 기간을 통째로 옮긴다. */
+    const rep=draft.cycle==='주기성', len=rangeDays(draft.from,draft.to).length;
+    const from=rep?draft.from:draft.date;
+    const to  =rep?draft.to  :addDays(from,len-1);
+    const body={camp:draft.camp,from,to,ch:[...draft.ch],gnb:draft.gnb,
       cycle:draft.cycle,offer:draft.offer,qty:draft.qty,team:draft.dept,mk:draft.mk,
       date:draft.date,hour:draft.hour,
       status:c?'조정 필요':'신청', adjBy:c?'mkt':null,
