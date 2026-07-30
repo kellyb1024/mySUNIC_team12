@@ -653,7 +653,13 @@ let requests=[
    reason:'담당자 조정 요청',
    admNote:'8/13 배너 캐파가 빠듯합니다. 발송일을 8/17 이후로 옮기거나 모수를 줄여 주세요.'}),
 
- /* ── 조정 필요 · 경로 1 (선점 충돌로 담당자 조율 대기) ── */
+ /* ── 조정 필요 · 경로 1 — 마케터가 선점 시간대에 조정 요청 ── */
+ mkReq({camp:'주중 영화 할인 알림',from:'2026-08-11',to:'2026-08-16',ch:['배너'],gnb:'홈',
+   offer:'쿠폰',qty:40,team:'A팀',mk:'철수',date:'2026-08-11',hour:13,
+   status:'조정 필요',reqAt:'2026-08-05 09:30',adjBy:'mkt',
+   reason:'스포츠 시즌권 프로모션 (C팀 맹구) 선점',
+   note:'할인 시작일 오후에 맞춰 나가야 해서 날짜를 옮기기 어렵습니다'}),
+
  mkReq({camp:'추석 선물 프로모션',from:'2026-08-24',to:'2026-08-30',ch:['배너'],gnb:'홈',
    offer:'쿠폰',qty:80,team:'B팀',mk:'훈이',date:'2026-08-24',hour:18,
    status:'조정 필요',reqAt:'2026-08-18 15:47',adjBy:'mkt',
@@ -854,10 +860,11 @@ function adjPanel(m){
         ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
         ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
       </div>
-      ${r.reason?`<div class="adjwhy"><span>${r.adjBy==='adm'?'사유':'선점'}</span>${
-        esc(r.adjBy==='adm'?r.reason:r.reason.replace(/\s*선점$/,''))}</div>`:''}
+      ${r.reason&&!(r.adjBy==='adm'&&r.admNote)
+        ?`<div class="adjwhy"><span>${r.adjBy==='adm'?'사유':'선점'}</span>${
+          esc(r.adjBy==='adm'?r.reason:r.reason.replace(/\s*선점$/,''))}</div>`:''}
       ${r.note?`<div class="adjnote"><span>신청 시 작성한 사유</span>${esc(r.note)}</div>`:''}
-      ${r.admNote?`<div class="adjrej"><span>담당자 반려</span>${esc(r.admNote)}</div>`:''}
+      ${r.admNote?`<div class="adjrej"><span>${r.adjBy==='adm'?'담당자 사유':'담당자 반려'}</span>${esc(r.admNote)}</div>`:''}
       <div class="adjbtns">
         <button class="pill ghost sm" data-move="${r.no}">수정하기</button>
         <button class="pill ghost sm" data-cancel="${r.no}">신청 취소</button>
@@ -1733,7 +1740,7 @@ function admItem(r){
     </div>
     ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
     ${r.note?`<div class="adjnote"><span>마케터 사유</span>${esc(r.note)}</div>`:''}
-    ${r.admNote?`<div class="adjrej"><span>담당자 반려</span>${esc(r.admNote)}</div>`:''}
+    ${r.admNote?`<div class="adjrej"><span>${r.adjBy==='adm'?'담당자 사유':'담당자 반려'}</span>${esc(r.admNote)}</div>`:''}
     ${open?admFixPanel(r)
       :admRej.no===r.no?`<div class="reasonfld" style="margin:12px 0 0">
           <label>반려 사유</label>
