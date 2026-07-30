@@ -597,7 +597,7 @@ let seq=0; const ME={team:'A팀',mk:'철수'};
 const mkReq=o=>Object.assign({no:++seq,gnb:'홈',cycle:'일회성',memo:'',status:'확정',adjBy:null},o);
 let requests=[
  mkReq({camp:'방송 월정액 1개월 5,500원 할인 프로모션',from:'2026-07-23',to:'2026-07-31',ch:['토스트팝업'],
-   offer:'쿠폰',qty:10,team:'A팀',mk:'철수',date:'2026-07-23',hour:1}),
+   offer:'쿠폰',qty:10,team:'A팀',mk:'철수',date:'2026-07-23',hour:1,status:'발송 완료'}),
  mkReq({camp:'영화 월정액 주말 50% 할인 프로모션',from:'2026-07-23',to:'2026-07-26',ch:['배너','TV팝업'],gnb:'영화 홈',
    offer:'쿠폰',qty:20,team:'B팀',mk:'짱구',date:'2026-07-23',hour:5,status:'발송 완료'}),
  mkReq({camp:'<왕과 사는 남자> 3,300원 할인 프로모션',from:'2026-07-24',to:'2026-07-30',ch:['배너'],
@@ -680,6 +680,8 @@ let requests=[
    note:'추석 연휴 첫날 저녁 발송으로 대외 확정되어 날짜·시간 변경이 어렵습니다'}),
 ];
 /* 자리를 실제로 차지하는 상태 — '조정 필요'는 아직 자리를 잡은 게 아니라 제외 */
+/* '발송 완료'는 실제 발송이 끝난 뒤 발송 시스템이 찍는 상태다.
+   이 대시보드는 그 전이를 만들지 않고, 더미 데이터로만 존재한다. */
 const live=r=>['확정','발송 완료','신청'].includes(r.status);
 /* 캘린더는 '실제로 나갈 것'만 그린다. 확정 대기·조정 필요·취소 건은 제외.
    점유 판정(live)과는 별개 — 확정 대기 건도 시간대는 계속 잡고 있다. */
@@ -809,7 +811,7 @@ function renderApply(){
   return `<div class="wrap wide">
     ${draft.editNo?(()=>{const o=requests.find(r=>r.no===draft.editNo);
       return `<div class="editbar">
-        <b>수정 중</b> ${o?esc(o.camp):''} — 다시 신청하면 기존 건이 교체됩니다.
+        <b>수정 중</b> ${o?esc(o.camp):''}
         <button id="cancelEdit">수정 취소</button></div>`})():''}
     <div class="shell">
       <aside class="side">${sideCond()}</aside>
@@ -1266,14 +1268,22 @@ function cardList(){
   </div>`;
 }
 
-/* ── 캠페인 취소 ──
-   확정 대기 · 조정 필요 · 확정 세 상태에서 마케터가 직접 취소할 수 있다.
-   발송 완료 건은 이미 나갔으므로 취소 대상이 아니다. */
-/* ── 캠페인 상세 / 신청 취소 ──
-   확정 대기 · 조정 필요 건은 담당자가 아직 확정하지 않았으므로 마케터가 직접 철회한다.
+/* ── 캠페인 상세 · 수정 · 신청 취소 ──
+   확정 대기 · 조정 필요 건은 담당자가 아직 확정하지 않았으므로 마케터가 직접 고치거나 철회한다.
    확정된 건은 이미 캐파와 시간대가 잡혀 있어 담당자와 협의해 처리한다 (0728 미팅:
    "취소는 보통 안 하긴 해요 … 급히 취소하는 경우에는 시스템상에서 캠페인을 중단하거나"). */
 const CANCELABLE=['신청','조정 필요'];
+
+/* 확정 전인 건을 신청 폼으로 불러온다 (조정 필요 패널·리스트 상세 공통) */
+function editReq(no){
+  const r=requests.find(q=>q.no===no); if(!r) return;
+  Object.assign(draft,{cycle:r.cycle,from:r.from,to:r.to,ch:[...r.ch],gnb:r.gnb,
+    offer:r.offer,qty:r.qty,camp:r.camp,dept:r.team,mk:r.mk,note:r.note||'',
+    date:r.cycle==='주기성'?r.from:r.date,hour:r.hour,editNo:r.no});
+  adjOpen=false; found=true; tab='apply';
+  $('modalSlot').innerHTML='';
+  toast(`수정 중 — ${r.camp}`); render();
+}
 const canCancel=r=>role==='mkt'&&CANCELABLE.includes(r.status)&&r.mk===ME.mk&&r.team===ME.team;
 
 function cancelModal(no,ask){
@@ -1309,6 +1319,7 @@ function cancelModal(no,ask){
     </div>
     <div class="m-act">
       <button class="pill ghost" id="cNo">${ask?'돌아가기':'닫기'}</button>
+      ${ok&&!ask?`<button class="pill ghost" id="cEdit">수정하기</button>`:''}
       ${ok?`<button class="pill danger" id="cYes">신청 취소</button>`:''}
     </div></div></div>`;
   if(ok) $('cYes').onclick=()=>{
@@ -1318,6 +1329,7 @@ function cancelModal(no,ask){
     toast(`신청을 취소했습니다 — ${r.camp}`,true);
     render();
   };
+  if(ok&&!ask) $('cEdit').onclick=()=>editReq(no);
   $('cNo').onclick=()=>$('modalSlot').innerHTML='';
 }
 
@@ -1412,12 +1424,7 @@ function bindApply(){
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
     if(x.dataset.km) {kpiMonth=x.dataset.km; re()}});
   document.querySelectorAll('[data-adj]').forEach(x=>x.onclick=()=>{adjOpen=!adjOpen;re()});
-  document.querySelectorAll('[data-move]').forEach(x=>x.onclick=()=>{
-    const r=requests.find(q=>q.no===+x.dataset.move); if(!r) return;
-    Object.assign(draft,{cycle:r.cycle,from:r.from,to:r.to,ch:[...r.ch],gnb:r.gnb,
-      offer:r.offer,qty:r.qty,camp:r.camp,dept:r.team,mk:r.mk,note:r.note||'',
-      date:r.cycle==='주기성'?r.from:r.date,hour:r.hour,editNo:r.no});
-    adjOpen=false; found=true; toast(`수정 중 — ${r.camp}`); re()});
+  document.querySelectorAll('[data-move]').forEach(x=>x.onclick=()=>editReq(+x.dataset.move));
   const ce=$('cancelEdit'); if(ce) ce.onclick=()=>{
     draft.editNo=null; draft.camp=''; draft.note=''; draft.date=null; draft.hour=null;
     found=false; toast('수정을 취소했습니다. 기존 신청은 그대로 있습니다.'); re()};
