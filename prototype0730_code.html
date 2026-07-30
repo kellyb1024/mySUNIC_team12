@@ -441,6 +441,12 @@ table.list td{padding:10px 9px;border-bottom:1px solid var(--border);vertical-al
   color:var(--text-strong);white-space:nowrap}
 table.list td.nm{white-space:normal;min-width:200px}
 table.list tr.rw:hover td{background:#FCFCFD}
+table.list tr.rw.clk{cursor:pointer}
+.stfil{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.stfil .chip{display:inline-flex;align-items:center;gap:5px}
+.stfil .chip .num{font-family:Roboto;font-variant-numeric:tabular-nums;color:var(--text-muted)}
+.stfil .chip.on .num{color:inherit}
+.stfil .chip:disabled{opacity:.4;cursor:default}
 table.list .r{text-align:right;font-family:Roboto;font-variant-numeric:tabular-nums}
 .st.needfix{background:var(--waiting-bg);color:var(--waiting-text);border:1px solid var(--waiting-border)}
 
@@ -645,6 +651,9 @@ let requests=[
 ];
 /* 자리를 실제로 차지하는 상태 — '조정 필요'는 아직 자리를 잡은 게 아니라 제외 */
 const live=r=>['확정','발송 완료','신청'].includes(r.status);
+/* 캘린더는 '실제로 나갈 것'만 그린다. 확정 대기·조정 필요·취소 건은 제외.
+   점유 판정(live)과는 별개 — 확정 대기 건도 시간대는 계속 잡고 있다. */
+const onCal=r=>['확정','발송 완료'].includes(r.status);
 /* 수정 중인 건은 자기 자신과 충돌하면 안 되므로 판정에서 제외한다 */
 const excNo=()=>tab==='apply'?draft.editNo:tab==='manage'?admFix.no:null;
 const inScope=r=>live(r)&&r.no!==excNo();
@@ -736,7 +745,7 @@ function periodCheck(c){
 let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), found=false, scope='mine';
 let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',offer:'쿠폰',qty:15,
            date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null};
-let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false;
+let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false, listSt='all';
 let admFix={no:null,date:null,hour:null};   /* 담당자 재배정 대상 */
 let capaFrom='2026-07-27';                  /* 주간 캐파 현황 시작일 (월요일) */
 let admRej={no:null,text:''};               /* 담당자 반려 사유 입력 대상 */
@@ -839,7 +848,7 @@ function adjPanel(m){
       ${r.admNote?`<div class="adjrej"><span>담당자 반려</span>${esc(r.admNote)}</div>`:''}
       <div class="adjbtns">
         <button class="pill ghost sm" data-move="${r.no}">수정하기</button>
-        <button class="pill ghost sm" data-drop="${r.no}">요청 취소</button>
+        <button class="pill ghost sm" data-cancel="${r.no}">신청 취소</button>
       </div>
     </div>`).join('')}
   </div>`;
@@ -1167,10 +1176,13 @@ function recRecurring(head){
 function cardList(){
   const sc=role==='adm'?'all':scope;
   /* 상단에서 고른 달의 캠페인만, 시작일 빠른 순 */
-  const rows=requests.filter(r=>(sc==='mine'?(r.mk===ME.mk&&r.team===ME.team)
+  const base=requests.filter(r=>(sc==='mine'?(r.mk===ME.mk&&r.team===ME.team)
                               :sc==='team'?r.team===ME.team:true)
-                              && r.from.slice(0,7)===kpiMonth)
-                     .sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:a.hour-b.hour);
+                              && r.from.slice(0,7)===kpiMonth);
+  const ST=[['all','전체'],['신청','확정 대기'],['조정 필요','조정 필요'],
+            ['확정','확정'],['발송 완료','발송 완료'],['취소','취소']];
+  const rows=base.filter(r=>listSt==='all'||r.status===listSt)
+                 .sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:a.hour-b.hour);
   return `<div class="card">
     <div class="card-hd"><div class="rule"></div>
       <div class="lbl"><span>캠페인 리스트</span></div>
@@ -1181,11 +1193,15 @@ function cardList(){
             <button class="arw sm" data-km="${MONTHS[mi+1]||''}" ${mi>=MONTHS.length-1?'disabled':''}>›</button>
           </span>`})()}
         ${role==='mkt'?`<span class="tabs">${[['mine','내 신청'],['team','우리 팀'],['all','전체']].map(([k,n])=>
-          `<button data-sc="${k}" class="${scope===k?'on':''}">${n}</button>`).join('')}</span>`:''}</h2></div>
+          `<button data-sc="${k}" class="${scope===k?'on':''}">${n}</button>`).join('')}</span>`:''}</h2>
+      <div class="stfil">${ST.map(([k,n])=>{
+        const c=k==='all'?base.length:base.filter(r=>r.status===k).length;
+        return `<button class="chip sm ${listSt===k?'on':''}" data-ls="${k}" ${c?'':'disabled'}>
+          ${n}<span class="num">${c}</span></button>`}).join('')}</div></div>
     <div class="tblwrap"><table class="list">
       <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
-        <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th><th>사유</th><th></th></tr>
-      ${rows.map(r=>`<tr class="rw">
+        <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th><th>사유</th></tr>
+      ${rows.map(r=>`<tr class="rw clk" data-open="${r.no}">
         <td class="nm">${esc(r.camp)}</td>
         <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
         <td>${fmtD(r.date)} ${r.hour}:00</td>
@@ -1194,40 +1210,58 @@ function cardList(){
         <td class="r">${man(r.qty)}만</td>
         <td>${r.team} ${r.mk}</td>
         <td><span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
-             :r.status==='취소'?'cancel':r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span></td>
+             :r.status==='취소'?'cancel':r.status==='발송 완료'?'sent':'confirmed'}">${
+             r.status==='신청'?'확정 대기':r.status}</span></td>
         <td class="rsn">${r.reason?`${esc(r.reason)}${r.note?`<br><span class="rn">${esc(r.note)}</span>`:''}`:'—'}</td>
-        <td class="act">${role==='mkt'&&r.status==='확정'&&r.mk===ME.mk&&r.team===ME.team
-          ? `<button class="pill ghost xs" data-cancel="${r.no}">취소</button>` : ''}</td></tr>`).join('')}
+        </tr>`).join('')}
     </table></div>
     ${rows.length?'':'<div class="empty">해당하는 캠페인이 없습니다.</div>'}
   </div>`;
 }
 
-/* ── 확정 건 취소 확인 팝업 ── */
-function cancelModal(no){
+/* ── 캠페인 취소 ──
+   확정 대기 · 조정 필요 · 확정 세 상태에서 마케터가 직접 취소할 수 있다.
+   발송 완료 건은 이미 나갔으므로 취소 대상이 아니다. */
+/* ── 캠페인 상세 / 신청 취소 ──
+   확정 대기 · 조정 필요 건은 담당자가 아직 확정하지 않았으므로 마케터가 직접 철회한다.
+   확정된 건은 이미 캐파와 시간대가 잡혀 있어 담당자와 협의해 처리한다 (0728 미팅:
+   "취소는 보통 안 하긴 해요 … 급히 취소하는 경우에는 시스템상에서 캠페인을 중단하거나"). */
+const CANCELABLE=['신청','조정 필요'];
+const canCancel=r=>role==='mkt'&&CANCELABLE.includes(r.status)&&r.mk===ME.mk&&r.team===ME.team;
+
+function cancelModal(no,ask){
   const r=requests.find(q=>q.no===no); if(!r) return;
+  const ok=canCancel(r);
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
-    <h3>이 캠페인을 취소하시겠습니까?</h3>
-    <div class="m-sub">취소하면 확정된 일정이 해제되고, 해당 날짜의 캐파와 시간대가
-      다시 예약 가능 상태로 변경됩니다. 이 작업은 되돌릴 수 없습니다.</div>
+    <h3>${ask?'이 신청을 취소하시겠습니까?':esc(r.camp)}</h3>
+    <div class="m-sub">${ask
+      ? '취소하면 신청이 철회되고, 해당 날짜의 캐파와 시간대가 다시 예약 가능 상태로 변경됩니다. 이 작업은 되돌릴 수 없습니다.'
+      : r.status==='확정' ? '확정된 캠페인입니다. 일정을 바꾸려면 담당자에게 문의해 주세요.'
+      : r.status==='발송 완료' ? '발송이 완료된 캠페인입니다.'
+      : r.status==='취소' ? '취소된 캠페인입니다.' : '담당자 확정을 기다리는 중입니다.'}</div>
     <div class="herocard">
-      ${hrow('캠페인명',r.camp)}
+      ${ask?hrow('캠페인명',r.camp):''}
+      ${hrow('상태',r.status==='신청'?'확정 대기':r.status)}
       ${hrow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
       ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`)}
       ${hrow('채널 / GNB',`${r.ch.join(' · ')||'—'} / ${r.gnb||'—'}`)}
+      ${hrow('주기 / 오퍼',`${r.cycle} / ${r.offer}`)}
       ${hrow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+      ${hrow('부서 · 마케터',`${r.team} ${r.mk}`)}
+      ${r.reason?hrow('사유',r.reason+(r.note?` — ${r.note}`:'')):''}
     </div>
     <div class="m-act">
-      <button class="pill ghost" id="cNo">돌아가기</button>
-      <button class="pill danger" id="cYes">취소하기</button>
+      <button class="pill ghost" id="cNo">${ask?'돌아가기':'닫기'}</button>
+      ${ok?`<button class="pill danger" id="cYes">신청 취소</button>`:''}
     </div></div></div>`;
-  $('cNo').onclick=()=>$('modalSlot').innerHTML='';
-  $('cYes').onclick=()=>{
+  if(ok) $('cYes').onclick=()=>{
+    if(!ask) return cancelModal(no,true);
     r.status='취소'; r.reason=''; r.note=''; r.admNote='';
     $('modalSlot').innerHTML='';
-    toast(`취소했습니다 — ${r.camp}`,true);
+    toast(`신청을 취소했습니다 — ${r.camp}`,true);
     render();
   };
+  $('cNo').onclick=()=>$('modalSlot').innerHTML='';
 }
 
 /* ── 신청 확인 팝업 ── */
@@ -1314,14 +1348,13 @@ function bindApply(){
     draft.from=x.dataset.rf; draft.to=addDays(draft.from,len-1);
     draft.date=draft.from; re()});
   document.querySelectorAll('[data-sc]').forEach(x=>x.onclick=()=>{scope=x.dataset.sc;re()});
-  document.querySelectorAll('[data-cancel]').forEach(x=>x.onclick=()=>cancelModal(+x.dataset.cancel));
+  document.querySelectorAll('[data-ls]').forEach(x=>x.onclick=()=>{listSt=x.dataset.ls;render()});
+  document.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>cancelModal(+x.dataset.open,false));
+  document.querySelectorAll('[data-cancel]').forEach(x=>x.onclick=e=>{
+    e.stopPropagation(); cancelModal(+x.dataset.cancel,true)});
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
     if(x.dataset.km) {kpiMonth=x.dataset.km; re()}});
   document.querySelectorAll('[data-adj]').forEach(x=>x.onclick=()=>{adjOpen=!adjOpen;re()});
-  document.querySelectorAll('[data-drop]').forEach(x=>x.onclick=()=>{
-    const r=requests.find(q=>q.no===+x.dataset.drop); if(!r) return;
-    r.status='취소'; r.admNote='';
-    toast(`요청을 취소했습니다 — ${r.camp}`); re()});
   document.querySelectorAll('[data-move]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.move); if(!r) return;
     Object.assign(draft,{cycle:r.cycle,from:r.from,to:r.to,ch:[...r.ch],gnb:r.gnb,
@@ -1377,7 +1410,7 @@ const passFilter=r=>{
 /* 일회성 — 시작·종료 시점만 칸 안에 표기 */
 function eventsOn(d){
   const out=[], m=calFilter.mode;
-  requests.filter(r=>r.cycle!=='주기성'&&passFilter(r)).forEach(r=>{
+  requests.filter(r=>onCal(r)&&r.cycle!=='주기성'&&passFilter(r)).forEach(r=>{
     if(r.from===d&&m!=='end') out.push({r,t:'start'});
     else if(r.to===d&&m!=='start') out.push({r,t:'end'});
   });
@@ -1387,7 +1420,7 @@ function eventsOn(d){
 /* 주기성 — 기간 내내 매일 발송되므로 주 단위로 이어진 바를 그린다 */
 function weekSpans(week){
   const a=week[0].d, b=week[6].d, m=calFilter.mode, segs=[];
-  requests.filter(r=>r.cycle==='주기성'&&passFilter(r)).forEach(r=>{
+  requests.filter(r=>onCal(r)&&r.cycle==='주기성'&&passFilter(r)).forEach(r=>{
     if(r.to<a||r.from>b) return;
     if(m==='start'&&!(r.from>=a&&r.from<=b)) return;
     if(m==='end'&&!(r.to>=a&&r.to<=b)) return;
@@ -1406,7 +1439,7 @@ function renderCal(){
   const mi=MONTHS.indexOf(calMonth);
   const cells=monthDays(calMonth);
   const mDays=monthDayList(calMonth);
-  const inMonth=requests.filter(r=>passFilter(r)&&mDays.some(d=>activeOn(d,r)));
+  const inMonth=requests.filter(r=>onCal(r)&&passFilter(r)&&mDays.some(d=>activeOn(d,r)));
   return `<div class="wrap wide">
     <div class="card">
       <div class="card-hd"><div class="rule"></div>
@@ -1508,7 +1541,7 @@ function chartFor(rows){
   const [y,mm]=calMonth.split('-').map(Number), lastD=new Date(y,mm,0).getDate();
   const perDay=[...Array(lastD)].map((_,i)=>{
     const d=iso(new Date(y,mm-1,i+1));
-    return {d,q:requests.filter(r=>live(r)&&activeOn(d,r)&&passFilter(r)).reduce((s,r)=>s+r.qty,0)};
+    return {d,q:requests.filter(r=>onCal(r)&&activeOn(d,r)&&passFilter(r)).reduce((s,r)=>s+r.qty,0)};
   });
   const maxD=Math.max(1,...perDay.map(x=>x.q));
   return `<div class="chartbox">
@@ -1531,9 +1564,9 @@ function chartFor(rows){
 
 /* ── 일자 상세 (먼슬리뷰에서 날짜 클릭 → 구체화) ── */
 function renderDay(d){
-  const taken=takenHours(d);
-  const onDay=requests.filter(r=>live(r)&&activeOn(d,r)).sort((a,b)=>a.hour-b.hour);
-  const starts=requests.filter(r=>r.from===d), ends=requests.filter(r=>r.to===d);
+  const onDay=requests.filter(r=>onCal(r)&&activeOn(d,r)).sort((a,b)=>a.hour-b.hour);
+  const taken=new Set(onDay.map(r=>r.hour));
+  const starts=requests.filter(r=>onCal(r)&&r.from===d), ends=requests.filter(r=>onCal(r)&&r.to===d);
   const past=isPast(d);
   return `<div class="wrap wide">
     <div class="card">
