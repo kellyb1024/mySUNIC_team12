@@ -304,9 +304,6 @@ input,select,textarea{font-family:inherit;font-size:13px}
 /* 항목은 한 줄로 고정 폭, 내용도 같은 왼쪽 정렬 */
 .herocard .hr span:first-child{color:var(--sk-orange-text);flex:0 0 104px;white-space:nowrap}
 .herocard .hr span:last-child{color:var(--text-strong);font-weight:500;text-align:left}
-/* 조정 필요 — 다음에 움직일 사람. 색은 하나로 두고 문구로만 구분 */
-.adjrole{font-size:10.5px;color:var(--sk-orange-text);font-weight:500;
-  margin-left:6px;white-space:nowrap}
 .hide{display:none!important}
 
 
@@ -649,7 +646,14 @@ let requests=[
    offer:'없음',qty:30,team:'C팀',mk:'유리',date:'2026-08-26',hour:9,
    status:'신청',reqAt:'2026-08-18 11:30'}),
 
- /* ── 조정 필요 (선점 충돌로 담당자 조율 대기) ── */
+ /* ── 조정 필요 · 경로 2 — 담당자가 확정 대기 건을 넘긴 경우 ── */
+ mkReq({camp:'가을 신작 라인업 안내',from:'2026-08-13',to:'2026-08-19',ch:['배너'],gnb:'홈',
+   offer:'쿠폰',qty:120,team:'A팀',mk:'철수',date:'2026-08-13',hour:19,
+   status:'조정 필요',reqAt:'2026-08-06 10:12',adjBy:'adm',
+   reason:'담당자 조정 요청',
+   admNote:'8/13 배너 캐파가 빠듯합니다. 발송일을 8/17 이후로 옮기거나 모수를 줄여 주세요.'}),
+
+ /* ── 조정 필요 · 경로 1 (선점 충돌로 담당자 조율 대기) ── */
  mkReq({camp:'추석 선물 프로모션',from:'2026-08-24',to:'2026-08-30',ch:['배너'],gnb:'홈',
    offer:'쿠폰',qty:80,team:'B팀',mk:'훈이',date:'2026-08-24',hour:18,
    status:'조정 필요',reqAt:'2026-08-18 15:47',adjBy:'mkt',
@@ -822,7 +826,7 @@ function kpiRow(){
     <div class="kpis">
       ${box('확정 대기',wait)}
       ${box('확정',conf)}
-      ${box('조정 필요',adj,mine.some(adjMine),'data-adj')}
+      ${box('조정 필요',adj,adj>0,'data-adj')}
       ${box('취소',canc)}
     </div>
     ${adjOpen?adjPanel(m):''}`;
@@ -837,12 +841,10 @@ function adjPanel(m){
     <div class="card-hd"><div class="rule"></div>
       <div class="lbl"><span>조정 필요 내역</span><span>${m.replace('-','.')}</span></div>
       <h2><span>${rows.length}건</span>
-        ${(()=>{const n=rows.filter(adjMine).length;
-          return `<span class="badge">${n?`${n}건 수정 필요`:'담당자 조정 대기'}</span>`})()}</h2></div>
+        <span class="badge">담당자 조정 대기</span></h2></div>
     ${rows.map(r=>`<div class="adjitem">
       <div class="adjhd"><b>${esc(r.camp)}</b>
         <span class="st needfix">조정 필요</span>
-        ${adjLab(r)?`<span class="adjrole">${adjLab(r)}</span>`:''}
         <span class="adjwhen">${r.cycle==='주기성'
           ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
           : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
@@ -1236,10 +1238,6 @@ function cardList(){
    확정 대기 · 조정 필요 건은 담당자가 아직 확정하지 않았으므로 마케터가 직접 철회한다.
    확정된 건은 이미 캐파와 시간대가 잡혀 있어 담당자와 협의해 처리한다 (0728 미팅:
    "취소는 보통 안 하긴 해요 … 급히 취소하는 경우에는 시스템상에서 캠페인을 중단하거나"). */
-/* 조정 필요 — 다음에 움직일 사람에 따라 표시를 나눈다 (상태값은 하나로 유지) */
-const adjMine=r=>r.status==='조정 필요'&&r.adjBy==='adm';
-const adjLab =r=>r.adjBy==='adm'?'수정 필요':'';
-
 const CANCELABLE=['신청','조정 필요'];
 const canCancel=r=>role==='mkt'&&CANCELABLE.includes(r.status)&&r.mk===ME.mk&&r.team===ME.team;
 
@@ -1255,12 +1253,11 @@ function cancelModal(no,ask){
       : r.status==='취소' ? '취소된 캠페인입니다.'
       : r.status==='조정 필요' ? (r.adjBy==='adm'
           ? '담당자가 조정을 요청했습니다. 사유를 확인하고 수정해 주세요.'
-          : '담당자가 시간대를 조율하고 있습니다. 결과를 기다려 주세요.')
+          : '담당자가 시간대를 조정하고 있습니다.')
       : '담당자 확정을 기다리는 중입니다.'}</div>
     <div class="herocard">
       ${ask?hrow('캠페인명',r.camp):''}
-      ${hrow('상태',r.status==='조정 필요'&&adjLab(r)?`조정 필요 · ${adjLab(r)}`
-             :r.status==='신청'?'확정 대기':r.status)}
+      ${hrow('상태',r.status==='신청'?'확정 대기':r.status)}
       ${hrow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
       ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`)}
       ${hrow('채널 / GNB',`${r.ch.join(' · ')||'—'} / ${r.gnb||'—'}`)}
