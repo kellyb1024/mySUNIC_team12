@@ -367,7 +367,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .conflict .cfg b{font-weight:400;color:var(--text-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .conflict .cfm{font-size:11.5px;color:var(--waiting-text);margin-top:7px;line-height:1.55}
 table.list td.rsn{color:var(--text-muted);font-size:11.5px;max-width:230px;white-space:normal;line-height:1.5}
-table.list td.rsn .rn{color:var(--waiting-text)}
+table.list td.rsn .src{color:var(--waiting-text)}
 .reasonfld label{font-size:11.5px;font-weight:500;color:var(--sk-orange-text);
   display:flex;align-items:center;margin-bottom:5px}
 .reasonfld{margin-bottom:14px}
@@ -1238,10 +1238,10 @@ function cardList(){
              :r.status==='취소'?'cancel':r.status==='발송 완료'?'sent':'confirmed'}">${
              r.status==='신청'?'확정 대기':r.status}</span></td>
         <td class="rsn">${(()=>{
-          /* 담당자가 넘긴 건은 reason 이 자리표시자뿐이라 담당자 메모를 본문으로 올린다 */
+          /* 윗줄 = 이 사유가 누구 것인지, 아랫줄 = 사유 설명 */
           const adm=r.adjBy==='adm'&&r.admNote;
-          const main=adm?r.admNote:r.reason, sub=adm?'':r.note;
-          return main?`${esc(main)}${sub?`<br><span class="rn">${esc(sub)}</span>`:''}`:'—'})()}</td>
+          const from=adm?'담당자 사유':r.reason, txt=adm?r.admNote:r.note;
+          return from?`<span class="src">${esc(from)}</span>${txt?`<br>${esc(txt)}`:''}`:'—'})()}</td>
         </tr>`).join('')}
     </table></div>
     ${rows.length?'':'<div class="empty">해당하는 캠페인이 없습니다.</div>'}
