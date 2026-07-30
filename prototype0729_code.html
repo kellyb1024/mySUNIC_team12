@@ -277,12 +277,15 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .pill.primary:hover{background:var(--sk-orange-dk)}
 .pill.primary:disabled{background:var(--motif);color:var(--locked-text);cursor:not-allowed}
 .pill.ghost{background:#fff;border:1px solid var(--border);color:var(--text)}
+.pill.danger{background:var(--sk-red);color:#fff}
+.pill.danger:hover{background:#C4001F}
 .pill.ghost:hover{background:var(--motif)}
 .empty{font-size:12.5px;color:var(--text-muted);text-align:center;padding:26px 0;line-height:1.7}
 .st{display:inline-block;font-size:11px;font-weight:500;border-radius:4px;padding:2px 9px;white-space:nowrap}
 .st.confirmed{border:1px solid var(--confirmed);color:var(--confirmed)}
 .st.applied{background:var(--waiting-bg);color:var(--waiting-text);border:1px solid var(--waiting-border)}
 .st.sent{background:var(--l1);color:var(--text-muted)}
+.st.cancel{background:var(--motif);color:var(--locked-text);border:1px dashed var(--locked-fill)}
 
 .toasts{position:fixed;right:24px;bottom:24px;display:flex;flex-direction:column;gap:9px;z-index:200}
 .toast{background:var(--text-strong);color:#fff;padding:12px 16px;border-radius:6px;font-size:12.5px;
@@ -370,7 +373,7 @@ table.list td.rsn .rn{color:var(--waiting-text)}
 .reasonfld textarea{width:100%;padding:9px 10px;border:1px solid var(--waiting-border);border-radius:4px;
   font-family:inherit;font-size:12.5px;resize:vertical;background:#FFFDF5}
 .reasonfld textarea:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;
   padding:14px 16px;position:relative}
 .kpi .k{font-size:11.5px;color:var(--text-muted);margin-bottom:5px}
@@ -443,6 +446,7 @@ table.list.adm td.cap{white-space:nowrap;line-height:1.6}
 .cp.warn{color:var(--sk-orange-text);font-weight:500}
 .cp.hot{color:var(--sk-red);font-weight:500}
 .cp.none{color:var(--text-muted);font-family:inherit;font-size:11px}
+table.list td.act{white-space:nowrap;text-align:right;width:1%}
 table.list.adm td.act{white-space:nowrap;text-align:right}
 table.list.adm td.act .pill{margin-left:5px}
 table.list.adm th:last-child,table.list.adm td.act{width:1%}
@@ -659,34 +663,28 @@ const bannerUsed=d=>usedOn(d,r=>r.ch.includes('배너'));
 const couponUsed=d=>usedOn(d,r=>r.offer==='쿠폰');
 const bannerRem=d=>CAPA['배너'].limit-bannerUsed(d);
 const couponRem=d=>CAPA['쿠폰'].limit-couponUsed(d);
-/* ── 시간대 충돌 규칙 ──
-   시간당 캐파라는 것은 없다. 시간대 경합은 캐파가 아니라 '지면' 문제다.
-   같은 지면(채널 × GNB)에 같은 시각 두 캠페인을 띄울 수 없다.
+/* ── 시간대 겹침 규칙 ──
+   시스템이 막는 제약은 '일 캐파' 하나뿐이다. 같은 시각에 여러 건이 나가도
+   캐파만 넘지 않으면 발송 자체는 가능하다 (0730 담당자 확인).
 
-   · 일회성 ↔ 일회성 : 지면이 겹칠 때만 충돌
-       배너@홈 vs 배너@영화 홈   → 지면이 달라 동시 가능
-       배너@홈 vs 토스트팝업@홈  → 채널이 달라 동시 가능
-       배너@홈 vs 배너@홈        → 충돌
-     (더미 시트 7/30: 왕과 사는 남자 배너@홈 17시 / 영화 월정액 배너@영화 홈 17시 — 공존)
-   · 쿠폰은 지면이 아니라 오퍼라 시간대 자원이 아니다 (0728 피드백 · 일 440만 기준)
-   · 주기성이 한쪽에라도 있으면 : 지면 무관하게 그 시간대를 독점
-     (주기성은 메일 시스템을 타서 다른 캠페인의 방해를 받으면 안 됨 — 0728 미팅) */
-const gnbList=r=>String(r.gnb||'').split(/[,·]/).map(s=>s.trim()).filter(Boolean);
-const slotKeys=r=>{
-  const gs=gnbList(r); if(!gs.length) return [];
-  return (r.ch||[]).flatMap(c=>gs.map(g=>`${c}@${g}`));
-};
+   다만 운영에서는 시간이 겹치면 담당자가 조율한다.
+     "A팀이 신청하고 B팀이 신청했는데 둘이 신청한 시간이 겹쳐. 그러면 보통은
+      먼저 신청한 사람들 먼저 배정해 주기는 하는데 (…) B팀 우선순위가 좀 더 높다
+      그러면 B팀한테 양보하는 경우도 있긴 있어요."  — 0728 미팅
+
+   그래서 시간대 겹침은 '신청 불가'가 아니라 '조정 요청' 대상으로 둔다.
+     · 같은 채널 + 같은 시각  → 조정 대상
+     · 채널이 다르면          → 동시 가능 (주기성도 동일 — 0730 담당자 확인)
+     · 쿠폰은 오퍼라 시간대 자원이 아니다 (0728 피드백 · 일 440만 기준)
+   GNB 는 데이터·화면에는 남지만 겹침 판정에는 쓰지 않는다. */
+const slotKeys=r=>r.ch||[];
 function slotClash(a,b){
-  if(a.cycle==='주기성'||b.cycle==='주기성') return true;
   const bk=slotKeys(b);
   return slotKeys(a).some(k=>bk.includes(k));
 }
-/* 왜 막혔는지 */
 function clashWhy(a,b){
-  if(b.cycle==='주기성') return '주기성 캠페인이 이 시간대를 독점합니다';
-  if(a.cycle==='주기성') return '주기성은 기간 내내 이 시간대를 독점해야 합니다';
   const bk=slotKeys(b), dup=slotKeys(a).filter(k=>bk.includes(k));
-  return `${dup.map(k=>k.replace('@',' · ')).join(', ')} 지면이 겹칩니다`;
+  return `${dup.join('·')} 채널이 겹칩니다`;
 }
 /* 그 날 그 시각에 배치된 캠페인 전부 (표시용) */
 const liveAt=(d,h)=>requests.filter(r=>inScope(r)&&activeOn(d,r)&&r.hour===h);
@@ -784,8 +782,10 @@ function kpiRow(){
   const mine=requests.filter(r=>r.mk===ME.mk&&r.team===ME.team&&r.date.slice(0,7)===m);
   const cnt=s=>mine.filter(r=>r.status===s).length;
   /* 신청 → 담당자 처리 → 조정 필요 | 확정  (발송 완료는 확정을 거친 건) */
-  const adj=cnt('조정 필요'), conf=cnt('확정')+cnt('발송 완료'), wait=cnt('신청');
-  const applied=adj+conf+wait;
+  /* 각 캠페인은 정확히 한 칸에만 속한다. 네 칸의 합이 그 달 신청 건수 */
+  const wait=cnt('신청'), adj=cnt('조정 필요'),
+        conf=cnt('확정')+cnt('발송 완료'), canc=cnt('취소');
+  const applied=wait+adj+conf+canc;
   const box=(k,v,hero,attr)=>`<div class="kpi${hero?' hero':''}${attr?' clickable':''}${
       attr&&adjOpen?' open':''}" ${attr||''}>
     <div class="k">${k}</div>
@@ -795,12 +795,13 @@ function kpiRow(){
       <button class="arw" data-km="${MONTHS[mi-1]||''}" ${mi<=0?'disabled':''}>‹</button>
       <span class="kml num">${m.replace('-','. ')}</span>
       <button class="arw" data-km="${MONTHS[mi+1]||''}" ${mi>=MONTHS.length-1?'disabled':''}>›</button>
-      <span class="kmn">내가 신청한 캠페인</span>
+      <span class="kmn">내가 신청한 캠페인 · ${applied}건</span>
     </div>
     <div class="kpis">
-      ${box('신청',applied)}
+      ${box('확정 대기',wait)}
       ${box('조정 필요',adj,adj>0,'data-adj')}
       ${box('확정',conf)}
+      ${box('취소',canc)}
     </div>
     ${adjOpen?adjPanel(m):''}`;
 }
@@ -1170,7 +1171,7 @@ function cardList(){
           `<button data-sc="${k}" class="${scope===k?'on':''}">${n}</button>`).join('')}</span>`:''}</h2></div>
     <div class="tblwrap"><table class="list">
       <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
-        <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th><th>사유</th></tr>
+        <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th><th>사유</th><th></th></tr>
       ${rows.map(r=>`<tr class="rw">
         <td class="nm">${esc(r.camp)}</td>
         <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
@@ -1180,11 +1181,40 @@ function cardList(){
         <td class="r">${man(r.qty)}만</td>
         <td>${r.team} ${r.mk}</td>
         <td><span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
-             :r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span></td>
-        <td class="rsn">${r.reason?`${esc(r.reason)}${r.note?`<br><span class="rn">${esc(r.note)}</span>`:''}`:'—'}</td></tr>`).join('')}
+             :r.status==='취소'?'cancel':r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span></td>
+        <td class="rsn">${r.reason?`${esc(r.reason)}${r.note?`<br><span class="rn">${esc(r.note)}</span>`:''}`:'—'}</td>
+        <td class="act">${role==='mkt'&&r.status==='확정'&&r.mk===ME.mk&&r.team===ME.team
+          ? `<button class="pill ghost xs" data-cancel="${r.no}">취소</button>` : ''}</td></tr>`).join('')}
     </table></div>
     ${rows.length?'':'<div class="empty">해당하는 캠페인이 없습니다.</div>'}
   </div>`;
+}
+
+/* ── 확정 건 취소 확인 팝업 ── */
+function cancelModal(no){
+  const r=requests.find(q=>q.no===no); if(!r) return;
+  $('modalSlot').innerHTML=`<div class="modal"><div class="box">
+    <h3>이 캠페인을 취소하시겠습니까?</h3>
+    <div class="m-sub">확정된 일정이 해제되고 그 날짜의 캐파와 시간대가 다시 열립니다.
+      취소한 뒤에는 되돌릴 수 없습니다.</div>
+    <div class="herocard">
+      ${hrow('캠페인명',r.camp)}
+      ${hrow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
+      ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`)}
+      ${hrow('채널 / GNB',`${r.ch.join(' · ')||'—'} / ${r.gnb||'—'}`)}
+      ${hrow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+    </div>
+    <div class="m-act">
+      <button class="pill ghost" id="cNo">돌아가기</button>
+      <button class="pill danger" id="cYes">취소하기</button>
+    </div></div></div>`;
+  $('cNo').onclick=()=>$('modalSlot').innerHTML='';
+  $('cYes').onclick=()=>{
+    r.status='취소'; r.reason=''; r.note=''; r.admNote='';
+    $('modalSlot').innerHTML='';
+    toast(`취소했습니다 — ${r.camp}`,true);
+    render();
+  };
 }
 
 /* ── 신청 확인 팝업 ── */
@@ -1271,13 +1301,14 @@ function bindApply(){
     draft.from=x.dataset.rf; draft.to=addDays(draft.from,len-1);
     draft.date=draft.from; re()});
   document.querySelectorAll('[data-sc]').forEach(x=>x.onclick=()=>{scope=x.dataset.sc;re()});
+  document.querySelectorAll('[data-cancel]').forEach(x=>x.onclick=()=>cancelModal(+x.dataset.cancel));
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
     if(x.dataset.km) {kpiMonth=x.dataset.km; re()}});
   document.querySelectorAll('[data-adj]').forEach(x=>x.onclick=()=>{adjOpen=!adjOpen;re()});
   document.querySelectorAll('[data-drop]').forEach(x=>x.onclick=()=>{
-    const i=requests.findIndex(q=>q.no===+x.dataset.drop);
-    if(i>=0){const r=requests[i]; requests.splice(i,1); toast(`요청을 취소했습니다 — ${r.camp}`)}
-    re()});
+    const r=requests.find(q=>q.no===+x.dataset.drop); if(!r) return;
+    r.status='취소'; r.admNote='';
+    toast(`요청을 취소했습니다 — ${r.camp}`); re()});
   document.querySelectorAll('[data-move]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.move); if(!r) return;
     Object.assign(draft,{cycle:r.cycle,from:r.from,to:r.to,ch:[...r.ch],gnb:r.gnb,
