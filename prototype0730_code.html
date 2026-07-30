@@ -779,7 +779,7 @@ let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), foun
 const EMPTY_DRAFT=()=>({from:'',to:'',ch:[],gnb:'',cycle:'',offer:'',qty:null,
   date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null});
 let draft=EMPTY_DRAFT();
-let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false, listSt='all';
+let calFilter={mode:'all',ch:[],offer:''}, calDay=null, adjOpen=false, listSt='all';
 let admFix={no:null,from:null,to:null,hour:null}; /* 담당자 일정 조정 대상 */
 let admSwap={no:null,from:null,to:null,hour:null}; /* 자리를 넘겨줄 선점 건 */
 const noSwap=()=>admSwap={no:null,from:null,to:null,hour:null};
@@ -1508,9 +1508,11 @@ function monthDays(m){
   while(cells.length%7) cells.push({d:iso(new Date(y,mm,cells.length-lead-lastD+1)),out:true});
   return cells;
 }
+/* 채널은 여럿 중 하나(OR), 오퍼는 별개 축이므로 채널과 AND 로 건다 */
 const passFilter=r=>{
-  if(!calFilter.ch.length) return true;
-  return calFilter.ch.some(f=>f==='쿠폰'?r.offer==='쿠폰':r.ch.includes(f));
+  if(calFilter.ch.length&&!calFilter.ch.some(c=>r.ch.includes(c))) return false;
+  if(calFilter.offer&&r.offer!==calFilter.offer) return false;
+  return true;
 };
 /* 일회성 — 시작·종료 시점만 칸 안에 표기 */
 function eventsOn(d){
@@ -1567,10 +1569,14 @@ function renderCal(){
         ${[['all','시작+종료'],['start','시작만'],['end','종료만']].map(([k,n])=>
           `<button class="chip sm ${calFilter.mode===k?'on':''}" data-m="${k}">${n}</button>`).join('')}
         <span class="sep"></span>
-        <span class="fl">채널 · 오퍼</span>
-        ${['TV팝업','배너','토스트팝업','쿠폰'].map(c=>
+        <span class="fl">채널</span>
+        ${CH_LIST.map(c=>
           `<button class="chip sm ${calFilter.ch.includes(c)?'on':''}" data-f="${c}">${c}</button>`).join('')}
-        ${calFilter.ch.length?`<button class="chip sm" data-f="__clear">필터 해제</button>`:''}
+        <span class="sep"></span>
+        <span class="fl">오퍼</span>
+        ${['쿠폰','없음'].map(o=>
+          `<button class="chip sm ${calFilter.offer===o?'on':''}" data-fo="${o}">${o}</button>`).join('')}
+        ${calFilter.ch.length||calFilter.offer?`<button class="chip sm" data-f="__clear">필터 해제</button>`:''}
       </div>
       <div class="cal">
         <div class="calhd">${WD.map((w,i)=>`<div class="ch${i===0?' sun':''}">${w}</div>`).join('')}</div>
@@ -2143,9 +2149,12 @@ function render(){
     document.querySelectorAll('[data-m]').forEach(x=>x.onclick=()=>{calFilter.mode=x.dataset.m;render()});
     document.querySelectorAll('[data-f]').forEach(x=>x.onclick=()=>{
       const v=x.dataset.f;
-      if(v==='__clear') calFilter.ch=[];
+      if(v==='__clear'){calFilter.ch=[];calFilter.offer=''}
       else{const i=calFilter.ch.indexOf(v); i<0?calFilter.ch.push(v):calFilter.ch.splice(i,1)}
       render()});
+    /* 오퍼는 한 번 더 누르면 해제된다 */
+    document.querySelectorAll('[data-fo]').forEach(x=>x.onclick=()=>{
+      calFilter.offer=calFilter.offer===x.dataset.fo?'':x.dataset.fo; render()});
   }
   else { $('page').innerHTML=renderManage(); bindManage(); }
 }
