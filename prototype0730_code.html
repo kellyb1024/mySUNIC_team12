@@ -307,7 +307,6 @@ input,select,textarea{font-family:inherit;font-size:13px}
 /* 조정 필요 — 다음에 움직일 사람. 색은 하나로 두고 문구로만 구분 */
 .adjrole{font-size:10.5px;color:var(--sk-orange-text);font-weight:500;
   margin-left:6px;white-space:nowrap}
-td .adjrole{display:block;margin:3px 0 0}
 .hide{display:none!important}
 
 
@@ -843,7 +842,7 @@ function adjPanel(m){
     ${rows.map(r=>`<div class="adjitem">
       <div class="adjhd"><b>${esc(r.camp)}</b>
         <span class="st needfix">조정 필요</span>
-        <span class="adjrole">${adjLab(r)}</span>
+        ${adjLab(r)?`<span class="adjrole">${adjLab(r)}</span>`:''}
         <span class="adjwhen">${r.cycle==='주기성'
           ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
           : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
@@ -1222,8 +1221,7 @@ function cardList(){
         <td>${r.team} ${r.mk}</td>
         <td><span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
              :r.status==='취소'?'cancel':r.status==='발송 완료'?'sent':'confirmed'}">${
-             r.status==='신청'?'확정 대기':r.status}</span>${
-             r.status==='조정 필요'?`<div class="adjrole">${adjLab(r)}</div>`:''}</td>
+             r.status==='신청'?'확정 대기':r.status}</span></td>
         <td class="rsn">${r.reason?`${esc(r.reason)}${r.note?`<br><span class="rn">${esc(r.note)}</span>`:''}`:'—'}</td>
         </tr>`).join('')}
     </table></div>
@@ -1240,7 +1238,7 @@ function cardList(){
    "취소는 보통 안 하긴 해요 … 급히 취소하는 경우에는 시스템상에서 캠페인을 중단하거나"). */
 /* 조정 필요 — 다음에 움직일 사람에 따라 표시를 나눈다 (상태값은 하나로 유지) */
 const adjMine=r=>r.status==='조정 필요'&&r.adjBy==='adm';
-const adjLab =r=>r.adjBy==='adm'?'수정 필요':'담당자 검토 중';
+const adjLab =r=>r.adjBy==='adm'?'수정 필요':'';
 
 const CANCELABLE=['신청','조정 필요'];
 const canCancel=r=>role==='mkt'&&CANCELABLE.includes(r.status)&&r.mk===ME.mk&&r.team===ME.team;
@@ -1261,7 +1259,7 @@ function cancelModal(no,ask){
       : '담당자 확정을 기다리는 중입니다.'}</div>
     <div class="herocard">
       ${ask?hrow('캠페인명',r.camp):''}
-      ${hrow('상태',r.status==='조정 필요'?`조정 필요 · ${adjLab(r)}`
+      ${hrow('상태',r.status==='조정 필요'&&adjLab(r)?`조정 필요 · ${adjLab(r)}`
              :r.status==='신청'?'확정 대기':r.status)}
       ${hrow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
       ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`)}
