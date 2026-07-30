@@ -647,6 +647,11 @@ let requests=[
    status:'신청',reqAt:'2026-08-18 11:30'}),
 
  /* ── 조정 필요 · 경로 2 — 담당자가 확정 대기 건을 넘긴 경우 ── */
+ mkReq({camp:'주말 영화 추천 알림',from:'2026-07-30',to:'2026-08-02',ch:['배너'],gnb:'홈',
+   offer:'없음',qty:70,team:'A팀',mk:'철수',date:'2026-07-30',hour:20,
+   status:'조정 필요',reqAt:'2026-07-27 16:20',adjBy:'adm',
+   admNote:'7/30 배너 캐파가 빠듯합니다. 발송일을 8/3 이후로 옮기거나 모수를 줄여 주세요.'}),
+
  mkReq({camp:'가을 신작 라인업 안내',from:'2026-08-13',to:'2026-08-19',ch:['배너'],gnb:'홈',
    offer:'쿠폰',qty:120,team:'A팀',mk:'철수',date:'2026-08-13',hour:19,
    status:'조정 필요',reqAt:'2026-08-06 10:12',adjBy:'adm',
@@ -864,7 +869,8 @@ function adjPanel(m){
         ?`<div class="adjwhy"><span>${r.adjBy==='adm'?'사유':'선점'}</span>${
           esc(r.adjBy==='adm'?r.reason:r.reason.replace(/\s*선점$/,''))}</div>`:''}
       ${r.note?`<div class="adjnote"><span>신청 시 작성한 사유</span>${esc(r.note)}</div>`:''}
-      ${r.admNote?`<div class="adjrej"><span>${r.adjBy==='adm'?'담당자 사유':'담당자 반려'}</span>${esc(r.admNote)}</div>`:''}
+      ${r.admNote?`<div class="${r.adjBy==='adm'?'adjnote':'adjrej'}"><span>${
+        r.adjBy==='adm'?'담당자 사유':'담당자 반려'}</span>${esc(r.admNote)}</div>`:''}
       <div class="adjbtns">
         <button class="pill ghost sm" data-move="${r.no}">수정하기</button>
         <button class="pill ghost sm" data-cancel="${r.no}">신청 취소</button>
@@ -1744,7 +1750,8 @@ function admItem(r){
     </div>
     ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
     ${r.note?`<div class="adjnote"><span>마케터 사유</span>${esc(r.note)}</div>`:''}
-    ${r.admNote?`<div class="adjrej"><span>${r.adjBy==='adm'?'담당자 사유':'담당자 반려'}</span>${esc(r.admNote)}</div>`:''}
+    ${r.admNote?`<div class="${r.adjBy==='adm'?'adjnote':'adjrej'}"><span>${
+        r.adjBy==='adm'?'담당자 사유':'담당자 반려'}</span>${esc(r.admNote)}</div>`:''}
     ${open?admFixPanel(r)
       :admRej.no===r.no?`<div class="reasonfld" style="margin:12px 0 0">
           <label>반려 사유</label>
