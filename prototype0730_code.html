@@ -472,6 +472,11 @@ table.list.adm th:last-child,table.list.adm td.act{width:1%}
 .fixhd{font-size:12px;font-weight:500;color:var(--sk-orange-text);margin-bottom:10px}
 .fixrow{display:flex;gap:12px;align-items:flex-start;margin-bottom:11px}
 .fixrow > span{flex:0 0 56px;font-size:11.5px;color:var(--text-muted);padding-top:6px}
+.fdates{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:1px}
+.fdates input[type=date]{padding:7px 9px;border:1px solid var(--border);border-radius:4px;
+  font-size:12px;font-family:inherit;color:var(--text-strong);background:#fff}
+.fdates input[type=date]:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
+.fdates .tl{font-size:11.5px;color:var(--text-muted)}
 .daychips{display:flex;gap:6px;flex-wrap:wrap}
 .hgrid.adm{grid-template-columns:repeat(11,minmax(0,1fr));flex:1}
 /* 주간 캐파 매트릭스 */
@@ -775,9 +780,9 @@ let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), foun
 let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',offer:'쿠폰',qty:15,
            date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null};
 let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false, listSt='all';
-let admFix={no:null,date:null,hour:null};   /* 담당자 재배정 대상 */
-let admSwap={no:null,date:null,hour:null}; /* 자리를 넘겨줄 선점 건 */
-const noSwap=()=>admSwap={no:null,date:null,hour:null};
+let admFix={no:null,from:null,to:null,date:null,hour:null}; /* 담당자 재배정 대상 */
+let admSwap={no:null,from:null,to:null,date:null,hour:null}; /* 자리를 넘겨줄 선점 건 */
+const noSwap=()=>admSwap={no:null,from:null,to:null,date:null,hour:null};
 let capaFrom='2026-07-27';                  /* 주간 캐파 현황 시작일 (월요일) */
 let admRej={no:null,text:''};               /* 담당자 취소 사유 입력 대상 */
 const $=id=>document.getElementById(id);
@@ -1825,9 +1830,8 @@ function adjAskModal(no){
   };
 }
 
-/* 재배정하려는 자리를 이미 쓰고 있는 건 (자기 자신은 제외) */
-function fixHolder(r,d,h){
-  const days=r.cycle==='주기성'?rangeDays(r.from,r.to):[d];
+/* 그 날들의 그 시각을 이미 쓰고 있는 건 (자기 자신은 제외) */
+function fixHolder(r,days,h){
   for(const dd of days){
     const hit=requests.find(q=>inScope(q)&&activeOn(dd,q)&&q.hour===h&&slotClash(r,q));
     if(hit) return hit;
@@ -1837,121 +1841,105 @@ function fixHolder(r,d,h){
 
 /* 선점 건 이동 — 담당자·양 팀이 협의를 끝낸 뒤 그 결과를 반영하는 화면.
    합의가 이미 됐으므로 선점 건은 '확정'을 유지하고 시간만 옮긴다. */
-function swapPanel(r,d,h,hd){
-  const rep=hd.cycle==='주기성';
-  const sd=admSwap.date||(rep?hd.from:hd.date), sh=admSwap.hour||hd.hour;
-  const days=fixDays(hd), span=fixSpan(hd,sd);
+function swapPanel(r,rSpan,h,hd){
+  const s=admSwap, sh=s.hour||hd.hour;
+  const bad=fixBad(hd,s), span=bad?[]:fixSpan(hd,s);
   /* 조정 요청 건이 넘겨받을 자리는 다시 고를 수 없다 */
-  const rOn=dd=>r.cycle==='주기성'?(dd>=r.from&&dd<=r.to):(dd===d);
   const busy=new Set();
-  HOURS.forEach(x=>{
-    const chk=dd=>(x===h&&rOn(dd))||requests.some(q=>q.no!==hd.no&&q.no!==r.no
-      &&live(q)&&activeOn(dd,q)&&q.hour===x&&slotClash(hd,q));
-    if(span.some(chk)) busy.add(x);
+  if(!bad) HOURS.forEach(x=>{
+    const hit=span.some(dd=>(x===h&&rSpan.includes(dd))
+      ||requests.some(q=>q.no!==hd.no&&q.no!==r.no&&live(q)&&activeOn(dd,q)&&q.hour===x&&slotClash(hd,q)));
+    if(hit) busy.add(x);
   });
   /* 원래 나가던 날이 아닌 날만 캐파를 새로 본다 */
-  const wasOn=dd=>activeOn(dd,hd);
-  const capaBad=span.filter(dd=>!wasOn(dd)).some(dd=>
+  const capaBad=!bad&&span.filter(dd=>!activeOn(dd,hd)).some(dd=>
     (hd.ch.includes('배너')&&bannerRem(dd)<hd.qty)||(hd.offer==='쿠폰'&&couponRem(dd)<hd.qty));
-  const changed=rep?(sd!==hd.from||sh!==hd.hour):(sd!==hd.date||sh!==hd.hour);
-  const ok=!busy.has(sh)&&!capaBad&&changed;
-  const when=(dd,hh)=>rep?`매일 ${hh}:00`:`${fmtD(dd)} ${hh}:00`;
+  const changed=s.from!==hd.from||s.to!==hd.to||sh!==hd.hour
+    ||(hd.cycle!=='주기성'&&s.date!==hd.date);
+  const ok=!bad&&!busy.has(sh)&&!capaBad&&changed;
+  const gd=span[0]||s.from;
   return `<div class="fixpanel">
     <div class="fixhd">선점 건 옮기기 — ${esc(hd.camp)} (${hd.team} ${hd.mk})</div>
-    ${(()=>{const [f,t]=fixPeriod(hd,sd);
-      return f===hd.from&&t===hd.to
-        ? (rep?`<div class="segnote">기간 ${fmtD(f)} ~ ${fmtD(t)} · 매일 ${sh}:00</div>`:'')
-        : `<div class="segnote">기간 ${fmtD(hd.from)}~${fmtD(hd.to)} → <b>${fmtD(f)}~${fmtD(t)}</b></div>`})()}
-    <div class="fixrow"><span>${rep?'시작일':'발송일'}</span>
-      <div class="daychips">${days.map(x=>`<button class="chip sm ${x===sd?'on':''}" data-sd="${x}">${fmtD(x)}</button>`).join('')}</div>
-    </div>
-    <div class="fixrow"><span>캐파</span>${
-      gaugeRow(sd,hd,activeOn(sd,hd)?0:hd.qty,'이 건')}</div>
+    ${fixDates('sw',hd,s)}
+    <div class="fixrow"><span>캐파</span>${gaugeRow(gd,hd,activeOn(gd,hd)?0:hd.qty,'이 건')}</div>
     <div class="fixrow"><span>시간대</span>
       <div class="hgrid adm">${HOURS.map(x=>{
         const t=busy.has(x);
         return `<div class="hslot ${t?'taken':''}${x===sh?' on':''}" data-sh="${x}">
           <span class="hh">${x}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
     </div>
+    ${bad?`<div class="blockbox"><b>기간과 발송일이 맞지 않습니다</b>
+      <div>발송일은 기간 안에 있어야 하고, 종료일은 시작일 이후여야 합니다.</div></div>`:''}
     ${capaBad?`<div class="blockbox"><b>캐파를 넘겨 옮길 수 없습니다</b>
-      <div>${rep?'기간 내 어느 날의':fmtD(sd)} 잔여가 부족합니다 · 배너 ${man(bannerRem(sd))}만 / 쿠폰 ${man(couponRem(sd))}만</div></div>`:''}
+      <div>${hd.cycle==='주기성'?'기간 내 어느 날의':fmtD(gd)} 잔여가 부족합니다 · 배너 ${man(bannerRem(gd))}만 / 쿠폰 ${man(couponRem(gd))}만</div></div>`:''}
     <div class="adjbtns">
       <button class="pill primary sm" data-swapok="${hd.no}" ${ok?'':'disabled'}>두 건 함께 반영</button>
       <button class="pill ghost sm" data-swapno="1">취소</button>
-      ${busy.has(sh)?`<span class="note" style="margin:0">이미 찬 시간대입니다.</span>`
-        :!changed?`<span class="note" style="margin:0">옮길 시간대를 골라 주세요.</span>`:''}
+      ${!bad&&busy.has(sh)?`<span class="note" style="margin:0">이미 찬 시간대입니다.</span>`
+        :!changed?`<span class="note" style="margin:0">옮길 자리를 골라 주세요.</span>`:''}
     </div>
   </div>`;
 }
 
 /* 재배정 — 날짜·시간대를 다시 고른다 (자기 자신은 충돌에서 제외) */
-/* 일정 이동 — 기간 길이는 유지한 채 옮긴다.
-   주기성은 고른 날이 시작일이 되고, 일회성은 발송일이 기간 밖으로 나갈 때만
-   기간이 같은 간격을 유지하며 따라 움직인다. */
-function moveTo(r,date,hour){
-  if(date){
-    const len=rangeDays(r.from,r.to).length;
-    if(r.cycle==='주기성'){
-      r.from=date; r.to=addDays(date,len-1); r.date=date;
-    }else{
-      const off=rangeDays(r.from,r.date).length-1;
-      r.date=date;
-      if(date<r.from||date>r.to){ r.from=addDays(date,-off); r.to=addDays(r.from,len-1) }
-    }
-  }
-  if(hour) r.hour=hour;
+/* 일정 이동 — 담당자가 고른 기간·발송일·시간대를 그대로 반영한다 */
+function moveTo(r,s){
+  r.from=s.from; r.to=s.to;
+  r.date=r.cycle==='주기성'?s.from:s.date;
+  r.hour=s.hour;
 }
-/* 담당자는 기간 밖으로도 옮길 수 있다 — 기간 앞뒤 2주까지 */
-const fixDays=r=>rangeDays(addDays(r.from,-14),addDays(r.to,14)).filter(x=>!isPast(x));
-/* 그 날짜로 옮겼을 때의 기간 (표시용) */
-function fixPeriod(r,d){
-  const len=rangeDays(r.from,r.to).length;
-  if(r.cycle==='주기성') return [d,addDays(d,len-1)];
-  if(d>=r.from&&d<=r.to) return [r.from,r.to];
-  const off=rangeDays(r.from,r.date).length-1, f=addDays(d,-off);
-  return [f,addDays(f,len-1)];
-}
-/* 그 날짜로 옮겼을 때 실제로 발송이 걸리는 날들 */
-const fixSpan=(r,d)=>r.cycle==='주기성'
-  ? rangeDays(d,addDays(d,rangeDays(r.from,r.to).length-1)) : [d];
+/* 그 설정으로 실제 발송이 걸리는 날들 */
+const fixSpan=(r,s)=>r.cycle==='주기성'?rangeDays(s.from,s.to):[s.date];
+/* 기간·발송일이 앞뒤가 맞는지 */
+const fixBad=(r,s)=>s.to<s.from||(r.cycle!=='주기성'&&(s.date<s.from||s.date>s.to));
 
+/* 기간·발송일 입력 — 신청 화면과 같은 달력 입력 */
+function fixDates(id,r,s){
+  const lo=addDays(TODAY,1), hi='2026-09-30';
+  return `<div class="fixrow"><span>기간</span>
+      <div class="fdates">
+        <input type="date" id="${id}From" value="${s.from}" min="${lo}" max="${hi}">
+        <span class="tl">~</span>
+        <input type="date" id="${id}To" value="${s.to}" min="${s.from}" max="${hi}">
+      </div></div>
+    <div class="fixrow"><span>발송일</span>
+      <div class="fdates">${r.cycle==='주기성'
+        ? `<span class="tl">기간 내내 매일</span>`
+        : `<input type="date" id="${id}Date" value="${s.date}" min="${s.from}" max="${s.to}">`}</div>
+    </div>`;
+}
 function admFixPanel(r){
-  const rep=r.cycle==='주기성';
-  const d=admFix.date||(rep?r.from:r.date), h=admFix.hour||r.hour;
-  const days=fixDays(r), span=fixSpan(r,d);
-  /* 주기성은 기간 내내 같은 시간대를 잡아야 하므로 전 기간을 검사 */
+  const s=admFix, h=s.hour||r.hour;
+  const bad=fixBad(r,s), span=bad?[]:fixSpan(r,s);
   const busy=new Set();
-  HOURS.forEach(x=>{ if(span.some(dd=>blockedHours(dd,r).has(x))) busy.add(x) });
-  const capaBad=span.some(dd=>
+  if(!bad) HOURS.forEach(x=>{ if(span.some(dd=>blockedHours(dd,r).has(x))) busy.add(x) });
+  const capaBad=!bad&&span.some(dd=>
     (r.ch.includes('배너')&&bannerRem(dd)<r.qty)||(r.offer==='쿠폰'&&couponRem(dd)<r.qty));
-  const ok=!busy.has(h)&&!capaBad;
+  const ok=!bad&&!busy.has(h)&&!capaBad;
+  const gd=span[0]||s.from;
   return `<div class="fixpanel">
     <div class="fixhd">재배정</div>
-    ${(()=>{const [f,t]=fixPeriod(r,d);
-      return f===r.from&&t===r.to
-        ? (rep?`<div class="segnote">기간 ${fmtD(f)} ~ ${fmtD(t)} · 매일 ${h}:00</div>`:'')
-        : `<div class="segnote">기간 ${fmtD(r.from)}~${fmtD(r.to)} → <b>${fmtD(f)}~${fmtD(t)}</b></div>`})()}
-    <div class="fixrow"><span>${rep?'시작일':'발송일'}</span>
-      <div class="daychips">${days.map(x=>`<button class="chip sm ${x===d?'on':''}" data-fd="${x}">${fmtD(x)}</button>`).join('')}</div>
-    </div>
-    <div class="fixrow"><span>캐파</span>${gaugeRow(d,r,r.qty,'이 건')}</div>
+    ${fixDates('fx',r,s)}
+    <div class="fixrow"><span>캐파</span>${gaugeRow(gd,r,r.qty,'이 건')}</div>
     <div class="fixrow"><span>시간대</span>
       <div class="hgrid adm">${HOURS.map(x=>{
         const t=busy.has(x);
         return `<div class="hslot ${t?'taken':''}${x===h?' on':''}" data-fh="${x}">
           <span class="hh">${x}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
     </div>
+    ${bad?`<div class="blockbox"><b>기간과 발송일이 맞지 않습니다</b>
+      <div>발송일은 기간 안에 있어야 하고, 종료일은 시작일 이후여야 합니다.</div></div>`:''}
     ${capaBad?`<div class="blockbox"><b>캐파를 넘겨 배정할 수 없습니다</b>
-      <div>${rep?'기간 내 어느 날의':fmtD(d)} 잔여가 부족합니다 · 배너 ${man(bannerRem(d))}만 / 쿠폰 ${man(couponRem(d))}만</div></div>`:''}
+      <div>${r.cycle==='주기성'?'기간 내 어느 날의':fmtD(gd)} 잔여가 부족합니다 · 배너 ${man(bannerRem(gd))}만 / 쿠폰 ${man(couponRem(gd))}만</div></div>`:''}
     <div class="adjbtns">
       <button class="pill primary sm" data-fixok="${r.no}" ${ok?'':'disabled'}>이 일정으로 확정</button>
       <button class="pill ghost sm" data-fixno="1">취소</button>
     </div>
     ${(()=>{
-      if(!busy.has(h)) return '';
-      const hd=fixHolder(r,d,h);
+      if(bad||!busy.has(h)) return '';
+      const hd=fixHolder(r,span,h);
       if(!hd) return '<div class="segnote" style="margin-top:11px">선점된 시간대입니다. 다른 시간대를 골라 주세요.</div>';
-      if(admSwap.no===hd.no) return swapPanel(r,d,h,hd);
+      if(admSwap.no===hd.no) return swapPanel(r,span,h,hd);
       return `<div class="swapask">
         <div><b>${esc(hd.camp)}</b> (${hd.team} ${hd.mk} · ${hd.status})가 이 자리를 쓰고 있습니다.</div>
         <div class="sub">협의가 끝났다면 그 건을 다른 시간대로 옮기고 이 자리를 넘길 수 있습니다.</div>
@@ -2016,7 +2004,7 @@ function capaBoard(){
 function bindManage(){
   const re=()=>{$('page').innerHTML=renderManage();bindManage()};
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
-    if(x.dataset.km){kpiMonth=x.dataset.km;admFix={no:null,date:null,hour:null};noSwap();re()}});
+    if(x.dataset.km){kpiMonth=x.dataset.km;admFix={no:null,from:null,to:null,date:null,hour:null};noSwap();re()}});
 
   document.querySelectorAll('[data-ok]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.ok); if(!r) return;
@@ -2030,7 +2018,7 @@ function bindManage(){
   document.querySelectorAll('[data-rej]').forEach(x=>x.onclick=()=>adjAskModal(+x.dataset.rej));
 
   document.querySelectorAll('[data-rej2]').forEach(x=>x.onclick=()=>{
-    admRej={no:+x.dataset.rej2,text:''}; admFix={no:null,date:null,hour:null}; noSwap(); re()});
+    admRej={no:+x.dataset.rej2,text:''}; admFix={no:null,from:null,to:null,date:null,hour:null}; noSwap(); re()});
   document.querySelectorAll('[data-rejno]').forEach(x=>x.onclick=()=>{admRej={no:null,text:''};re()});
   const rn=$('rejNote'); if(rn) rn.oninput=e=>admRej.text=e.target.value;
   document.querySelectorAll('[data-rejok]').forEach(x=>x.onclick=()=>{
@@ -2042,16 +2030,27 @@ function bindManage(){
 
   document.querySelectorAll('[data-fix]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.fix); if(!r) return;
-    admFix={no:r.no,date:r.date,hour:r.hour}; noSwap(); re()});
+    admFix={no:r.no,from:r.from,to:r.to,date:r.date,hour:r.hour}; noSwap(); re()});
   document.querySelectorAll('[data-fixno]').forEach(x=>x.onclick=()=>{
-    admFix={no:null,date:null,hour:null}; noSwap(); re()});
-  document.querySelectorAll('[data-fd]').forEach(x=>x.onclick=()=>{admFix.date=x.dataset.fd;noSwap();re()});
+    admFix={no:null,from:null,to:null,date:null,hour:null}; noSwap(); re()});
+  /* 기간·발송일 달력 입력 — 앞뒤가 뒤집히면 붙잡아 준다 */
+  const bindDates=(id,st,after)=>{
+    const f=$(id+'From'), t=$(id+'To'), d=$(id+'Date');
+    const lo=addDays(TODAY,1);
+    const clamp=()=>{ if(st.from<lo) st.from=lo; if(st.to<st.from) st.to=st.from;
+      if(st.date<st.from) st.date=st.from; if(st.date>st.to) st.date=st.to };
+    if(f) f.onchange=e=>{st.from=e.target.value;clamp();after&&after();re()};
+    if(t) t.onchange=e=>{st.to=e.target.value; if(st.from>st.to) st.from=st.to;
+      clamp();after&&after();re()};
+    if(d) d.onchange=e=>{st.date=e.target.value;clamp();after&&after();re()};
+  };
+  bindDates('fx',admFix,noSwap);
+  bindDates('sw',admSwap);
   document.querySelectorAll('[data-fh]').forEach(x=>x.onclick=()=>{admFix.hour=+x.dataset.fh;noSwap();re()});
 
   document.querySelectorAll('[data-swapon]').forEach(x=>x.onclick=()=>{
     const hd=requests.find(q=>q.no===+x.dataset.swapon); if(!hd) return;
-    admSwap={no:hd.no,date:hd.cycle==='주기성'?hd.from:hd.date,hour:hd.hour}; re()});
-  document.querySelectorAll('[data-sd]').forEach(x=>x.onclick=()=>{admSwap.date=x.dataset.sd;re()});
+    admSwap={no:hd.no,from:hd.from,to:hd.to,date:hd.date,hour:hd.hour}; re()});
   document.querySelectorAll('[data-sh]').forEach(x=>x.onclick=()=>{admSwap.hour=+x.dataset.sh;re()});
   document.querySelectorAll('[data-swapno]').forEach(x=>x.onclick=()=>{noSwap();re()});
 
@@ -2062,12 +2061,12 @@ function bindManage(){
     const when=q=>q.cycle==='주기성'
       ? `${fmtD(q.from)}~${fmtD(q.to)} 매일 ${q.hour}:00` : `${fmtD(q.date)} ${q.hour}:00`;
     const hWas=when(hd), rWas=when(r);
-    moveTo(hd,admSwap.date,admSwap.hour);
+    moveTo(hd,admSwap);
     hd.moved={from:hWas,to:when(hd),peer:r.camp};
-    moveTo(r,admFix.date,admFix.hour);
+    moveTo(r,admFix);
     r.status='확정'; r.reason=''; r.note=''; r.admNote=''; r.adjBy=null;
     r.memo=`담당자 재배정 (${rWas} → ${when(r)})`;
-    admFix={no:null,date:null,hour:null}; noSwap();
+    admFix={no:null,from:null,to:null,date:null,hour:null}; noSwap();
     toast(`두 건을 반영했습니다 — ${r.camp} 확정 · ${hd.camp} ${when(hd)}`);
     re()});
 
@@ -2080,11 +2079,11 @@ function bindManage(){
     const r=requests.find(q=>q.no===+x.dataset.fixok); if(!r) return;
     const was=r.cycle==='주기성'
       ? `${fmtD(r.from)}~${fmtD(r.to)} 매일 ${r.hour}:00` : `${fmtD(r.date)} ${r.hour}:00`;
-    moveTo(r,admFix.date,admFix.hour);
+    moveTo(r,admFix);
     r.status='확정';
     r.memo=`담당자 재배정 (${was} → ${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`})`;
     r.reason=''; r.note=''; r.admNote=''; r.adjBy=null;
-    admFix={no:null,date:null,hour:null}; noSwap();
+    admFix={no:null,from:null,to:null,date:null,hour:null}; noSwap();
     toast(`재배정 후 확정했습니다 — ${r.camp}`); re()});
 }
 
