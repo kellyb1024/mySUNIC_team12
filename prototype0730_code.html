@@ -1231,7 +1231,11 @@ function cardList(){
         <td><span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
              :r.status==='취소'?'cancel':r.status==='발송 완료'?'sent':'confirmed'}">${
              r.status==='신청'?'확정 대기':r.status}</span></td>
-        <td class="rsn">${r.reason?`${esc(r.reason)}${r.note?`<br><span class="rn">${esc(r.note)}</span>`:''}`:'—'}</td>
+        <td class="rsn">${(()=>{
+          /* 담당자가 넘긴 건은 reason 이 자리표시자뿐이라 담당자 메모를 본문으로 올린다 */
+          const adm=r.adjBy==='adm'&&r.admNote;
+          const main=adm?r.admNote:r.reason, sub=adm?'':r.note;
+          return main?`${esc(main)}${sub?`<br><span class="rn">${esc(sub)}</span>`:''}`:'—'})()}</td>
         </tr>`).join('')}
     </table></div>
     ${rows.length?'':'<div class="empty">해당하는 캠페인이 없습니다.</div>'}
