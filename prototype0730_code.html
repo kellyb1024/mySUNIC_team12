@@ -775,8 +775,10 @@ function periodCheck(c){
    상태
    ══════════════════════════════════════════════════════════════════════ */
 let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), found=false, scope='mine';
-let draft={from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',offer:'쿠폰',qty:15,
-           date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null};
+/* 처음에는 아무것도 골라 두지 않는다 — 마케터가 직접 조건을 넣는다 */
+const EMPTY_DRAFT=()=>({from:'',to:'',ch:[],gnb:'',cycle:'',offer:'',qty:null,
+  date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null});
+let draft=EMPTY_DRAFT();
 let calFilter={mode:'all',ch:[]}, calDay=null, adjOpen=false, listSt='all';
 let admFix={no:null,from:null,to:null,hour:null}; /* 담당자 일정 조정 대상 */
 let admSwap={no:null,from:null,to:null,hour:null}; /* 자리를 넘겨줄 선점 건 */
@@ -911,7 +913,8 @@ function sideCond(){
       ${['쿠폰','없음'].map(v=>`<label class="opt"><input type="radio" name="of" data-of="${v}" ${draft.offer===v?'checked':''}>${v}</label>`).join('')}
     </div>
     <div class="fgroup"><div class="ftitle">전체 타겟수</div>
-      <div class="qtyrow"><input type="number" id="fQty" value="${draft.qty}" min="1"><span>만 건</span></div></div>
+      <div class="qtyrow"><input type="number" id="fQty" value="${draft.qty??''}" min="1"
+        placeholder="0"><span>만 건</span></div></div>
     <button class="findbtn" id="findBtn">가능한 날 찾기</button>
     ${found?`<button class="resetbtn" id="resetBtn">조건 지우기</button>`:''}
   </div>`;
@@ -1402,11 +1405,20 @@ function bindApply(){
     draft.date=null;draft.hour=null;re()});
   $('fGnb').oninput=e=>draft.gnb=e.target.value;
   $('fQty').oninput=e=>{draft.qty=Math.max(0,+e.target.value||0)};
-  $('findBtn').onclick=()=>{found=true;
+  $('findBtn').onclick=()=>{
+    const miss=[];
+    if(!draft.from||!draft.to) miss.push('기간');
+    if(!draft.ch.length)       miss.push('채널');
+    if(!draft.cycle)           miss.push('주기');
+    if(!draft.offer)           miss.push('오퍼');
+    if(!draft.qty)             miss.push('타겟수');
+    if(miss.length){toast(`${miss.join(' · ')}를 입력해 주세요.`,true); return}
+    found=true;
     if(draft.cycle==='주기성'){draft.date=draft.from;draft.hour=REC_HOURS[0]}
     else{draft.date=null;draft.hour=null}
     re()};
-  const rb=$('resetBtn'); if(rb) rb.onclick=()=>{found=false;draft.date=null;draft.hour=null;re()};
+  const rb=$('resetBtn'); if(rb) rb.onclick=()=>{
+    const n=draft.editNo; draft=EMPTY_DRAFT(); draft.editNo=n; found=false; re()};
 
   document.querySelectorAll('[data-d]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.d;draft.hour=null;re()});
   document.querySelectorAll('[data-h]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.h;re()});
