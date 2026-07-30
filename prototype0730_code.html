@@ -173,11 +173,11 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .sumbox .sd{font-size:14px;color:var(--text-strong);font-weight:500}
 .gauges{display:flex;gap:22px;flex-wrap:wrap;margin:4px 0 14px}
 .gauge{display:flex;gap:10px;align-items:flex-end}
-.gtube{width:40px;height:84px;border:1px solid var(--border);border-radius:3px;position:relative;overflow:hidden;background:#fff}
-/* 아래부터 — 이미 소진(진한 오렌지) · 이 건이 더할 분량(연한 오렌지) · 남은 여유(흰색).
-   한 색의 두 톤만 쓰고, 빈 자리는 비워 둔다 */
+.gtube{width:40px;height:84px;border:1px solid var(--cell-border);border-radius:3px;position:relative;overflow:hidden;background:var(--l1)}
+/* 소진된 캐파 = SK 오렌지 / 내가 신청하려는 분량 = 연한 톤 빗금 */
 .gfill{position:absolute;left:0;right:0;bottom:0;background:var(--sk-orange)}
-.gghost{position:absolute;left:0;right:0;background:var(--sk-orange-t25)}
+.gghost{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,
+  var(--sk-orange-t25) 0 4px,#FFFFFF 4px 8px);border-top:1px solid var(--sk-orange-t25)}
 .gmeta{font-size:11.5px;line-height:1.6}
 .gmeta .gt{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:2px;display:flex;align-items:center}
 .gmeta .gn{font-family:Roboto;font-variant-numeric:tabular-nums;color:var(--text-strong)}
@@ -493,18 +493,20 @@ td.mx{height:50px;border-radius:4px;border:1px solid var(--cell-border);text-ali
   font-family:Roboto;font-variant-numeric:tabular-nums;background:var(--l1)}
 td.mx b{display:block;font-size:14px;font-weight:500;line-height:1.1}
 td.mx small{font-size:10px;opacity:.8}
-td.mx.zero{background:var(--motif);border-style:dashed;border-color:var(--border);
+/* 소진율 4단계는 오렌지 한 색의 농도로만 말한다. 회색은 '비어 있음' 하나에만 쓴다 */
+td.mx.zero{background:#fff;border-style:dashed;border-color:var(--border);
   color:var(--text-muted);font-size:11px}
-td.mx.lv1{background:var(--l1);color:var(--l1t)}
+td.mx.lv1{background:var(--sk-orange-t10);color:var(--l2t)}
 td.mx.lv2{background:var(--l2);color:var(--l2t)}
 td.mx.lv3{background:var(--l3);color:var(--l3t)}
 td.mx.lv4{background:var(--l4);color:var(--l4t)}
-td.mx.free{background:repeating-linear-gradient(45deg,#F3F4F5 0 5px,#E7E9EB 5px 10px);color:var(--text-strong)}
+/* 한도가 없으면 소진율이 없다 — 농도로 말할 수 없으니 숫자만 둔다 */
+td.mx.free{background:#fff;color:var(--text-strong)}
 .cellsw{display:inline-block;width:11px;height:11px;border-radius:2px;
   border:1px solid var(--cell-border);margin-right:5px;vertical-align:-1px}
-.cellsw.lv1{background:var(--l1)} .cellsw.lv2{background:var(--l2)}
+.cellsw.lv1{background:var(--sk-orange-t10)} .cellsw.lv2{background:var(--l2)}
 .cellsw.lv3{background:var(--l3)} .cellsw.lv4{background:var(--l4)}
-.cellsw.free{background:repeating-linear-gradient(45deg,#F3F4F5 0 3px,#E7E9EB 3px 6px)}
+.cellsw.free{background:#fff}
 .legend .lgt{color:var(--text-strong);font-weight:500}
 .legend .sep2{width:1px;height:12px;background:var(--border);display:inline-block}
 
@@ -1856,7 +1858,10 @@ function swapPanel(r,d,h,hd){
   const when=(dd,hh)=>rep?`매일 ${hh}:00`:`${fmtD(dd)} ${hh}:00`;
   return `<div class="fixpanel">
     <div class="fixhd">선점 건 옮기기 — ${esc(hd.camp)} (${hd.team} ${hd.mk})</div>
-    ${rep?`<div class="segnote">기간 ${span.length}일 · 고른 날부터 ${fmtD(span[span.length-1])}까지 매일</div>`:''}
+    ${(()=>{const [f,t]=fixPeriod(hd,sd);
+      return f===hd.from&&t===hd.to
+        ? (rep?`<div class="segnote">기간 ${fmtD(f)} ~ ${fmtD(t)} · 매일 ${sh}:00</div>`:'')
+        : `<div class="segnote">기간 ${fmtD(hd.from)}~${fmtD(hd.to)} → <b>${fmtD(f)}~${fmtD(t)}</b></div>`})()}
     <div class="fixrow"><span>${rep?'시작일':'발송일'}</span>
       <div class="daychips">${days.map(x=>`<button class="chip sm ${x===sd?'on':''}" data-sd="${x}">${fmtD(x)}</button>`).join('')}</div>
     </div>
@@ -1880,22 +1885,32 @@ function swapPanel(r,d,h,hd){
 }
 
 /* 재배정 — 날짜·시간대를 다시 고른다 (자기 자신은 충돌에서 제외) */
-/* 일정 이동 — 주기성은 기간 길이를 유지한 채 통째로 옮긴다 */
+/* 일정 이동 — 기간 길이는 유지한 채 옮긴다.
+   주기성은 고른 날이 시작일이 되고, 일회성은 발송일이 기간 밖으로 나갈 때만
+   기간이 같은 간격을 유지하며 따라 움직인다. */
 function moveTo(r,date,hour){
   if(date){
+    const len=rangeDays(r.from,r.to).length;
     if(r.cycle==='주기성'){
-      const len=rangeDays(r.from,r.to).length;
       r.from=date; r.to=addDays(date,len-1); r.date=date;
-    } else r.date=date;
+    }else{
+      const off=rangeDays(r.from,r.date).length-1;
+      r.date=date;
+      if(date<r.from||date>r.to){ r.from=addDays(date,-off); r.to=addDays(r.from,len-1) }
+    }
   }
   if(hour) r.hour=hour;
 }
-
-/* 담당자 재배정·이동에서 고를 수 있는 날짜.
-   일회성은 캠페인 기간 안의 하루, 주기성은 기간을 통째로 옮길 시작일(±7일). */
-const fixDays=r=>r.cycle==='주기성'
-  ? rangeDays(addDays(r.from,-7),addDays(r.from,7)).filter(x=>!isPast(x))
-  : rangeDays(r.from,r.to).filter(x=>!isPast(x));
+/* 담당자는 기간 밖으로도 옮길 수 있다 — 기간 앞뒤 2주까지 */
+const fixDays=r=>rangeDays(addDays(r.from,-14),addDays(r.to,14)).filter(x=>!isPast(x));
+/* 그 날짜로 옮겼을 때의 기간 (표시용) */
+function fixPeriod(r,d){
+  const len=rangeDays(r.from,r.to).length;
+  if(r.cycle==='주기성') return [d,addDays(d,len-1)];
+  if(d>=r.from&&d<=r.to) return [r.from,r.to];
+  const off=rangeDays(r.from,r.date).length-1, f=addDays(d,-off);
+  return [f,addDays(f,len-1)];
+}
 /* 그 날짜로 옮겼을 때 실제로 발송이 걸리는 날들 */
 const fixSpan=(r,d)=>r.cycle==='주기성'
   ? rangeDays(d,addDays(d,rangeDays(r.from,r.to).length-1)) : [d];
@@ -1912,7 +1927,10 @@ function admFixPanel(r){
   const ok=!busy.has(h)&&!capaBad;
   return `<div class="fixpanel">
     <div class="fixhd">재배정</div>
-    ${rep?`<div class="segnote">기간 ${span.length}일 · 고른 날부터 ${fmtD(span[span.length-1])}까지 매일</div>`:''}
+    ${(()=>{const [f,t]=fixPeriod(r,d);
+      return f===r.from&&t===r.to
+        ? (rep?`<div class="segnote">기간 ${fmtD(f)} ~ ${fmtD(t)} · 매일 ${h}:00</div>`:'')
+        : `<div class="segnote">기간 ${fmtD(r.from)}~${fmtD(r.to)} → <b>${fmtD(f)}~${fmtD(t)}</b></div>`})()}
     <div class="fixrow"><span>${rep?'시작일':'발송일'}</span>
       <div class="daychips">${days.map(x=>`<button class="chip sm ${x===d?'on':''}" data-fd="${x}">${fmtD(x)}</button>`).join('')}</div>
     </div>
@@ -1990,7 +2008,7 @@ function capaBoard(){
       <span><i class="cellsw lv3"></i>80~95%</span>
       <span><i class="cellsw lv4"></i>95% 이상</span>
       <span class="sep2"></span>
-      <span><i class="cellsw free"></i>한도 없는 채널 — 사용량만 표시</span>
+      <span><i class="cellsw free"></i>한도 없음 — 사용량만</span>
     </div>`;
 }
 
