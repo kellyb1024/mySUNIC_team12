@@ -785,7 +785,7 @@ const rangeDays=(from,to)=>ALL.filter(x=>x.d>=from&&x.d<=to).map(x=>x.d);
    ══════════════════════════════════════════════════════════════════════ */
 let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), found=false, scope='mine';
 /* 처음에는 아무것도 골라 두지 않는다 — 마케터가 직접 조건을 넣는다 */
-/* qFrom·qTo = '언제쯤 나가고 싶은지' 조회 범위 (캠페인 기간이 아니다)
+/* qFrom·qTo = '언제쯤 나가고 싶은지' 희망 기간 (캠페인 기간이 아니다)
    days       = 노출·발송 일수 — 일회성은 고객 노출 기간, 주기성은 발송 일수
    date       = 달력에서 고른 시작일 = 발송일. 종료일은 date + days - 1 */
 const EMPTY_DRAFT=()=>({qFrom:'',qTo:'',days:null,ch:[],gnb:'',cycle:'',offer:'',qty:null,
@@ -943,9 +943,9 @@ function sideCond(){
   return `<div class="card">
     <div class="card-hd"><div class="rule"></div>
       <div class="lbl"><span>잔여 일정 확인하기</span></div></div>
-    <div class="fgroup"><div class="ftitle">조회 시작<i class="i" data-tip="언제쯤 나가고 싶은지 범위입니다.&#10;캠페인 기간은 달력에서 시작일을 골라 정합니다."></i></div>
+    <div class="fgroup"><div class="ftitle">희망 시작<i class="i" data-tip="언제쯤 나가고 싶은지 범위입니다.&#10;캠페인 기간은 달력에서 시작일을 선택해 정합니다."></i></div>
       <input type="date" id="fFrom" value="${draft.qFrom}" min="${TODAY}" max="2026-09-30"></div>
-    <div class="fgroup"><div class="ftitle">조회 종료</div>
+    <div class="fgroup"><div class="ftitle">희망 종료</div>
       <input type="date" id="fTo" value="${draft.qTo}" min="${TODAY}" max="2026-09-30"></div>
     <div class="fgroup"><div class="ftitle">채널<i class="i" data-tip="배너 일 400만 건&#10;TV팝업·토스트팝업 제한 없음"></i></div>
       ${CH_LIST.map(v=>`<label class="opt"><input type="checkbox" data-ch="${v}" ${draft.ch.includes(v)?'checked':''}>${v}</label>`).join('')}
@@ -972,15 +972,15 @@ function sideCond(){
 
 
 /* ── 신청 화면 ──
-   좌측 필터는 '조회 범위', 달력에서 고르는 것은 '캠페인 시작일'이다.
+   좌측 필터는 '희망 기간', 달력에서 선택하는 것은 '캠페인 시작일'이다.
    노출·발송 일수는 좌측에서 숫자로 받는다 (0731 피드백). */
 function cardApply(){
   const rep=draft.cycle==='주기성';
   const head=`<div class="card-hd"><div class="rule"></div>
     <div class="lbl"><span>캠페인 신청하기</span></div>
-    <h2><span>시작일 고르기</span>
-      <span class="badge">${rep?`고른 날부터 ${draft.days}일간 매일 발송`
-        :`고른 날 1회 발송 · ${draft.days}일 노출`}</span></h2></div>`;
+    <h2><span>시작일 선택</span>
+      <span class="badge">${rep?`선택한 날부터 ${draft.days}일간 매일 발송`
+        :`선택한 날 1회 발송 · ${draft.days}일 노출`}</span></h2></div>`;
   if(!found) return `<div class="card">${head}
     <div class="empty">좌측에서 조건을 입력하고 <b>가능한 날 찾기</b>를 눌러 주세요.</div></div>`;
 
@@ -998,7 +998,7 @@ function cardApply(){
 
   return `<div class="card">${head}
     <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
-    ${okDays.length?'':`<div class="empty">이 범위에는 시작할 수 있는 날이 없습니다.<br>조회 범위를 넓히거나 타겟수·일수를 줄여 보세요.</div>`}
+    ${okDays.length?'':`<div class="empty">이 범위에는 시작할 수 있는 날이 없습니다.<br>희망 기간을 넓히거나 타겟수·일수를 줄여 보세요.</div>`}
     ${draft.date?secFinal():''}
   </div>`;
 }
@@ -1053,7 +1053,7 @@ function secFinal(){
   </div>`;
 }
 
-/* 추천 — 조회 범위 안에서 가장 빠른 날과 캐파가 가장 여유로운 날 */
+/* 추천 — 희망 기간 안에서 가장 빠른 날과 캐파가 가장 여유로운 날 */
 function cardRec(){
   const head=`<div class="card-hd"><div class="rule"></div>
     <div class="lbl"><span>추천</span></div></div>`;
@@ -1254,7 +1254,7 @@ function confirmModal(){
     </div></div></div>`;
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
   $('mYes').onclick=()=>{
-    /* 일회성은 시작일에 1회 발송한다 — 고른 날이 곧 캠페인 시작일이다.
+    /* 일회성은 시작일에 1회 발송한다 — 선택한 날이 곧 캠페인 시작일이다.
        노출 기간의 길이는 마케터가 입력한 그대로 유지하고, 기간을 통째로 옮긴다. */
     const from=draft.date, to=addDays(from,draft.days-1);
     const body={camp:draft.camp,from,to,ch:[...draft.ch],gnb:draft.gnb,
@@ -1296,7 +1296,7 @@ function bindApply(){
   $('fQty').oninput=e=>{draft.qty=Math.max(0,+e.target.value||0)};
   $('findBtn').onclick=()=>{
     const miss=[];
-    if(!draft.qFrom||!draft.qTo) miss.push('조회 범위');
+    if(!draft.qFrom||!draft.qTo) miss.push('희망 기간');
     if(!draft.days)               miss.push(draft.cycle==='주기성'?'발송 일수':'노출 일수');
     if(!draft.ch.length)       miss.push('채널');
     if(!draft.cycle)           miss.push('주기');
