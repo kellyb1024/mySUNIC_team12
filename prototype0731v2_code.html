@@ -1285,7 +1285,7 @@ function confirmModal(ask){
         :draft.editNo!=null?'이 내용으로 수정할까요?':'이 신청 내용이 맞으십니까?'}</h3>
     <div class="m-sub">${ask
       ?`${esc(why)} — 담당자가 그 날의 캐파를 조율합니다.`
-      :'발송 시간대는 담당자가 확정하며 배정합니다.'}</div>
+      :'발송 시간대는 확정 후 배정됩니다.'}</div>
     <div class="herocard">
       ${hrow('캠페인명',draft.camp)}
       ${hrow('부서 · 마케터',`${draft.dept} · ${draft.mk}`)}
