@@ -1412,7 +1412,10 @@ function confirmModal(){
              : c ? `조정 요청되었습니다 — ${c.camp} 선점`
                  : `신청되었습니다 — ${fmtD(draft.date)} ${draft.hour}:00`, !!c);
     draft.camp=''; draft.note=''; draft.date=null; draft.hour=null; draft.editNo=null;
-    scope='mine'; render();
+    /* 방금 넣은 건을 바로 볼 수 있게 그 달로 옮긴다 — 이번 달만 보고 있으면 안 보인다 */
+    const m=body.from.slice(0,7);
+    if(MONTHS.includes(m)) kpiMonth=m;
+    scope='mine'; listSt='all'; render();
   };
 }
 
