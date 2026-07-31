@@ -109,7 +109,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .dgrid .dh{font-size:11px;color:var(--text-muted);text-align:center;padding-bottom:3px}
 .dgrid .dh.sun{color:var(--sk-red)}
-.dcell{border:1px solid var(--cell-border);border-radius:5px;padding:8px 6px;min-height:74px;
+.dcell{border:1px solid var(--cell-border);border-radius:5px;padding:8px 6px;min-height:54px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   background:#fff;cursor:pointer;position:relative;transition:transform .1s}
 .dcell .dd{font-size:14px;font-weight:500;font-family:Roboto;color:var(--text-strong)}
@@ -607,6 +607,8 @@ const mkReq=o=>{
 };
 const reqMonth=r=>(r.reqAt||'').slice(0,7);
 /* 신청 시각을 표에 넣을 짧은 형태 — 2026-07-29 16:12 → 7/29 16:12 */
+/* 시간 미정(담당자 배정 전)은 숫자 대신 말로 보여준다 */
+const hh=h=>h==null?'시간 미정':`${h}:00`;
 const fmtReq=s=>s?`${+s.slice(5,7)}/${+s.slice(8,10)} ${s.slice(11)}`:'—';
 let requests=[
  mkReq({camp:'방송 월정액 1개월 5,500원 할인 프로모션',from:'2026-07-23',to:'2026-07-31',ch:['토스트팝업'],
@@ -695,7 +697,9 @@ let requests=[
 /* 자리를 실제로 차지하는 상태 — '조정 필요'는 아직 자리를 잡은 게 아니라 제외 */
 /* '발송 완료'는 실제 발송이 끝난 뒤 발송 시스템이 찍는 상태다.
    이 대시보드는 그 전이를 만들지 않고, 더미 데이터로만 존재한다. */
-const live=r=>['확정','발송 완료','신청'].includes(r.status);
+/* 캐파·시간대 점유 = '신청 기준'. 아직 확정 전이어도 들어온 신청은 잡고 있는 것으로 센다
+   (0731 피드백: 담당자가 그 날 얼마나 몰렸는지 보고 배정해야 하므로) */
+const live=r=>['확정','발송 완료','신청','조정 필요'].includes(r.status);
 /* 캘린더는 '실제로 나갈 것'만 그린다. 확정 대기·조정 필요·취소 건은 제외.
    점유 판정(live)과는 별개 — 확정 대기 건도 시간대는 계속 잡고 있다. */
 const onCal=r=>['확정','발송 완료'].includes(r.status);
@@ -757,40 +761,34 @@ const isPast=d=>d<TODAY;
 /* ══════════════════════════════════════════════════════════════════════
    1안 — 가능한 날짜 / 시간대만 신청 가능
    ══════════════════════════════════════════════════════════════════════ */
+/* 이 날을 '시작일'로 쓸 수 있나.
+   일회성은 그 날 하루만 캐파를 쓰고, 주기성은 발송 일수만큼 매일 쓴다.
+   막는 것은 일 캐파뿐 — 시간 배정은 담당자 몫이다. */
+const spanOf=(c,d)=>c.cycle==='주기성'?rangeDays(d,addDays(d,(c.days||1)-1)):[d];
 function dayCheck(c,d){
   if(isPast(d)) return {ok:false,why:'지난 날짜'};
-  if(c.ch.includes('배너')&&bannerRem(d)<c.qty) return {ok:false,why:`배너 잔여 ${man(bannerRem(d))}만`};
-  if(c.offer==='쿠폰'&&couponRem(d)<c.qty) return {ok:false,why:`쿠폰 잔여 ${man(couponRem(d))}만`};
-  const free=HOURS.filter(h=>!blockedHours(d,c).has(h));
-  if(!free.length) return {ok:false,why:'시간대 마감'};
-  return {ok:true,free};
+  const span=spanOf(c,d);
+  if(addDays(d,(c.days||1)-1)>'2026-09-30') return {ok:false,why:'기간이 데이터 범위를 넘습니다'};
+  for(const x of span){
+    if(c.ch.includes('배너')&&bannerRem(x)<c.qty)
+      return {ok:false,why:`${fmtD(x)} 배너 잔여 ${man(bannerRem(x))}만`};
+    if(c.offer==='쿠폰'&&couponRem(x)<c.qty)
+      return {ok:false,why:`${fmtD(x)} 쿠폰 잔여 ${man(couponRem(x))}만`};
+  }
+  return {ok:true};
 }
 const rangeDays=(from,to)=>ALL.filter(x=>x.d>=from&&x.d<=to).map(x=>x.d);
 
-/* 주기성: 기간 전체를 한 번에 판정 (매일 1일치 캐파 · 17~19시 중 1칸) */
-function periodCheck(c){
-  const days=rangeDays(c.from,c.to), blocked=[];
-  days.forEach(d=>{
-    /* 캐파는 매일 1일치씩 소진되므로 기간 내 모든 날을 검사 */
-    if(isPast(d)){blocked.push({d,why:'지난 날짜'});return}
-    if(c.ch.includes('배너')&&bannerRem(d)<c.qty){blocked.push({d,why:`배너 잔여 ${man(bannerRem(d))}만`});return}
-    if(c.offer==='쿠폰'&&couponRem(d)<c.qty){blocked.push({d,why:`쿠폰 잔여 ${man(couponRem(d))}만`});return}
-  });
-  /* 주기성은 기간 내내 같은 시간대를 잡으므로, 17~19시 각각이 기간 전체에서 비었는지 본다 */
-  const hours=REC_HOURS.map(h=>{
-    const hits=[], onDays=[];
-    days.forEach(d=>{const r=holderOf(d,h,c); if(r){onDays.push(d); if(!hits.includes(r))hits.push(r)}});
-    return {h, free:!hits.length, hits, onDays};
-  });
-  return {days, blocked, hours, ok:blocked.length===0};
-}
 
 /* ══════════════════════════════════════════════════════════════════════
    상태
    ══════════════════════════════════════════════════════════════════════ */
 let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), found=false, scope='mine';
 /* 처음에는 아무것도 골라 두지 않는다 — 마케터가 직접 조건을 넣는다 */
-const EMPTY_DRAFT=()=>({from:'',to:'',ch:[],gnb:'',cycle:'',offer:'',qty:null,
+/* qFrom·qTo = '언제쯤 나가고 싶은지' 조회 범위 (캠페인 기간이 아니다)
+   days       = 노출·발송 일수 — 일회성은 고객 노출 기간, 주기성은 발송 일수
+   date       = 달력에서 고른 시작일 = 발송일. 종료일은 date + days - 1 */
+const EMPTY_DRAFT=()=>({qFrom:'',qTo:'',days:null,ch:[],gnb:'',cycle:'',offer:'',qty:null,
   date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null});
 let draft=EMPTY_DRAFT();
 let calFilter={mode:'all',ch:[],offer:''}, calDay=null, openPanel=null, listSt='all';
@@ -887,8 +885,8 @@ function waitPanel(m){
       <div class="adjhd"><b>${esc(r.camp)}</b>
         <span class="st applied">확정 대기</span>
         <span class="adjwhen">${r.cycle==='주기성'
-          ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
-          : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
+          ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${hh(r.hour)}`
+          : `${fmtD(r.date)} ${hh(r.hour)}`}</span></div>
       <div class="cfgrid">
         ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
         ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
@@ -918,8 +916,8 @@ function adjPanel(m){
       <div class="adjhd"><b>${esc(r.camp)}</b>
         <span class="st needfix">조정 필요</span>
         <span class="adjwhen">${r.cycle==='주기성'
-          ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
-          : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
+          ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${hh(r.hour)}`
+          : `${fmtD(r.date)} ${hh(r.hour)}`}</span></div>
       <div class="cfgrid">
         ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
         ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
@@ -945,10 +943,10 @@ function sideCond(){
   return `<div class="card">
     <div class="card-hd"><div class="rule"></div>
       <div class="lbl"><span>잔여 일정 확인하기</span></div></div>
-    <div class="fgroup"><div class="ftitle">시작일</div>
-      <input type="date" id="fFrom" value="${draft.from}" min="${TODAY}" max="2026-09-30"></div>
-    <div class="fgroup"><div class="ftitle">종료일</div>
-      <input type="date" id="fTo" value="${draft.to}" min="${TODAY}" max="2026-09-30"></div>
+    <div class="fgroup"><div class="ftitle">조회 시작<i class="i" data-tip="언제쯤 나가고 싶은지 범위입니다.&#10;캠페인 기간은 달력에서 시작일을 골라 정합니다."></i></div>
+      <input type="date" id="fFrom" value="${draft.qFrom}" min="${TODAY}" max="2026-09-30"></div>
+    <div class="fgroup"><div class="ftitle">조회 종료</div>
+      <input type="date" id="fTo" value="${draft.qTo}" min="${TODAY}" max="2026-09-30"></div>
     <div class="fgroup"><div class="ftitle">채널<i class="i" data-tip="배너 일 400만 건&#10;TV팝업·토스트팝업 제한 없음"></i></div>
       ${CH_LIST.map(v=>`<label class="opt"><input type="checkbox" data-ch="${v}" ${draft.ch.includes(v)?'checked':''}>${v}</label>`).join('')}
     </div>
@@ -960,7 +958,11 @@ function sideCond(){
     <div class="fgroup"><div class="ftitle">오퍼<i class="i" data-tip="쿠폰 일 440만 건"></i></div>
       ${['쿠폰','없음'].map(v=>`<label class="opt"><input type="radio" name="of" data-of="${v}" ${draft.offer===v?'checked':''}>${v}</label>`).join('')}
     </div>
-    <div class="fgroup"><div class="ftitle">전체 타겟수</div>
+    <div class="fgroup"><div class="ftitle">${draft.cycle==='주기성'?'발송 일수':'노출 일수'}<i class="i" data-tip="${
+      draft.cycle==='주기성'?'기간 내내 매일 발송할 일수입니다.':'고객에게 노출되는 기간입니다. 발송은 시작일 1회.'}"></i></div>
+      <div class="qtyrow"><input type="number" id="fDays" value="${draft.days??''}" min="1" max="60"
+        placeholder="0"><span>일</span></div></div>
+    <div class="fgroup"><div class="ftitle">${draft.cycle==='주기성'?'1일 타겟수':'전체 타겟수'}</div>
       <div class="qtyrow"><input type="number" id="fQty" value="${draft.qty??''}" min="1"
         placeholder="0"><span>만 건</span></div></div>
     <button class="findbtn" id="findBtn">가능한 날 찾기</button>
@@ -969,134 +971,39 @@ function sideCond(){
 }
 
 
-/* ── 우측 상단 · 캠페인 신청하기 ── */
+/* ── 신청 화면 ──
+   좌측 필터는 '조회 범위', 달력에서 고르는 것은 '캠페인 시작일'이다.
+   노출·발송 일수는 좌측에서 숫자로 받는다 (0731 피드백). */
 function cardApply(){
+  const rep=draft.cycle==='주기성';
   const head=`<div class="card-hd"><div class="rule"></div>
     <div class="lbl"><span>캠페인 신청하기</span></div>
-    <h2><span>신청 가능한 날짜</span>
-      <span class="badge">선점 시간대는 조정 요청으로 신청</span></h2></div>`;
+    <h2><span>시작일 고르기</span>
+      <span class="badge">${rep?`고른 날부터 ${draft.days}일간 매일 발송`
+        :`고른 날 1회 발송 · ${draft.days}일 노출`}</span></h2></div>`;
   if(!found) return `<div class="card">${head}
     <div class="empty">좌측에서 조건을 입력하고 <b>가능한 날 찾기</b>를 눌러 주세요.</div></div>`;
-  if(draft.cycle==='주기성') return recurringBody(head);
 
-  /* 시작일 하루 전날까지 함께 보여준다 — 하루 당길 여지를 알 수 있게 (0731 피드백) */
-  const back=addDays(draft.from,-1);
-  const days=rangeDays(back<TODAY?TODAY:back,draft.to);
+  const days=rangeDays(draft.qFrom,draft.qTo);
   const okDays=days.filter(d=>dayCheck(draft,d).ok);
-  const first=days[0], lead=dayOf(first)?.dow??0;
-
+  const lead=dayOf(days[0])?.dow??0;
+  const inSpan=draft.date?new Set(spanOf(draft,draft.date)):new Set();
   const grid=[...Array(lead)].map(()=>`<div class="dcell blank"></div>`).concat(
     days.map(d=>{
       const c=dayCheck(draft,d), o=dayOf(d);
-      return `<div class="dcell ${c.ok?'ok':'no'}${draft.date===d?' on':''}${o.dow===0?' sun':''}"
-          ${c.ok?`data-d="${d}"`:''}>
-        <span class="wk">${o.w}</span><span class="dd">${+d.slice(8)}</span>
-        <span class="dm">${c.ok?`${c.free.length}개 시간대`:c.why}</span></div>`})).join('');
+      const on=draft.date===d, run=!on&&inSpan.has(d);
+      return `<div class="dcell ${c.ok?'ok':'no'}${on?' on':''}${run?' busy':''}${o.dow===0?' sun':''}"
+          ${c.ok?`data-d="${d}"`:`data-tip="${esc(c.why)}"`}>
+        <span class="wk">${o.w}</span><span class="dd">${+d.slice(8)}</span></div>`})).join('');
 
   return `<div class="card">${head}
     <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
-    ${okDays.length?'':`<div class="empty">이 기간에는 신청 가능한 날짜가 없습니다.<br>기간을 넓히거나 타겟수를 줄여 보세요.</div>`}
-    ${draft.date?secHour():''}
-    ${draft.date&&draft.hour?secFinal():''}
+    ${okDays.length?'':`<div class="empty">이 범위에는 시작할 수 있는 날이 없습니다.<br>조회 범위를 넓히거나 타겟수·일수를 줄여 보세요.</div>`}
+    ${draft.date?secFinal():''}
   </div>`;
 }
 
-/* ── 주기성: 기간 전체를 한 건으로 신청 ── */
-function recurringBody(head){
-  const pc=periodCheck(draft);
-  const total=draft.qty*pc.days.length;
-  const first=pc.days[0], lead=dayOf(first)?.dow??0;
-  const blockedOn=Object.fromEntries(pc.blocked.map(x=>[x.d,x.why]));
-  const sel=pc.hours.find(x=>x.h===draft.hour);
-  const busyDays=new Set(sel?sel.onDays:[]);
-  const grid=[...Array(lead)].map(()=>`<div class="dcell blank"></div>`).concat(
-    pc.days.map(d=>{
-      const o=dayOf(d), bl=blockedOn[d], bu=busyDays.has(d), isStart=d===draft.from;
-      const cls=bl?'no':bu?'busy':'ok';
-      return `<div class="dcell ${cls}${o.dow===0?' sun':''}${isStart?' start':''}" style="cursor:default">
-        <span class="wk">${isStart?'시작':o.w}</span><span class="dd">${+d.slice(8)}</span>
-        <span class="dm">${bl||(bu?`${draft.hour}시 선점`:`${draft.hour}시 발송`)}</span></div>`})).join('');
-  return `<div class="card">${head}
-    <div class="quicks">
-      <div class="qk"><div class="qt">발송 기간</div>
-        <div class="qv num">${pc.days.length}일</div>
-        <div class="qm">${fmtD(draft.from)} ~ ${fmtD(draft.to)} · 매일 발송</div></div>
-      <div class="qk"><div class="qt">발송 시간대</div>
-        <div class="qv num">${draft.hour}:00</div>
-        <div class="qm">기간 내내 매일 이 시간대에 발송합니다</div></div>
-      <div class="qk"><div class="qt">1일 발송 모수</div>
-        <div class="qv num">${man(draft.qty)}만 <small>건</small></div>
-        <div class="qm">기간 합계 ${man(total)}만 · 매일 ${man(draft.qty)}만씩 캐파 소진</div></div>
-    </div>
-    <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
-    <div class="legend">
-      <span><i style="background:#fff;border-color:var(--cell-border)"></i>발송 가능</span>
-      <span><i style="background:var(--waiting-bg);border-color:var(--waiting-border)"></i>선택한 시간대 선점</span>
-      <span><i style="background:var(--motif);border-style:dashed"></i>캐파 부족 · 발송 불가</span>
-    </div>
-    <div class="drill">
-      <div class="drill-hd"><b>발송 시간대</b><span>주기성은 17~19시에만 배치됩니다</span></div>
-      <div class="hgrid rec3">${pc.hours.map(x=>{
-        const on=draft.hour===x.h;
-        return `<div class="hslot ${x.free?'':'taken'}${on?' on':''}" data-h="${x.h}">
-          <span class="hh">${x.h}시</span>
-          <span class="hs">${x.free?'기간 내내 가능'
-            :`<span class="keep">${x.onDays.length}일 선점</span><span class="swap">조정 요청</span>`}</span>
-        </div>`}).join('')}</div>
-      ${sel&&!sel.free?`<div class="note">${sel.hits.map(r=>
-        `${esc(r.camp)} (${r.team} ${r.mk} · ${r.cycle})`).join(' · ')} 와 겹칩니다.</div>`:''}
-    </div>
-    ${pc.blocked.length
-      ? `<div class="blockbox"><b>${pc.blocked.length}일이 캐파를 넘겨 신청할 수 없습니다</b>
-          <div>${pc.blocked.slice(0,6).map(x=>`${fmtD(x.d)} ${x.why}`).join(' · ')}${pc.blocked.length>6?` 외 ${pc.blocked.length-6}일`:''}</div>
-          <div class="bm">1일 타겟수를 줄이거나 기간을 조정해 주세요.</div></div>`
-      : secFinal()}
-  </div>`;
-}
 
-/* ── 날짜 클릭 후 펼쳐지는 시간대 선택 ── */
-function secHour(){
-  const d=draft.date, taken=blockedHours(d,draft);
-  const free=HOURS.filter(h=>!taken.has(h));
-  const rec=[...free].sort((a,c)=>prefRank(a)-prefRank(c)).slice(0,3);
-  return `<div class="drill">
-    <div class="drill-hd"><b>${fmtD(d)} · 잔여 시간대</b>
-      <span>빈 시간대 ${free.length}개 / 22개</span></div>
-    ${gaugeRow(d)}
-    <div class="hgrid">${HOURS.map(h=>{
-      const t=taken.has(h), on=draft.hour===h, r=rec.includes(h);
-      return `<div class="hslot ${t?'taken':''}${on?' on':''}${r&&!on?' rec':''}" data-h="${h}">
-        <span class="hh">${h}시</span>
-        <span class="hs">${t?'<span class="keep">선점</span><span class="swap">조정 요청</span>':'가능'}</span></div>`}).join('')}</div>
-    ${occupancyList(d)}
-    <div class="segnote" style="margin:14px 0 0">잔여 시간대 추천</div>
-    <div class="top3">${rec.map((h,i)=>`<div class="t3"><div class="r">추천 ${i+1}</div>
-      <div class="h">${h}:00</div><div class="m">${prefRank(h)<2?'반응률이 가장 높은 시간대'
-        :prefRank(h)<4?'선호도가 높은 시간대':'남아 있는 시간대'}</div>
-      <button data-pick="${h}">이 시간대 선택</button></div>`).join('')
-      ||'<div class="empty">남은 시간대가 없습니다.</div>'}</div>
-  </div>`;
-}
-/* 이 날 시간대를 차지하고 있는 캠페인 — 주기성은 캐파가 시작일에만 잡혀
-   게이지가 비어 보이므로 점유 사유를 목록으로 드러낸다 */
-function occupancyList(d){
-  const on=requests.filter(r=>live(r)&&activeOn(d,r))
-    .sort((a,b)=>a.hour-b.hour);
-  if(!on.length) return '';
-  return `<div class="segnote" style="margin:16px 0 0">이 날 배치된 캠페인</div>
-  <div class="daylist">${on.map(r=>{
-    const rep=r.cycle==='주기성';
-    return `<div class="dayrow">
-      <span class="dh2 num">${r.hour}:00</span>
-      <span class="dnm">${esc(r.camp)}</span>
-      <span class="dch">${rep?`주기성 · ${fmtD(r.from)}~${fmtD(r.to)}`:r.ch.join('·')+' / '+r.offer}</span>
-      <span class="dq num">${man(r.qty)}만</span>
-      <span class="dw">${r.team} ${r.mk}</span>
-      <span class="st ${r.status==='신청'?'applied':r.status==='조정 필요'?'needfix'
-        :r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span>
-    </div>`}).join('')}</div>
-  `;
-}
 
 /* 캐파 게이지 — 신청 화면과 담당자 조정 화면이 같이 쓴다.
    add = 이 건이 아직 그 날 소진에 안 잡혀 있을 때 더해질 분량 (0 이면 숨김) */
@@ -1125,48 +1032,14 @@ function gaugeRow(d,c=draft,add=c.qty,lab='내 신청'){
 
 /* 선택한 날짜·시간대를 이미 점유한 캠페인 */
 const holderOf=(d,h,c)=>liveAt(d,h).find(r=>slotClash(c||draft,r))||null;
-const conflict=()=>{
-  if(draft.cycle==='주기성'){
-    if(!draft.hour) return null;
-    const h=periodCheck(draft).hours.find(x=>x.h===draft.hour);
-    return h&&h.hits.length?h.hits[0]:null;
-  }
-  return draft.date&&draft.hour?holderOf(draft.date,draft.hour,draft):null;
-};
-
 /* ── 시간대 선택 후 펼쳐지는 최종 신청 ── */
+/* 최종 신청 — 시간대는 담당자가 확정하며 배정한다 */
 function secFinal(){
-  const c=conflict();
-  return `<div class="drill final${c?' warn':''}">
-    <div class="drill-hd"><b>${c?'조정 요청':'최종 신청'}</b>
-      <span>${draft.cycle==='주기성'
-        ? `${fmtD(draft.from)} ~ ${fmtD(draft.to)} · 매일 ${draft.hour}:00`
-        : `${fmtD(draft.date)} ${draft.hour}:00`}</span></div>
-    ${c?`<div class="conflict">
-      <div class="cft">이 시간대는 이미 선점되어 있습니다</div>
-      <div class="cfbox">
-        <div class="cfhd"><b>${esc(c.camp)}</b>
-          <span class="st ${c.status==='신청'?'applied':c.status==='조정 필요'?'needfix'
-            :c.status==='발송 완료'?'sent':'confirmed'}">${c.status}</span></div>
-        <div class="cfgrid">
-          ${cfRow('기간',`${fmtD(c.from)} ~ ${fmtD(c.to)}`)}
-          ${cfRow('발송', c.cycle==='주기성'
-            ? `기간 내 매일 ${c.hour}:00` : `${fmtD(c.date)} ${c.hour}:00`)}
-          ${cfRow('채널 / GNB', `${c.ch.join('·')||'—'} / ${esc(c.gnb)||'—'}`)}
-          ${cfRow('주기 / 오퍼', `${c.cycle} · ${c.offer}`)}
-          ${cfRow(c.cycle==='주기성'?'1일 타겟수':'전체 타겟수', `${man(c.qty)}만 건`)}
-          ${cfRow('부서 · 마케터', `${c.team} ${c.mk}`)}
-          ${c.memo?cfRow('비고', esc(c.memo)):''}
-          ${c.reason?cfRow('사유', esc(c.reason)):''}
-        </div>
-      </div>
-      <div class="cfm">${clashWhy(draft,c)} · 조정 필요 상태로 신청되며 담당자가 일정을 조정합니다.</div>
-    </div>`:''}
-    ${c?`<div class="reasonfld">
-      <label>조정 요청 사유<i class="i" data-tip="담당자가 우선순위를 판단하는 근거가 됩니다.&#10;일정을 옮기기 어려운 이유를 적어 주세요."></i></label>
-      <textarea id="fNote" rows="2"
-        placeholder="예: 제휴사와 협의된 오픈 시각이라 다른 시간대로 옮기기 어렵습니다">${esc(draft.note)}</textarea>
-    </div>`:''}
+  const rep=draft.cycle==='주기성';
+  const to=addDays(draft.date,draft.days-1);
+  return `<div class="drill final">
+    <div class="drill-hd"><b>최종 신청</b>
+      <span>${fmtD(draft.date)} ~ ${fmtD(to)} · ${rep?`${draft.days}일간 매일 발송`:'시작일 1회 발송'}</span></div>
     <div class="frow3">
       <div class="fld"><label>캠페인명</label>
         <input type="text" id="fCamp" value="${esc(draft.camp)}" placeholder="예: 8월 콘텐츠 추천 프로모션"></div>
@@ -1175,66 +1048,32 @@ function secFinal(){
     </div>
     <div class="actions">
       <button class="pill primary" id="submitBtn">${
-        conflict()?'조정 요청하기':draft.editNo!=null?'수정하기':'신청하기'}</button>
+        draft.editNo!=null?'수정하기':'신청하기'}</button>
     </div>
   </div>`;
 }
 
-/* ── 우측 중단 · 추천 ── */
+/* 추천 — 조회 범위 안에서 가장 빠른 날과 캐파가 가장 여유로운 날 */
 function cardRec(){
   const head=`<div class="card-hd"><div class="rule"></div>
     <div class="lbl"><span>추천</span></div></div>`;
-  if(draft.cycle==='주기성') return recRecurring(head);
-  const okDays=rangeDays(draft.from,draft.to).filter(d=>dayCheck(draft,d).ok);
+  const okDays=rangeDays(draft.qFrom,draft.qTo).filter(d=>dayCheck(draft,d).ok);
   if(!okDays.length) return `<div class="card">${head}
     <div class="empty">추천할 날짜가 없습니다.</div></div>`;
-  const room=d=>(draft.ch.includes('배너')?bannerRem(d):999)+(draft.offer==='쿠폰'?couponRem(d):999);
+  const room=d=>Math.min(...spanOf(draft,d).map(x=>
+    (draft.ch.includes('배너')?bannerRem(x):9999)+(draft.offer==='쿠폰'?couponRem(x):9999)));
   const roomy=[...okDays].sort((a,b)=>room(b)-room(a))[0];
-  const freest=[...okDays].sort((a,b)=>dayCheck(draft,b).free.length-dayCheck(draft,a).free.length)[0];
   const soon=okDays[0];
-  const uniq=[...new Set([soon,roomy,freest])];
-  const label={[soon]:'가장 빠른 날',[roomy]:'캐파가 가장 여유로운 날',[freest]:'시간대가 가장 많이 빈 날'};
+  const uniq=[...new Set([soon,roomy])];
+  const label={[soon]:'가장 빠른 날',[roomy]:'캐파가 가장 여유로운 날'};
   return `<div class="card">${head}
     <div class="recs">${uniq.map(d=>`<div class="rec-card">
       <div class="rt">${fmtD(d)}</div>
-      <div class="rl">${label[d]}<br>빈 시간대 ${dayCheck(draft,d).free.length}개</div>
-      <button data-rec="${d}">이 날짜 보기</button></div>`).join('')}</div>
+      <div class="rl">${label[d]}<br>${fmtD(d)} ~ ${fmtD(addDays(d,draft.days-1))}</div>
+      <button data-rec="${d}">이 날 시작</button></div>`).join('')}</div>
   </div>`;
 }
 
-/* 주기성 추천 — 기간이 고정이므로 '쓸 수 있는 시간대'와 '충돌 없는 시작일'을 제안 */
-function recRecurring(head){
-  const pc=periodCheck(draft);
-  const cards=[];
-  pc.hours.filter(x=>x.free&&x.h!==draft.hour).forEach(x=>cards.push({
-    t:`${x.h}:00`, l:'기간 내내 비어 있는 시간대', act:`data-rh="${x.h}"`, btn:'이 시간대로'}));
-
-  /* 지금 고른 시간대가 막혔다면, 같은 길이로 충돌 없는 가장 빠른 시작일 */
-  const sel=pc.hours.find(x=>x.h===draft.hour);
-  if(sel&&!sel.free){
-    const len=pc.days.length;
-    for(const x of ALL){
-      if(x.d<=TODAY) continue;
-      const to=addDays(x.d,len-1);
-      if(to>'2026-09-30') break;
-      const cand={...draft,from:x.d,to};
-      const c=periodCheck(cand);
-      const hh=c.hours.find(y=>y.h===draft.hour);
-      if(c.ok&&hh&&hh.free){
-        cards.push({t:`${fmtD(x.d)} 시작`, l:`${draft.hour}시로 ${len}일간 신청 가능`,
-          act:`data-rf="${x.d}"`, btn:'이 기간으로'});
-        break;
-      }
-    }
-  }
-  if(!cards.length) return `<div class="card">${head}
-    <div class="empty">현재 조건이 가장 적절합니다.</div></div>`;
-  return `<div class="card">${head}
-    <div class="recs">${cards.slice(0,3).map(c=>`<div class="rec-card">
-      <div class="rt">${c.t}</div><div class="rl">${c.l}</div>
-      <button ${c.act}>${c.btn}</button></div>`).join('')}</div>
-  </div>`;
-}
 
 /* ── 우측 하단 · 캠페인 리스트 ── */
 function cardList(){
@@ -1270,7 +1109,7 @@ function cardList(){
         <td class="nm">${esc(r.camp)}</td>
         <td class="num">${fmtReq(r.reqAt)}</td>
         <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
-        <td>${fmtD(r.date)} ${r.hour}:00</td>
+        <td>${fmtD(r.date)} ${hh(r.hour)}</td>
         <td>${r.ch.join('·')}</td><td>${esc(r.gnb)}</td>
         <td>${r.cycle}</td><td>${r.offer}</td>
         <td class="r">${man(r.qty)}만</td>
@@ -1365,7 +1204,7 @@ function cancelModal(no,ask){
       ${ask?hrow('캠페인명',r.camp):''}
       ${hrow('상태',r.status==='신청'?'확정 대기':r.status)}
       ${hrow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
-      ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`)}
+      ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${hh(r.hour)}`:`${fmtD(r.date)} ${hh(r.hour)}`)}
       ${hrow('채널 / GNB',`${r.ch.join(' · ')||'—'} / ${r.gnb||'—'}`)}
       ${hrow('주기 / 오퍼',`${r.cycle} / ${r.offer}`)}
       ${hrow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
@@ -1395,49 +1234,39 @@ function cancelModal(no,ask){
 const hrow=(k,v)=>`<div class="hr"><span>${k}</span><span>${esc(v)}</span></div>`;
 const cfRow=(k,v)=>`<div class="cfg"><span>${k}</span><b>${v}</b></div>`;
 function confirmModal(){
-  const c=conflict();
+  const rep0=draft.cycle==='주기성';
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
-    <h3>${c?'이 내용으로 조정 요청할까요?'
-        :draft.editNo!=null?'이 내용으로 수정할까요?':'이 신청 내용이 맞으십니까?'}</h3>
-    <div class="m-sub">${c
-      ?`선택한 시간대를 <b>${esc(c.camp)}</b>(${c.team} ${c.mk} · ${c.status})가 선점하고 있습니다.`
-      :'신청 후에는 담당자 확정 전까지 캠페인 리스트에서 수정할 수 있습니다.'}</div>
+    <h3>${draft.editNo!=null?'이 내용으로 수정할까요?':'이 신청 내용이 맞으십니까?'}</h3>
+    <div class="m-sub">발송 시간대는 담당자가 확정하며 배정합니다.</div>
     <div class="herocard">
       ${hrow('캠페인명',draft.camp)}
       ${hrow('부서 · 마케터',`${draft.dept} · ${draft.mk}`)}
-      ${hrow('발송 일시',`${fmtD(draft.date)} ${draft.hour}:00`)}
-      ${hrow('기간',`${fmtD(draft.from)} ~ ${fmtD(draft.to)}`)}
+      ${hrow('발송일',rep0?`${fmtD(draft.date)} ~ ${fmtD(addDays(draft.date,draft.days-1))} 매일`:fmtD(draft.date))}
+      ${hrow(rep0?'발송 일수':'노출 기간',`${fmtD(draft.date)} ~ ${fmtD(addDays(draft.date,draft.days-1))} · ${draft.days}일`)}
       ${hrow('채널 / GNB',`${draft.ch.join(' · ')} / ${draft.gnb||'—'}`)}
       ${hrow('주기 / 오퍼',`${draft.cycle} · ${draft.offer}`)}
-      ${hrow('전체 타겟수',`${man(draft.qty)}만 건`)}
-      ${c?hrow('조정 요청 사유',draft.note):''}
+      ${hrow(rep0?'1일 타겟수':'전체 타겟수',`${man(draft.qty)}만 건`)}
     </div>
     <div class="m-act">
       <button class="pill ghost" id="mNo">다시 확인</button>
       <button class="pill primary" id="mYes">${
-        c?'조정 요청하기':draft.editNo!=null?'수정하기':'신청하기'}</button>
+        draft.editNo!=null?'수정하기':'신청하기'}</button>
     </div></div></div>`;
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
   $('mYes').onclick=()=>{
     /* 일회성은 시작일에 1회 발송한다 — 고른 날이 곧 캠페인 시작일이다.
        노출 기간의 길이는 마케터가 입력한 그대로 유지하고, 기간을 통째로 옮긴다. */
-    const rep=draft.cycle==='주기성', len=rangeDays(draft.from,draft.to).length;
-    const from=rep?draft.from:draft.date;
-    const to  =rep?draft.to  :addDays(from,len-1);
+    const from=draft.date, to=addDays(from,draft.days-1);
     const body={camp:draft.camp,from,to,ch:[...draft.ch],gnb:draft.gnb,
       cycle:draft.cycle,offer:draft.offer,qty:draft.qty,team:draft.dept,mk:draft.mk,
-      date:draft.date,hour:draft.hour,
-      status:c?'조정 필요':'신청', adjBy:c?'mkt':null,
-      reason:c?`${c.camp} (${c.team} ${c.mk}) 선점`:'',
-      note:c?draft.note.trim():'', admNote:'',
+      date:from, hour:null,            /* 시간대는 담당자가 확정하며 배정한다 */
+      status:'신청', adjBy:null, reason:'', note:'', admNote:'',
       reqAt:`${TODAY} ${(()=>{const t=new Date();
         return `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`})()}`};
     const ex=draft.editNo!=null?requests.find(r=>r.no===draft.editNo):null;
     if(ex) Object.assign(ex,body); else requests.push(mkReq(body));
     $('modalSlot').innerHTML='';
-    toast(ex ? `수정되었습니다 — ${body.camp}`
-             : c ? `조정 요청되었습니다 — ${c.camp} 선점`
-                 : `신청되었습니다 — ${fmtD(draft.date)} ${draft.hour}:00`, !!c);
+    toast(ex ? `수정되었습니다 — ${body.camp}` : `신청되었습니다 — ${fmtD(from)}`);
     draft.camp=''; draft.note=''; draft.date=null; draft.hour=null; draft.editNo=null;
     scope='mine'; render();
   };
@@ -1445,38 +1274,36 @@ function confirmModal(){
 
 /* ── 캠페인 신청 탭 이벤트 바인딩 ── */
 function syncCycleTarget(){
-  if(draft.cycle==='주기성'){draft.date=draft.from;draft.hour=REC_HOURS[0]}
-  else{draft.date=null;draft.hour=null}
+  draft.hour=null;                       /* 시간대는 담당자가 확정하며 배정한다 */
+  draft.date=null;
 }
 function bindApply(){
   const re=()=>{$('page').innerHTML=renderApply();bindApply()};
-  $('fFrom').onchange=e=>{draft.from=e.target.value;if(draft.to<draft.from)draft.to=draft.from;
-    syncCycleTarget();re()};
-  $('fTo').onchange=e=>{draft.to=e.target.value;if(draft.to<draft.from)draft.from=draft.to;
-    syncCycleTarget();re()};
+  $('fFrom').onchange=e=>{draft.qFrom=e.target.value;
+    if(draft.qTo<draft.qFrom)draft.qTo=draft.qFrom; syncCycleTarget();re()};
+  $('fDays').oninput=e=>{draft.days=Math.max(0,+e.target.value||0)};
+  $('fTo').onchange=e=>{draft.qTo=e.target.value;
+    if(draft.qTo<draft.qFrom)draft.qFrom=draft.qTo; syncCycleTarget();re()};
   document.querySelectorAll('[data-ch]').forEach(x=>x.onchange=()=>{
     const v=x.dataset.ch, i=draft.ch.indexOf(v);
     if(x.checked){if(i<0)draft.ch.push(v)} else if(i>=0){draft.ch.splice(i,1)}
     syncCycleTarget();re()});
   document.querySelectorAll('[data-cy]').forEach(x=>x.onchange=()=>{draft.cycle=x.dataset.cy;
-    if(draft.cycle==='주기성'){draft.date=draft.from;draft.hour=REC_HOURS[0]}
-    else{draft.date=null;draft.hour=null}
-    re()});
+    syncCycleTarget();re()});
   document.querySelectorAll('[data-of]').forEach(x=>x.onchange=()=>{draft.offer=x.dataset.of;
     draft.date=null;draft.hour=null;re()});
   $('fGnb').oninput=e=>draft.gnb=e.target.value;
   $('fQty').oninput=e=>{draft.qty=Math.max(0,+e.target.value||0)};
   $('findBtn').onclick=()=>{
     const miss=[];
-    if(!draft.from||!draft.to) miss.push('기간');
+    if(!draft.qFrom||!draft.qTo) miss.push('조회 범위');
+    if(!draft.days)               miss.push(draft.cycle==='주기성'?'발송 일수':'노출 일수');
     if(!draft.ch.length)       miss.push('채널');
     if(!draft.cycle)           miss.push('주기');
     if(!draft.offer)           miss.push('오퍼');
     if(!draft.qty)             miss.push('타겟수');
     if(miss.length){toast(`${miss.join(' · ')}를 입력해 주세요.`,true); return}
-    found=true;
-    if(draft.cycle==='주기성'){draft.date=draft.from;draft.hour=REC_HOURS[0]}
-    else{draft.date=null;draft.hour=null}
+    found=true; draft.date=null; draft.hour=null;
     re()};
   const rb=$('resetBtn'); if(rb) rb.onclick=()=>{
     const n=draft.editNo; draft=EMPTY_DRAFT(); draft.editNo=n; found=false; re()};
@@ -1485,11 +1312,7 @@ function bindApply(){
   document.querySelectorAll('[data-h]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.h;re()});
   document.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.pick;re()});
   document.querySelectorAll('[data-rec]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.rec;draft.hour=null;re()});
-  document.querySelectorAll('[data-rh]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.rh;re()});
-  document.querySelectorAll('[data-rf]').forEach(x=>x.onclick=()=>{
-    const len=rangeDays(draft.from,draft.to).length;
-    draft.from=x.dataset.rf; draft.to=addDays(draft.from,len-1);
-    draft.date=draft.from; re()});
+
   document.querySelectorAll('[data-sc]').forEach(x=>x.onclick=()=>{scope=x.dataset.sc;re()});
   document.querySelectorAll('[data-ls]').forEach(x=>x.onclick=()=>{listSt=x.dataset.ls;render()});
   document.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>cancelModal(+x.dataset.open,false));
@@ -1512,8 +1335,6 @@ function bindApply(){
     const nt=$('fNote'); if(nt) nt.oninput=e=>draft.note=e.target.value;
     $('submitBtn').onclick=()=>{
       if(!draft.camp.trim()){toast('캠페인명을 입력해 주세요.',true);cf.focus();return}
-      if(conflict()&&!draft.note.trim()){
-        toast('조정 요청 사유를 입력해 주세요.',true); if(nt) nt.focus(); return}
       confirmModal();
     };
   }
@@ -1643,7 +1464,7 @@ function calCell(c,idx,rows,lanes){
         <div class="tr"><span>채널</span><span>${e.r.ch.join('·')||'—'}</span></div>
         <div class="tr"><span>오퍼</span><span>${e.r.offer}</span></div>
         <div class="tr"><span>${e.rep?'1일 모수':'모수'}</span><span>${man(e.r.qty)}만 건</span></div>
-        <div class="tr"><span>발송</span><span>${e.r.hour}:00${e.rep?' 매일':''}</span></div>
+        <div class="tr"><span>발송</span><span>${hh(e.r.hour)}${e.rep?' 매일':''}</span></div>
         <div class="tr"><span>담당</span><span>${e.r.team} ${e.r.mk}</span></div>
       </div></div>`).join('')}
     ${rest>0?`<div class="cmore">+${rest}건 더</div>`:''}
@@ -1659,7 +1480,7 @@ function spanBar(g,wi,rows){
       <div class="tr"><span>채널</span><span>${r.ch.join('·')||'—'}</span></div>
       <div class="tr"><span>오퍼</span><span>${r.offer}</span></div>
       <div class="tr"><span>1일 모수</span><span>${man(r.qty)}만 건</span></div>
-      <div class="tr"><span>발송</span><span>${r.hour}:00 매일</span></div>
+      <div class="tr"><span>발송</span><span>${hh(r.hour)} 매일</span></div>
       <div class="tr"><span>담당</span><span>${r.team} ${r.mk}</span></div>
     </div></div>`;
 }
@@ -1729,7 +1550,7 @@ function renderDay(d){
           <span class="hs">${r?esc(r.camp.slice(0,6)):'비어 있음'}</span></div>`}).join('')}</div>
       <div class="segnote" style="margin:18px 0 8px">이 날짜의 캠페인</div>
       ${onDay.length?`<div class="daylist">${onDay.map(r=>`<div class="dayrow">
-          <span class="dh2 num">${r.hour}:00</span>
+          <span class="dh2 num">${hh(r.hour)}</span>
           <span class="dnm">${r.cycle==='주기성'?'↻ ':''}${esc(r.camp)}</span>
           <span class="dch">${r.cycle==='주기성'
             ? `주기성 · ${fmtD(r.from)}~${fmtD(r.to)}` : (r.ch.join('·')||'—')+' / '+r.offer}</span>
@@ -1785,7 +1606,7 @@ function renderManage(){
       <div class="card-hd"><div class="rule"></div>
         <div class="lbl"><span>확정 대기</span></div>
         <h2><span>${wait.length}건</span>
-          ${wait.length?`<button class="pill primary sm" id="okAll">전체 확정</button>`:''}</h2></div>
+</h2></div>
       ${wait.length?`<div class="tblwrap"><table class="list adm">
         <tr><th>캠페인명</th><th>신청 시각</th><th>기간</th><th>발송 일시</th><th>채널 / GNB</th>
           <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>발송일 잔여 캐파</th>
@@ -1794,7 +1615,7 @@ function renderManage(){
           <td class="nm">${esc(r.camp)}</td>
           <td class="num">${fmtReq(r.reqAt)}</td>
           <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
-          <td>${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`}</td>
+          <td>${r.cycle==='주기성'?`매일 ${hh(r.hour)}`:`${fmtD(r.date)} ${hh(r.hour)}`}</td>
           <td>${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}</td>
           <td>${r.cycle}</td><td>${r.offer}</td>
           <td class="r">${man(r.qty)}만</td>
@@ -1845,11 +1666,11 @@ function admItem(r){
     <div class="adjhd"><b>${esc(r.camp)}</b>
       <span class="st needfix">조정 필요</span>
       <span class="adjwhen">${r.cycle==='주기성'
-        ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
-        : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
+        ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${hh(r.hour)}`
+        : `${fmtD(r.date)} ${hh(r.hour)}`}</span></div>
     <div class="cfgrid">
       ${cfRow('발송 일시',r.cycle==='주기성'
-        ? `${fmtD(r.from)}~${fmtD(r.to)} 매일 ${r.hour}:00` : `${fmtD(r.date)} ${r.hour}:00`)}
+        ? `${fmtD(r.from)}~${fmtD(r.to)} 매일 ${hh(r.hour)}` : `${fmtD(r.date)} ${hh(r.hour)}`)}
       ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
       ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
       ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
@@ -1876,6 +1697,49 @@ function admItem(r){
   </div>`;
 }
 
+/* 확정 = 시간 배정. 마케터는 날짜까지만 신청하므로 담당자가 시간을 정해 확정한다.
+   그 시각을 이미 같은 채널이 쓰고 있으면 눌러도 배정되지 않는다. */
+function assignModal(no,pick){
+  const r=requests.find(q=>q.no===no); if(!r) return;
+  const rep=r.cycle==='주기성', hours=rep?REC_HOURS:HOURS;
+  const span=rep?rangeDays(r.from,r.to):[r.date];
+  const busy=new Set();
+  hours.forEach(h=>{ if(span.some(d=>blockedHours(d,r).has(h))) busy.add(h) });
+  const free=hours.filter(h=>!busy.has(h));
+  const sel=pick??r.hour??free[0]??null;
+  $('modalSlot').innerHTML=`<div class="modal"><div class="box wide">
+    <h3>발송 시간대를 배정해 확정합니다</h3>
+    <div class="m-sub">${esc(r.camp)} · ${r.team} ${r.mk}</div>
+    <div class="herocard">
+      ${hrow('발송일',rep?`${fmtD(r.from)} ~ ${fmtD(r.to)} 매일`:fmtD(r.date))}
+      ${hrow('채널 / GNB',`${r.ch.join(' · ')||'—'} / ${r.gnb||'—'}`)}
+      ${hrow(rep?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+      ${hrow('신청 시각',fmtReq(r.reqAt))}
+    </div>
+    <div class="fixrow" style="margin-top:14px"><span>캐파</span>${
+      gaugeRow(span[0],r,activeOn(span[0],r)?0:r.qty,'이 건')}</div>
+    <div class="fixrow"><span>시간대</span>
+      <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>{
+        const t=busy.has(h);
+        return `<div class="hslot ${t?'taken':''}${h===sel?' on':''}" data-ah="${h}">
+          <span class="hh">${h}시</span><span class="hs">${t?'선점':'가능'}</span></div>`}).join('')}</div>
+    </div>
+    ${free.length?'':`<div class="blockbox"><b>빈 시간대가 없습니다</b>
+      <div>다른 날짜로 일정을 조정해 주세요.</div></div>`}
+    <div class="m-act">
+      <button class="pill ghost" id="aNo2">돌아가기</button>
+      <button class="pill primary" id="aYes2" ${sel!=null&&!busy.has(sel)?'':'disabled'}>이 시간대로 확정</button>
+    </div></div></div>`;
+  document.querySelectorAll('[data-ah]').forEach(x=>x.onclick=()=>assignModal(no,+x.dataset.ah));
+  $('aNo2').onclick=()=>$('modalSlot').innerHTML='';
+  $('aYes2').onclick=()=>{
+    r.hour=sel; r.status='확정';
+    $('modalSlot').innerHTML='';
+    toast(`${hh(sel)} 로 확정했습니다 — ${r.camp}`);
+    render();
+  };
+}
+
 /* 확정 대기 건을 조정 필요로 넘긴다.
    마케터가 무엇을 고쳐야 하는지 알 수 있도록 사유를 반드시 받는다. */
 function adjAskModal(no){
@@ -1884,7 +1748,7 @@ function adjAskModal(no){
     <h3>조정 필요로 넘길까요?</h3>
     <div class="herocard">
       ${hrow('캠페인명',r.camp)}
-      ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`)}
+      ${hrow('발송 일시',r.cycle==='주기성'?`기간 내 매일 ${hh(r.hour)}`:`${fmtD(r.date)} ${hh(r.hour)}`)}
       ${hrow('채널 / GNB',`${r.ch.join(' · ')||'—'} / ${r.gnb||'—'}`)}
       ${hrow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
       ${hrow('부서 · 마케터',`${r.team} ${r.mk}`)}
@@ -2069,14 +1933,8 @@ function bindManage(){
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
     if(x.dataset.km){kpiMonth=x.dataset.km;admFix={no:null,from:null,to:null,hour:null};noSwap();re()}});
 
-  document.querySelectorAll('[data-ok]').forEach(x=>x.onclick=()=>{
-    const r=requests.find(q=>q.no===+x.dataset.ok); if(!r) return;
-    r.status='확정'; toast(`확정했습니다 — ${r.camp}`); re()});
+  document.querySelectorAll('[data-ok]').forEach(x=>x.onclick=()=>assignModal(+x.dataset.ok));
 
-  const all=$('okAll'); if(all) all.onclick=()=>{
-    const n=requests.filter(r=>r.status==='신청').length;
-    requests.forEach(r=>{if(r.status==='신청') r.status='확정'});
-    toast(`${n}건을 확정했습니다`); re()};
 
   document.querySelectorAll('[data-rej]').forEach(x=>x.onclick=()=>adjAskModal(+x.dataset.rej));
 
@@ -2121,7 +1979,7 @@ function bindManage(){
     const r=requests.find(q=>q.no===admFix.no), hd=requests.find(q=>q.no===+x.dataset.swapok);
     if(!r||!hd) return;
     const when=q=>q.cycle==='주기성'
-      ? `${fmtD(q.from)}~${fmtD(q.to)} 매일 ${q.hour}:00` : `${fmtD(q.date)} ${q.hour}:00`;
+      ? `${fmtD(q.from)}~${fmtD(q.to)} 매일 ${hh(q.hour)}` : `${fmtD(q.date)} ${hh(q.hour)}`;
     const hWas=when(hd), rWas=when(r);
     moveTo(hd,admSwap);
     hd.moved={from:hWas,to:when(hd),peer:r.camp};
@@ -2140,10 +1998,10 @@ function bindManage(){
   document.querySelectorAll('[data-fixok]').forEach(x=>x.onclick=()=>{
     const r=requests.find(q=>q.no===+x.dataset.fixok); if(!r) return;
     const was=r.cycle==='주기성'
-      ? `${fmtD(r.from)}~${fmtD(r.to)} 매일 ${r.hour}:00` : `${fmtD(r.date)} ${r.hour}:00`;
+      ? `${fmtD(r.from)}~${fmtD(r.to)} 매일 ${hh(r.hour)}` : `${fmtD(r.date)} ${hh(r.hour)}`;
     moveTo(r,admFix);
     r.status='확정';
-    r.memo=`담당자 일정 조정 (${was} → ${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`})`;
+    r.memo=`담당자 일정 조정 (${was} → ${r.cycle==='주기성'?`매일 ${hh(r.hour)}`:`${fmtD(r.date)} ${hh(r.hour)}`})`;
     r.reason=''; r.note=''; r.admNote=''; r.adjBy=null;
     admFix={no:null,from:null,to:null,hour:null}; noSwap();
     toast(`일정을 조정해 확정했습니다 — ${r.camp}`); re()});
@@ -2165,8 +2023,9 @@ function render(){
     const ah=$('applyHere');
     if(ah) ah.onclick=()=>{
       draft.date=calDay; draft.hour=null;
-      if(draft.from>calDay) draft.from=calDay;
-      if(draft.to<calDay) draft.to=calDay;
+      if(!draft.qFrom||draft.qFrom>calDay) draft.qFrom=calDay;
+      if(!draft.qTo||draft.qTo<calDay) draft.qTo=calDay;
+      if(!draft.days) draft.days=1;
       calDay=null; tab='apply'; found=true; render();
     };
   }
