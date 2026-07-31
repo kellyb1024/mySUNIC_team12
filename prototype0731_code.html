@@ -606,6 +606,8 @@ const mkReq=o=>{
   return r;
 };
 const reqMonth=r=>(r.reqAt||'').slice(0,7);
+/* 신청 시각을 표에 넣을 짧은 형태 — 2026-07-29 16:12 → 7/29 16:12 */
+const fmtReq=s=>s?`${+s.slice(5,7)}/${+s.slice(8,10)} ${s.slice(11)}`:'—';
 let requests=[
  mkReq({camp:'방송 월정액 1개월 5,500원 할인 프로모션',from:'2026-07-23',to:'2026-07-31',ch:['토스트팝업'],
    offer:'쿠폰',qty:10,team:'A팀',mk:'철수',date:'2026-07-23',hour:1,status:'발송 완료'}),
@@ -791,7 +793,7 @@ let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), foun
 const EMPTY_DRAFT=()=>({from:'',to:'',ch:[],gnb:'',cycle:'',offer:'',qty:null,
   date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null});
 let draft=EMPTY_DRAFT();
-let calFilter={mode:'all',ch:[],offer:''}, calDay=null, adjOpen=false, listSt='all';
+let calFilter={mode:'all',ch:[],offer:''}, calDay=null, openPanel=null, listSt='all';
 let admFix={no:null,from:null,to:null,hour:null}; /* 담당자 일정 조정 대상 */
 let admSwap={no:null,from:null,to:null,hour:null}; /* 자리를 넘겨줄 선점 건 */
 const noSwap=()=>admSwap={no:null,from:null,to:null,hour:null};
@@ -850,8 +852,8 @@ function kpiRow(){
   const wait=cnt('신청'), adj=cnt('조정 필요'),
         conf=cnt('확정')+cnt('발송 완료'), canc=cnt('취소');
   const applied=wait+adj+conf+canc;
-  const box=(k,v,hero,attr)=>`<div class="kpi${hero?' hero':''}${attr?' clickable':''}${
-      attr&&adjOpen?' open':''}" ${attr||''}>
+  const box=(k,v,hero,key)=>`<div class="kpi${hero?' hero':''}${key?' clickable':''}${
+      key&&openPanel===key?' open':''}" ${key?`data-panel="${key}"`:''}>
     <div class="k">${k}</div>
     <div class="v num">${v||'—'}</div></div>`;
   const mi=MONTHS.indexOf(m);
@@ -862,12 +864,44 @@ function kpiRow(){
       <span class="kmn">내가 신청한 캠페인 · ${applied}건</span>
     </div>
     <div class="kpis">
-      ${box('확정 대기',wait)}
+      ${box('확정 대기',wait,false,'wait')}
       ${box('확정',conf)}
-      ${box('조정 필요',adj,adj>0,'data-adj')}
+      ${box('조정 필요',adj,adj>0,'adj')}
       ${box('취소',canc)}
     </div>
-    ${adjOpen?adjPanel(m):''}`;
+    ${openPanel==='wait'?waitPanel(m):openPanel==='adj'?adjPanel(m):''}`;
+}
+
+/* 확정 대기 내역 — 담당자 손이 닿기 전이라 마케터가 바로 고치거나 물릴 수 있다.
+   조정 필요 내역과 같은 틀·색을 쓰고, 사유 줄만 없다. */
+function waitPanel(m){
+  const rows=requests.filter(r=>r.mk===ME.mk&&r.team===ME.team
+    &&reqMonth(r)===m&&r.status==='신청');
+  if(!rows.length) return `<div class="card"><div class="empty">이 달에 확정 대기 건이 없습니다.</div></div>`;
+  return `<div class="card adjcard">
+    <div class="card-hd"><div class="rule"></div>
+      <div class="lbl"><span>확정 대기 내역</span><span>${m.replace('-','.')}</span></div>
+      <h2><span>${rows.length}건</span>
+        <span class="badge">담당자 확정 대기</span></h2></div>
+    ${rows.map(r=>`<div class="adjitem">
+      <div class="adjhd"><b>${esc(r.camp)}</b>
+        <span class="st applied">확정 대기</span>
+        <span class="adjwhen">${r.cycle==='주기성'
+          ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${r.hour}:00`
+          : `${fmtD(r.date)} ${r.hour}:00`}</span></div>
+      <div class="cfgrid">
+        ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
+        ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
+        ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
+        ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+        ${cfRow('신청 시각',fmtReq(r.reqAt))}
+      </div>
+      <div class="adjbtns">
+        <button class="pill ghost sm" data-move="${r.no}">수정하기</button>
+        <button class="pill ghost sm" data-cancel="${r.no}">신청 취소</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 
 /* 조정 필요 내역 — 정보·사유 확인과 수정 */
@@ -891,6 +925,7 @@ function adjPanel(m){
         ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
         ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
         ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+        ${cfRow('신청 시각',fmtReq(r.reqAt))}
       </div>
       ${r.reason&&!(r.adjBy==='adm'&&r.admNote)
         ?`<div class="adjwhy"><span>${r.adjBy==='adm'?'사유':'선점'}</span>${
@@ -1255,10 +1290,11 @@ function cardList(){
         return `<button class="chip sm ${listSt===k?'on':''}" data-ls="${k}" ${c?'':'disabled'}>
           ${n}<span class="num">${c}</span></button>`}).join('')}</div></div>
     <div class="tblwrap"><table class="list">
-      <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
+      <tr><th>캠페인명</th><th>신청 시각</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
         <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th><th>상태</th><th>사유</th></tr>
       ${rows.map(r=>`<tr class="rw clk" data-open="${r.no}">
         <td class="nm">${esc(r.camp)}</td>
+        <td class="num">${fmtReq(r.reqAt)}</td>
         <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
         <td>${fmtD(r.date)} ${r.hour}:00</td>
         <td>${r.ch.join('·')}</td><td>${esc(r.gnb)}</td>
@@ -1327,7 +1363,7 @@ function editReq(no){
   Object.assign(draft,{cycle:r.cycle,from:r.from,to:r.to,ch:[...r.ch],gnb:r.gnb,
     offer:r.offer,qty:r.qty,camp:r.camp,dept:r.team,mk:r.mk,note:r.note||'',
     date:r.cycle==='주기성'?r.from:r.date,hour:r.hour,editNo:r.no});
-  adjOpen=false; found=true; tab='apply';
+  openPanel=null; found=true; tab='apply';
   $('modalSlot').innerHTML='';
   toast(`수정 중 — ${r.camp}`); render();
 }
@@ -1360,6 +1396,7 @@ function cancelModal(no,ask){
       ${hrow('주기 / 오퍼',`${r.cycle} / ${r.offer}`)}
       ${hrow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
       ${hrow('부서 · 마케터',`${r.team} ${r.mk}`)}
+      ${hrow('신청 시각',fmtReq(r.reqAt))}
       ${r.status==='취소'&&r.admNote?hrow('취소 사유',r.admNote):''}
       ${r.moved?hrow('일정 조정',`${r.moved.from} → ${r.moved.to}`):''}
       ${r.reason?hrow('사유',r.reason+(r.note?` — ${r.note}`:'')):''}
@@ -1486,7 +1523,8 @@ function bindApply(){
     e.stopPropagation(); cancelModal(+x.dataset.cancel,true)});
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
     if(x.dataset.km) {kpiMonth=x.dataset.km; re()}});
-  document.querySelectorAll('[data-adj]').forEach(x=>x.onclick=()=>{adjOpen=!adjOpen;re()});
+  document.querySelectorAll('[data-panel]').forEach(x=>x.onclick=()=>{
+    openPanel=openPanel===x.dataset.panel?null:x.dataset.panel; re()});
   document.querySelectorAll('[data-move]').forEach(x=>x.onclick=()=>editReq(+x.dataset.move));
   const ce=$('cancelEdit'); if(ce) ce.onclick=()=>{
     draft.editNo=null; draft.camp=''; draft.note=''; draft.date=null; draft.hour=null;
@@ -1778,11 +1816,12 @@ function renderManage(){
         <h2><span>${wait.length}건</span>
           ${wait.length?`<button class="pill primary sm" id="okAll">전체 확정</button>`:''}</h2></div>
       ${wait.length?`<div class="tblwrap"><table class="list adm">
-        <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널 / GNB</th>
+        <tr><th>캠페인명</th><th>신청 시각</th><th>기간</th><th>발송 일시</th><th>채널 / GNB</th>
           <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>발송일 잔여 캐파</th>
           <th>부서 · 마케터</th><th></th></tr>
         ${wait.map(r=>`<tr class="rw">
           <td class="nm">${esc(r.camp)}</td>
+          <td class="num">${fmtReq(r.reqAt)}</td>
           <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
           <td>${r.cycle==='주기성'?`매일 ${r.hour}:00`:`${fmtD(r.date)} ${r.hour}:00`}</td>
           <td>${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}</td>
@@ -1845,7 +1884,7 @@ function admItem(r){
       ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
       ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
       ${cfRow('부서 · 마케터',`${r.team} ${r.mk}`)}
-      ${r.reqAt?cfRow('신청 시각',r.reqAt):''}
+      ${cfRow('신청 시각',fmtReq(r.reqAt))}
     </div>
     ${r.reason?`<div class="adjwhy"><span>선점</span>${esc(r.reason)}</div>`:''}
     ${r.note?`<div class="adjnote"><span>마케터 사유</span>${esc(r.note)}</div>`:''}
@@ -1878,6 +1917,7 @@ function adjAskModal(no){
       ${hrow('채널 / GNB',`${r.ch.join(' · ')||'—'} / ${r.gnb||'—'}`)}
       ${hrow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
       ${hrow('부서 · 마케터',`${r.team} ${r.mk}`)}
+      ${hrow('신청 시각',fmtReq(r.reqAt))}
     </div>
     <div class="reasonfld" style="margin:14px 0 0">
       <label>조정 사유</label>
