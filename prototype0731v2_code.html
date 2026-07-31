@@ -1320,7 +1320,8 @@ function confirmModal(ask){
     toast(ex ? `수정되었습니다 — ${body.camp}`
              : ask ? `조정 요청되었습니다 — ${fmtD(from)}`
                    : `신청되었습니다 — ${fmtD(from)}`, !!ask);
-    draft.camp=''; draft.note=''; draft.date=null; draft.hour=null; draft.editNo=null;
+    /* 제출 뒤에는 조회 상태를 접는다 — 그대로 켜져 있으면 안 된 걸로 오인된다 */
+    draft=EMPTY_DRAFT(); found=false;
     scope='mine'; render();
   };
 }
