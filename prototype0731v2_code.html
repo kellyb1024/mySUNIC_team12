@@ -986,8 +986,7 @@ function cardApply(){
   const len=rangeDays(draft.from,draft.to).length||1;
   const head=`<div class="card-hd"><div class="rule"></div>
     <div class="lbl"><span>캠페인 신청하기</span></div>
-    <h2><span>잔여 일정 확인</span>
-      <span class="badge">${rep?`${len}일간 매일 발송`:`시작일 1회 발송 · ${len}일 노출`}</span></h2></div>`;
+    <h2><span>잔여 일정 확인</span></h2></div>`;
   if(!found) return `<div class="card">${head}
     <div class="empty">좌측에서 조건을 입력하고 <b>잔여 일정 확인</b>을 눌러 주세요.</div></div>`;
 
