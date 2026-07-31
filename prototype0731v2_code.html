@@ -968,20 +968,6 @@ function sideCond(){
   </div>`;
 }
 
-/* ── 이번 주 신청 가능 / 가장 빠른 슬롯 ── */
-function thisWeekDays(){
-  const t=new Date(TODAY+'T00:00:00'), off=(t.getDay()+6)%7;   /* 월요일 시작 */
-  const mon=addDays(TODAY,-off);
-  return ALL.filter(x=>x.d>=mon&&x.d<=addDays(mon,6)).map(x=>x.d);
-}
-function earliestSlot(c){
-  for(const x of ALL){
-    if(x.d<draft.from||x.d>draft.to) continue;
-    const r=dayCheck(c,x.d);
-    if(r.ok) return {d:x.d,h:[...r.free].sort((a,b)=>prefRank(a)-prefRank(b))[0]};
-  }
-  return null;
-}
 
 /* ── 우측 상단 · 캠페인 신청하기 ── */
 function cardApply(){
@@ -993,10 +979,10 @@ function cardApply(){
     <div class="empty">좌측에서 조건을 입력하고 <b>가능한 날 찾기</b>를 눌러 주세요.</div></div>`;
   if(draft.cycle==='주기성') return recurringBody(head);
 
-  const days=rangeDays(draft.from,draft.to);
+  /* 시작일 하루 전날까지 함께 보여준다 — 하루 당길 여지를 알 수 있게 (0731 피드백) */
+  const back=addDays(draft.from,-1);
+  const days=rangeDays(back<TODAY?TODAY:back,draft.to);
   const okDays=days.filter(d=>dayCheck(draft,d).ok);
-  const wk=thisWeekDays().filter(d=>okDays.includes(d));
-  const es=earliestSlot(draft);
   const first=days[0], lead=dayOf(first)?.dow??0;
 
   const grid=[...Array(lead)].map(()=>`<div class="dcell blank"></div>`).concat(
@@ -1008,18 +994,6 @@ function cardApply(){
         <span class="dm">${c.ok?`${c.free.length}개 시간대`:c.why}</span></div>`})).join('');
 
   return `<div class="card">${head}
-    <div class="quicks">
-      <div class="qk"><div class="qt">이번 주 신청 가능</div>
-        <div class="qv num">${wk.length}일</div>
-        <div class="qm">${wk.length?wk.map(fmtD).join(' · '):'이번 주에는 가능한 날이 없습니다'}</div></div>
-      <div class="qk"><div class="qt">가장 빠른 슬롯</div>
-        <div class="qv num">${es?`${fmtD(es.d)} ${es.h}:00`:'—'}</div>
-        <div class="qm">${es?'이 날짜·시간대로 바로 신청할 수 있습니다':'조건을 완화해 주세요'}</div>
-        ${es?`<button class="qb" id="takeEarly">이 슬롯으로 신청</button>`:''}</div>
-      <div class="qk"><div class="qt">기간 내 가능한 날</div>
-        <div class="qv num">${okDays.length}일 <small>/ ${days.length}일</small></div>
-        <div class="qm">${draft.ch.join('·')} / ${draft.offer} · ${man(draft.qty)}만 건 기준</div></div>
-    </div>
     <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
     ${okDays.length?'':`<div class="empty">이 기간에는 신청 가능한 날짜가 없습니다.<br>기간을 넓히거나 타겟수를 줄여 보세요.</div>`}
     ${draft.date?secHour():''}
@@ -1529,9 +1503,6 @@ function bindApply(){
   const ce=$('cancelEdit'); if(ce) ce.onclick=()=>{
     draft.editNo=null; draft.camp=''; draft.note=''; draft.date=null; draft.hour=null;
     found=false; toast('수정을 취소했습니다. 기존 신청은 그대로 있습니다.'); re()};
-  const te=$('takeEarly'); if(te) te.onclick=()=>{
-    const es=earliestSlot(draft); if(!es) return;
-    draft.date=es.d; draft.hour=es.h; re()};
 
   const cf=$('fCamp');
   if(cf){
@@ -2220,7 +2191,8 @@ function render(){
 }
 $('roleMkt').onclick=()=>{role='mkt';$('roleMkt').classList.add('on');$('roleAdm').classList.remove('on');
   if(tab==='manage') tab='apply'; render()};
-$('roleAdm').onclick=()=>{role='adm';$('roleAdm').classList.add('on');$('roleMkt').classList.remove('on');render()};
+$('roleAdm').onclick=()=>{role='adm';$('roleAdm').classList.add('on');$('roleMkt').classList.remove('on');
+  tab='manage'; render()};
 render();
 </script>
 </body>
