@@ -195,9 +195,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .filters .fl{font-size:11.5px;color:var(--text-muted);margin-right:2px}
 .filters .sep{width:1px;height:18px;background:var(--border);margin:0 4px}
 
-.calhd{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.calhd{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
 .calwk{position:relative;margin-bottom:5px}
-.wcells{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.wcells{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
 .lanegap{flex:0 0 auto}
 .wspans{position:absolute;left:0;right:0;top:25px;display:grid;
   grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:19px;row-gap:3px;
@@ -212,14 +212,14 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .cal .ch{font-size:11.5px;color:var(--text-muted);text-align:center;padding:4px 0 6px;font-weight:500}
 .cal .ch.sun{color:var(--sk-red)}
 .ccell{border:1px solid var(--border);border-radius:5px;min-height:112px;padding:6px 7px;background:#fff;
-  display:flex;flex-direction:column;gap:3px;position:relative}
+  display:flex;flex-direction:column;gap:3px;position:relative;min-width:0;overflow:hidden}
 .ccell.out{background:var(--motif);opacity:.55}
 .ccell.today{border-color:var(--sk-orange);border-width:2px;padding:5px 6px}
 .ccell .cd{font-size:12px;font-family:Roboto;font-weight:500;color:var(--text-strong);margin-bottom:1px}
 .ccell.sun .cd{color:var(--sk-red)}
 .ccell .cmore{font-size:10px;color:var(--text-muted);margin-top:auto}
 /* ── 담당자 캘린더 칸 ── */
-.calrow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px}
+.calrow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:5px}
 .ccap{display:flex;flex-direction:column;gap:1px;font-size:10px;color:var(--text-muted);
   padding:3px 0 4px;margin-bottom:3px;border-bottom:1px dashed var(--border)}
 .ccap b{font-family:Roboto;font-weight:500;color:var(--text-strong)}
