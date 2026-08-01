@@ -121,8 +121,12 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dcell.on .wk{color:var(--sk-orange-text);font-weight:500}
 .dcell.on::after{content:'시작';position:absolute;bottom:3px;left:0;right:0;text-align:center;
   font-size:9px;color:var(--sk-orange-text);font-weight:500}
-.dcell.no{background:var(--motif);border-style:dashed;border-color:var(--border);cursor:not-allowed}
+/* 여유가 없는 날 — 고를 수는 있다. 고르면 조정 요청으로 이어지므로 커서를 막지 않는다 */
+.dcell.no{background:var(--motif);border-style:dashed;border-color:var(--border)}
 .dcell.no .dd{color:var(--locked-text);font-weight:400} .dcell.no .dm{color:var(--locked-text)}
+.dcell.no:hover{transform:translateY(-1px);border-color:var(--locked-text)}
+.dcell.no.on{border-color:var(--sk-orange);background:var(--sk-orange-t10)}
+.dcell.no.on .dd{color:var(--sk-orange-text);font-weight:600}
 .dcell.blank{border:none;background:none;cursor:default;min-height:0}
 /* 추천 1순위 표시 */
 .dcell .pin{position:absolute;bottom:3px;left:0;right:0;text-align:center;
