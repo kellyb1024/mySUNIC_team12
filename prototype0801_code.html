@@ -378,17 +378,6 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .findbtn:hover{background:var(--sk-orange-dk)}
 .resetbtn{width:100%;padding:7px;font-size:11px;color:var(--text-muted);text-decoration:underline;margin-top:5px}
 
-/* ── 이번주 신청 가능 / 가장 빠른 슬롯 ── */
-.quicks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
-.qk{border:1px solid var(--border);border-radius:6px;padding:12px 14px;background:var(--sk-orange-t10)}
-.qk .qt{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:4px}
-.qk .qv{font-size:18px;font-weight:500;color:var(--text-strong);line-height:1.2}
-.qk .qv small{font-size:12px;color:var(--text-muted);font-weight:400}
-.qk .qm{font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5}
-.qk .qb{margin-top:9px;width:100%;padding:6px;border-radius:999px;border:1px solid var(--sk-orange-text);
-  color:var(--sk-orange-text);font-size:11.5px;font-weight:500;background:#fff}
-.qk .qb:hover{background:#fff}
-
 /* ── 카드 안에서 펼쳐지는 단계 ── */
 .drill{border-top:1px solid var(--border);margin-top:18px;padding-top:16px}
 .drill.final{border-top:1px dashed var(--sk-orange-text)}
@@ -532,41 +521,6 @@ table.list.adm th:last-child,table.list.adm td.act{width:1%}
 .fdates .tl.moved{flex-basis:100%;color:var(--sk-orange-text)}
 .daychips{display:flex;gap:6px;flex-wrap:wrap}
 .hgrid.adm{grid-template-columns:repeat(11,minmax(0,1fr));flex:1}
-/* 주간 캐파 매트릭스 */
-.wknav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.wknav .arw{width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:#fff}
-.wknav .arw:hover:not(:disabled){background:var(--motif)}
-.wknav .arw:disabled{opacity:.3;cursor:not-allowed}
-.wknav .lab{font-size:14px;font-weight:500;color:var(--text-strong);min-width:170px;text-align:center}
-table.capamx{width:100%;border-collapse:separate;border-spacing:5px;margin:-5px;table-layout:fixed}
-table.capamx th:first-child{width:104px}
-table.capamx th{font-size:11.5px;font-weight:400;color:var(--text-muted);text-align:center;padding-bottom:2px}
-table.capamx th span{display:block;font-size:10.5px}
-table.capamx th.sun{color:var(--sk-red)}
-table.capamx th.today{color:var(--sk-orange-text);font-weight:500}
-table.capamx td.chn{width:104px;font-size:12px;color:var(--text-strong);white-space:nowrap;padding-right:6px}
-table.capamx td.chn small{display:block;font-size:10px;color:var(--text-muted);margin-left:14px}
-table.capamx td.chn .sw{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:5px}
-td.mx{height:50px;border-radius:4px;border:1px solid var(--cell-border);text-align:center;
-  font-family:Roboto;font-variant-numeric:tabular-nums;background:var(--l1)}
-td.mx b{display:block;font-size:14px;font-weight:500;line-height:1.1}
-td.mx small{font-size:10px;opacity:.8}
-/* 소진율 4단계는 오렌지 한 색의 농도로만 말한다. 회색은 '비어 있음' 하나에만 쓴다 */
-td.mx.zero{background:#fff;border-style:dashed;border-color:var(--border);
-  color:var(--text-muted);font-size:11px}
-td.mx.lv1{background:var(--sk-orange-t10);color:var(--l2t)}
-td.mx.lv2{background:var(--l2);color:var(--l2t)}
-td.mx.lv3{background:var(--l3);color:var(--l3t)}
-td.mx.lv4{background:var(--l4);color:var(--l4t)}
-/* 한도가 없으면 소진율이 없다 — 농도로 말할 수 없으니 숫자만 둔다 */
-td.mx.free{background:#fff;color:var(--text-strong)}
-.cellsw{display:inline-block;width:11px;height:11px;border-radius:2px;
-  border:1px solid var(--cell-border);margin-right:5px;vertical-align:-1px}
-.cellsw.lv1{background:var(--sk-orange-t10)} .cellsw.lv2{background:var(--l2)}
-.cellsw.lv3{background:var(--l3)} .cellsw.lv4{background:var(--l4)}
-.cellsw.free{background:#fff}
-.legend .lgt{color:var(--text-strong);font-weight:500}
-.legend .sep2{width:1px;height:12px;background:var(--border);display:inline-block}
 
 /* ── 수정 중 배너 ── */
 .editbar{background:var(--sk-orange-t10);border:1px solid var(--sk-orange);border-radius:6px;
@@ -650,7 +604,8 @@ const addDays=(d,n)=>{const t=new Date(d+'T00:00:00');t.setDate(t.getDate()+n);r
    신청 데이터
    ══════════════════════════════════════════════════════════════════════ */
 let seq=0; const ME={team:'A팀',mk:'철수'};
-/* adjBy — '조정 필요' 로 들어온 경로. 지금은 마케터 조정 요청('mkt') 하나뿐이다. */
+/* adjBy — '조정 필요' 로 들어온 경로. 마케터 조정 요청('mkt') 하나다.
+   담당자가 마케터에게 조정을 요청하는 경로는 0731 피드백으로 없앴다. */
 /* 신청 시각(reqAt) — 요약 4칸의 집계 기준이자 알림 D-1 판정의 근거.
    더미는 발송 10일 전으로 두되, 오늘보다 미래일 수 없으므로 당겨 붙인다. */
 const mkReq=o=>{
@@ -761,7 +716,7 @@ let requests=[
  mkReq({camp:'키즈 여름방학 마무리',from:'2026-08-03',to:'2026-08-06',ch:['배너','토스트팝업'],gnb:'홈',
    offer:'쿠폰',qty:70,team:'B팀',mk:'짱구',date:'2026-08-03',hour:16,reqAt:'2026-07-27 14:02'}),
 
- /* ── 조정 필요 · 경로 2 — 담당자가 확정 대기 건을 넘긴 경우 ── */
+ /* ── 확정 대기 ── */
  mkReq({camp:'주말 영화 추천 알림',from:'2026-08-03',to:'2026-08-06',ch:['배너'],gnb:'홈',
    offer:'없음',qty:70,team:'A팀',mk:'철수',date:'2026-08-03',hour:20,
    reqAt:'2026-07-27 16:20'}),
@@ -889,7 +844,6 @@ let draft=EMPTY_DRAFT();
 let calFilter={mode:'all',ch:[],offer:''}, calDay=null, openPanel=null, listSt='all';
 /* 담당자가 처리 중인 건 — 캐파·시간대 계산에서 자기 자신을 뺀다 */
 let admFix={no:null};
-let capaFrom='2026-07-27';                  /* 주간 캐파 현황 시작일 (월요일) */
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
