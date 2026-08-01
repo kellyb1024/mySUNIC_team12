@@ -134,7 +134,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .rec-card.on{border-color:var(--sk-orange);background:var(--sk-orange-t10)}
 /* 고른 기간을 한눈에 */
 .periodline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
-  padding:11px 14px;margin-bottom:15px;border-radius:6px;
+  padding:11px 14px;margin-bottom:12px;border-radius:6px;
   background:var(--sk-orange-t10);border:1px solid var(--sk-orange-t25)}
 .periodline b{font-size:16px;font-weight:600;color:var(--sk-orange-text)}
 .periodline span{font-size:11.5px;color:var(--text-muted)}
@@ -151,7 +151,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .blockbox{border:1px solid var(--sk-red);border-radius:6px;padding:13px 15px;margin:8px 0 12px}
 /* 막힘 안내는 12·8 리듬 — 8은 묶인 것끼리, 12는 블록 사이 */
 .drill.final.warn .reasonfld{margin-bottom:12px}
-.drill.final.warn .actions{margin-top:12px}
+.drill.final .actions{margin-top:12px}
 .blockbox b{display:block;font-size:13px;font-weight:500;color:var(--sk-red);margin-bottom:6px}
 .blockbox div{font-size:11.5px;color:var(--text);line-height:1.6}
 .blockbox .bm{color:var(--text-muted);margin-top:5px}
@@ -1096,7 +1096,7 @@ function blockedBody(chk,pick,len){
         이 날짜를 유지하려면 사유를 적어 조정 요청해 주세요.</div></div>
     ${whoFields()}
     <div class="reasonfld" style="margin-top:8px">
-      <label>조정 요청 사유<i class="i" data-tip="담당자가 그 날의 캐파를 조율할 근거가 됩니다.&#10;날짜를 옮기기 어려운 이유를 적어 주세요."></i></label>
+      <label>조정 요청 사유</label>
       <textarea id="fNote" rows="2"
         placeholder="예: 제휴사와 협의된 오픈일이라 날짜를 옮기기 어렵습니다">${esc(draft.note)}</textarea>
     </div>
