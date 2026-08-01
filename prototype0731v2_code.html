@@ -986,7 +986,7 @@ function sideCond(){
   return `<div class="card">
     <div class="card-hd"><div class="rule"></div>
       <div class="lbl"><span>잔여 일정 확인하기</span></div></div>
-    <div class="fgroup"><div class="ftitle">조회 시작일<i class="i" data-tip="언제쯤 나가고 싶은지 알아볼 구간입니다.&#10;이 구간 안에서 캠페인 시작일을 고릅니다."></i></div>
+    <div class="fgroup"><div class="ftitle">조회 시작일<i class="i" data-tip="조회를 희망하는 기간의 시작일과 종료일입니다.&#10;검색 결과에서 캠페인 시작일을 설정할 수 있습니다."></i></div>
       <input type="date" id="fFrom" value="${form.qFrom}" min="${TODAY}" max="2026-09-30"></div>
     <div class="fgroup"><div class="ftitle">조회 종료일</div>
       <input type="date" id="fTo" value="${form.qTo}" min="${form.qFrom||TODAY}" max="2026-09-30"></div>
