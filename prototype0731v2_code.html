@@ -134,6 +134,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
   background:var(--sk-orange-t10);border:1px solid var(--sk-orange-t25)}
 .periodline b{font-size:16px;font-weight:600;color:var(--sk-orange-text)}
 .periodline span{font-size:11.5px;color:var(--text-muted)}
+.periodline .src2{flex-basis:100%;font-size:11px;color:var(--text-muted);
+  padding-top:5px;margin-top:2px;border-top:1px dashed var(--sk-orange-t25)}
+.periodline.warn .src2{border-top-color:var(--border)}
 .periodline.warn{background:var(--motif);border-color:var(--border)}
 .periodline.warn b{color:var(--text-strong)}
 .rec-card .rt em{font-style:normal;font-size:9.5px;color:var(--sk-orange-text);
@@ -1054,7 +1057,8 @@ function blockedBody(chk,pick,len){
   return `<div class="drill final warn">
     <div class="drill-hd"><b>이 날짜로는 신청할 수 없습니다</b></div>
     <div class="periodline warn"><b>${fmtD(pick)} ~ ${fmtD(addDays(pick,len-1))}</b>
-      <span>${draft.cycle==='주기성'?`${len}일간 매일 발송`:`시작일 1회 발송 · ${len}일 노출`}</span></div>
+      <span>${draft.cycle==='주기성'?`${len}일간 매일 발송`:`시작일 1회 발송 · ${len}일 노출`}</span>
+      ${srcPeriod()}</div>
     <div class="blockbox"><b>${chk.why}</b>
       <div>필요한 물량 ${man(draft.qty)}만 건${draft.cycle==='주기성'?` · ${len}일간 매일`:''}</div>
       <div class="bm">다른 날로 옮기려면 위 달력이나 추천에서 고르시고,
@@ -1101,6 +1105,15 @@ function gaugeRow(d,c=draft,add=c.qty,lab='내 신청'){
 /* 선택한 날짜·시간대를 이미 점유한 캠페인 */
 const holderOf=(d,h,c)=>liveAt(d,h).find(r=>slotClash(c||draft,r))||null;
 /* ── 시간대 선택 후 펼쳐지는 최종 신청 ── */
+/* 고른 기간 옆에 '원래 무엇을 넣었는지' — 수정 중이면 원래 신청 기간, 아니면 조회 기간 */
+function srcPeriod(){
+  if(draft.editNo!=null){
+    const o=requests.find(r=>r.no===draft.editNo);
+    if(o) return `<span class="src2">원래 신청 ${fmtD(o.from)} ~ ${fmtD(o.to)}</span>`;
+  }
+  return draft.qFrom?`<span class="src2">조회한 기간 ${fmtD(draft.qFrom)} ~ ${fmtD(draft.qTo)}</span>`:'';
+}
+
 /* 신청·조정 요청 양쪽에서 쓰는 신청자 입력 */
 const whoFields=()=>`<div class="frow3">
       <div class="fld"><label>캠페인명</label>
@@ -1116,7 +1129,8 @@ function secFinal(){
   return `<div class="drill final">
     <div class="drill-hd"><b>최종 신청</b></div>
     <div class="periodline"><b>${fmtD(from)} ~ ${fmtD(addDays(from,len-1))}</b>
-      <span>${rep?`${len}일간 매일 발송`:`시작일 1회 발송 · ${len}일 노출`}</span></div>
+      <span>${rep?`${len}일간 매일 발송`:`시작일 1회 발송 · ${len}일 노출`}</span>
+      ${srcPeriod()}</div>
     ${whoFields()}
     <div class="actions">
       <button class="pill primary" id="submitBtn">${
