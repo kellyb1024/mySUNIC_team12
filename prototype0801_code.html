@@ -141,14 +141,17 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .periodline .src2{flex-basis:100%;font-size:11px;color:var(--text-muted);
   padding-top:5px;margin-top:2px;border-top:1px dashed var(--sk-orange-t25)}
 .periodline.warn .src2{border-top-color:var(--border)}
-.periodline.warn{background:var(--motif);border-color:var(--border);margin-bottom:12px}
+.periodline.warn{background:var(--motif);border-color:var(--border);margin-bottom:8px}
 .periodline.warn b{color:var(--text-strong)}
 .rec-card .rt em{font-style:normal;font-size:9.5px;color:var(--sk-orange-text);
   background:var(--sk-orange-t10);border-radius:3px;padding:1px 5px;margin-left:5px;vertical-align:2px}
 .dcell.busy{background:var(--sk-orange-t10);border-color:var(--sk-orange-t25)}
 .dcell.start{border-color:var(--sk-orange);border-width:2px}
 .dcell.start .wk{color:var(--sk-orange-text);font-weight:500}
-.blockbox{border:1px solid var(--sk-red);border-radius:6px;padding:13px 15px;margin:12px 0}
+.blockbox{border:1px solid var(--sk-red);border-radius:6px;padding:13px 15px;margin:8px 0 12px}
+/* 막힘 안내는 12·8 리듬 — 8은 묶인 것끼리, 12는 블록 사이 */
+.drill.final.warn .reasonfld{margin-bottom:12px}
+.drill.final.warn .actions{margin-top:12px}
 .blockbox b{display:block;font-size:13px;font-weight:500;color:var(--sk-red);margin-bottom:6px}
 .blockbox div{font-size:11.5px;color:var(--text);line-height:1.6}
 .blockbox .bm{color:var(--text-muted);margin-top:5px}
@@ -1092,7 +1095,7 @@ function blockedBody(chk,pick,len){
       <div class="bm">다른 날로 옮기려면 위 달력이나 추천에서 고르시고,
         이 날짜를 유지하려면 사유를 적어 조정 요청해 주세요.</div></div>
     ${whoFields()}
-    <div class="reasonfld" style="margin-top:4px">
+    <div class="reasonfld" style="margin-top:8px">
       <label>조정 요청 사유<i class="i" data-tip="담당자가 그 날의 캐파를 조율할 근거가 됩니다.&#10;날짜를 옮기기 어려운 이유를 적어 주세요."></i></label>
       <textarea id="fNote" rows="2"
         placeholder="예: 제휴사와 협의된 오픈일이라 날짜를 옮기기 어렵습니다">${esc(draft.note)}</textarea>
