@@ -1847,7 +1847,7 @@ function admModal(no,st){
       <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
         `<div class="hslot ${at[h]?'busy':''}${h===sel?' on':''}" data-amh="${h}">
           <span class="hh">${h}시</span>
-          <span class="hs">${at[h]?`${at[h]}건`:''}</span></div>`).join('')}</div>
+          <span class="hs">${at[h]?'배정':'가능'}</span></div>`).join('')}</div>
     </div>
     ${rep?`<div class="segnote">주기성은 17~19시 중에서 배정합니다.</div>`:''}
     ${overCap?`<div class="blockbox"><b>이 날짜는 캐파를 넘습니다</b>
