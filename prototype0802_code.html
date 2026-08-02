@@ -151,7 +151,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .blockbox{border:1px solid var(--sk-red);border-radius:6px;padding:13px 15px;margin:8px 0 12px}
 /* 얼마가 모자란지 — 시간대를 고르기 전에 먼저 읽혀야 하므로 그 위에 둔다 */
 .capover{display:inline-block;border:1px solid var(--sk-red);border-radius:4px;
-  padding:5px 10px;margin:0 0 10px;font-size:12px;font-weight:500;color:var(--sk-red)}
+  padding:5px 10px;margin:0 6px 10px 0;font-size:12px;font-weight:500;color:var(--sk-red)}
 /* 자리를 만들려고 옮길 수 있는 건들 — 캘린더에 이미 보이는 정보를 팝업 안으로 가져온 것 */
 .movers{margin-bottom:12px}
 .movers .mvhd{font-size:11.5px;color:var(--text-muted);margin-bottom:6px}
@@ -1877,13 +1877,18 @@ function admCal(){
    0731 은 '그 시간대를 잡은 한 건'을 자동으로 찾아왔지만, 지금 제약은 하루 캐파라
    자리를 차지한 건이 하나로 특정되지 않는다. 그래서 그 날 건들을 세우고 담당자가 고른다. */
 
-/* 얼마가 모자란지 — 기간 중 가장 빠듯한 날 기준 */
+/* 어느 채널이 얼마나 모자란지 — 기간 중 가장 빠듯한 날 기준.
+   배너와 쿠폰이 함께 넘칠 수 있으므로 채널별로 따로 돌려준다. */
 function shortOf(r,span){
-  const gap=d=>Math.max(
-    r.ch.includes('배너') ? r.qty-bannerRem(d) : 0,
-    r.offer==='쿠폰'     ? r.qty-couponRem(d) : 0);
-  const worst=span.reduce((a,d)=>gap(d)>gap(a)?d:a,span[0]);
-  return {amt:gap(worst), d:worst};
+  const out=[];
+  const scan=(name,remFn)=>{
+    let amt=0, worst=span[0];
+    span.forEach(d=>{const g=r.qty-remFn(d); if(g>amt){amt=g; worst=d}});
+    if(amt>0) out.push({ch:name,amt,d:worst});
+  };
+  if(r.ch.includes('배너')) scan('배너',bannerRem);
+  if(r.offer==='쿠폰')      scan('쿠폰',couponRem);
+  return out;
 }
 
 /* 그 날 캐파를 쓰고 있는 다른 건들 — 하나를 옮기면 자리가 난다 */
@@ -2030,9 +2035,9 @@ function admModal(no,st){
         ${moved?`<span class="tl moved">신청은 ${fmtD(r.from)} ~ ${fmtD(r.to)}</span>`:''}
       </div></div>
     <div class="fixrow"><span>${capLabel(r)}</span>${gaugeRow(span[0],r,r.qty,'이 건')}</div>
-    ${overCap?(()=>{const g=shortOf(r,span);
-      return `<div class="capover">${esc(r.camp)} 캐파 ${man(g.amt)}만 초과${
-        span.length>1?` · ${fmtD(g.d)}`:''}</div>`})():''}
+    ${overCap?shortOf(r,span).map(g=>
+      `<div class="capover">${g.ch} 캐파 ${man(g.amt)}만 초과${
+        span.length>1?` · ${fmtD(g.d)}`:''}</div>`).join(''):''}
     <div class="fixrow"><span>시간대</span>
       <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
         `<div class="hslot ${at[h]?'busy':''}${h===sel?' on':''}" data-amh="${h}">
