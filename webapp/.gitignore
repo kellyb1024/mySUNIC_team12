@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# 값이 빈 템플릿은 올린다 — 무엇을 채워야 하는지 남기기 위해
+!.env.example
 
 # vercel
 .vercel
