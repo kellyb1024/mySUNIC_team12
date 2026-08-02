@@ -1796,58 +1796,62 @@ function secFinal(){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   추천 — ⚠️ 임시 스코어 (2026-08-01 설계 예정)
+   추천
    0728 미팅: "남은 쿠폰이나 배너 수 × 위급한 정도 같이 수식을 만들어서
    가장 높은 순서대로 상황에 맞게 추천"
-   지금은 자리만 잡아둔 것이고, 가중치·요소 모두 확정 전이다.
-   recScore() 하나만 갈아 끼우면 화면은 그대로 동작한다.
+   recTop() 하나만 갈아 끼우면 화면은 그대로 동작한다.
    ══════════════════════════════════════════════════════════════════════ */
-const REC_W={room:.5, lead:.3, weekday:.2};   /* ⚠️ 임시 가중치 */
-function recScore(c,d){
-  const span=spanOf(c,d);
-  /* ① 캐파 여유 — 기간 내 가장 빠듯한 날 기준 (0~1) */
-  const room=Math.max(0,Math.min(...span.map(x=>{
-    const b=c.ch.includes('배너')?(bannerRem(x)-c.qty)/CAPA['배너'].limit:1;
-    const p=c.offer==='쿠폰' ?(couponRem(x)-c.qty)/CAPA['쿠폰'].limit:1;
-    return Math.min(b,p);
-  })));
-  /* ② 준비 기간 — 시작일 D-2 이전 권고 (원본 운영 규칙) */
-  const lead=Math.min(1,(rangeDays(TODAY,d).length-1)/3);
-  /* ③ 요일 — 시작일은 평일 권고 (원본 운영 규칙) */
-  const wk=[0,6].includes(dayOf(d)?.dow)?0:1;
-  return {d, score:REC_W.room*room+REC_W.lead*lead+REC_W.weekday*wk, room, lead, wk};
+/* 가중치 — 0802 확인. 혼잡도와 금·토·일을 우선으로 본다.
+   준비 기간(lead)은 뺐다. D-2 이상이면 3일 뒤나 30일 뒤나 값이 1이라 상수였다.
+   D-1 은 거르지 않는다 — 대신 담당자에게 메일로 알려 누락을 막는다. */
+const REC_W={quiet:.40, weekend:.35, room:.25};
+
+/* 같은 날 같은 채널로 나가는 건수 — 캐파가 남아도 몰리면 서로 묻힌다 */
+function denseOn(c,d){
+  return Math.max(...spanOf(c,d).map(x=>requests.filter(r=>
+    live(r)&&activeOn(x,r)&&r.ch.some(ch=>c.ch.includes(ch))).length));
 }
-/* 조회 기간 안에서 점수 높은 순 상위 n개 */
+/* 기간 중 가장 빠듯한 날의 남는 양 (만) */
+function roomOn(c,d){
+  return Math.min(...spanOf(c,d).map(x=>Math.min(
+    c.ch.includes('배너')?bannerRem(x)-c.qty:1e9,
+    c.offer==='쿠폰'    ?couponRem(x)-c.qty:1e9)));
+}
+
+/* 조회 기간 안에서 점수 높은 순 상위 n개.
+   한도 대비로 정규화하면 한산한 구간에서 값이 같아져 순위가 안 갈렸다.
+   그래서 후보군 안의 최소~최대로 상대 비교한다. */
 function recTop(n){
-  return rangeDays(draft.qFrom,draft.qTo)
-    .filter(d=>dayCheck(draft,d).ok)
-    .map(d=>recScore(draft,d))
-    .sort((a,b)=>b.score-a.score||(a.d<b.d?-1:1))
-    .slice(0,n);
+  const days=rangeDays(draft.qFrom,draft.qTo).filter(d=>dayCheck(draft,d).ok);
+  if(!days.length) return [];
+  const D=days.map(d=>denseOn(draft,d)), R=days.map(d=>roomOn(draft,d));
+  const dLo=Math.min(...D), dHi=Math.max(...D), rLo=Math.min(...R), rHi=Math.max(...R);
+  const norm=(v,lo,hi)=>hi===lo?1:(v-lo)/(hi-lo);
+  return days.map((d,i)=>{
+    const quiet=1-norm(D[i],dLo,dHi);                  /* 적을수록 좋다 */
+    const room =norm(R[i],rLo,rHi);
+    const wknd =[5,6,0].includes(dayOf(d)?.dow)?1:0;   /* 금 토 일 */
+    return {d, score:REC_W.quiet*quiet+REC_W.weekend*wknd+REC_W.room*room,
+            quiet, room, wknd, dense:D[i], rem:R[i]};
+  }).sort((a,b)=>b.score-a.score||(a.d<b.d?-1:1)).slice(0,n);
 }
 function cardRec(){
   const head=`<div class="card-hd"><div class="rule"></div>
-    <div class="lbl"><span>추천</span><span>임시 기준 · 설계 예정</span></div></div>`;
+    <div class="lbl"><span>추천</span><span>혼잡도 · 금토일 · 캐파 여유</span></div></div>`;
   const top=recTop(3);
   if(!top.length) return `<div class="card">${head}
     <div class="empty">조회 기간에 시작할 수 있는 날이 없습니다.</div></div>`;
   const len=draft.days||1;
   return `<div class="card">${head}
     <div class="recs">${top.map((x,i)=>{
-      const tag=[];
-      if(x.room>=.5) tag.push('캐파 여유');
-      else if(x.room>=.2) tag.push('캐파 보통');
-      else tag.push('캐파 빠듯');
-      tag.push(x.wk?'평일 시작':'주말 시작');
-      if(x.lead<1) tag.push('준비 기간 촉박');
       /* 기간에서 가장 빠듯한 날의 잔여를 세운다 — 주기성은 매일 캐파를 쓴다 */
       const span=spanOf(draft,x.d), rem=[];
       if(draft.ch.includes('배너')) rem.push(`배너 ${man(Math.min(...span.map(d=>bannerRem(d))))}만`);
       if(draft.offer==='쿠폰')      rem.push(`쿠폰 ${man(Math.min(...span.map(d=>couponRem(d))))}만`);
       return `<div class="rec-card${draft.date===x.d?' on':''}">
         <div class="rt"><span>${fmtD(x.d)}${i===0?' <em>추천</em>':''}</span>
-          ${rem.length?`<b class="rq">${rem.join(' · ')}</b>`:''}</div>
-        <div class="rl">${fmtD(x.d)} ~ ${fmtD(addDays(x.d,len-1))}<br>${tag.join(' · ')}</div>
+          ${rem.length?`<b class="rq">잔여 ${rem.join(' · ')}</b>`:''}</div>
+        <div class="rl">${fmtD(x.d)} ~ ${fmtD(addDays(x.d,len-1))}</div>
         <button data-d="${x.d}">이 날짜 선택하기</button></div>`}).join('')}</div>
   </div>`;
 }

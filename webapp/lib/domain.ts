@@ -296,60 +296,86 @@ export const canAdminCancel = (r: Campaign, editing: boolean) =>
 /* ── 추천 ──────────────────────────────────────────────────────────── */
 
 /**
- * ⚠️ 임시 가중치 — 아직 설계 중입니다.
+ * 가중치 — 2026-08-02 확인. 혼잡도와 금·토·일을 우선으로 본다.
  *
- * 알려진 한계
- *  lead 는 시작일이 3일 이상 뒤면 전부 1로 포화된다.
- *  room 은 그 날에 캠페인이 없으면 값이 같아진다.
- * 데이터가 한산하면 세 후보의 점수가 같아져 날짜순으로만 갈린다.
+ * 준비 기간(lead)은 점수에서 뺐다. D-2 이상이면 3일 뒤나 30일 뒤나 값이 1이라
+ * 사실상 상수였다. D-1 은 **거르지 않는다** — 대신 담당자에게 메일로 알려
+ * 누락을 막는다. 문제는 "촉박한 건이 들어오는 것"이 아니라 "담당자가 못 보고
+ * 지나치는 것"이라 제약이 아니라 알림으로 푼다.
  */
-export const REC_W = { room: 0.5, lead: 0.3, weekday: 0.2 };
+export const REC_W = { quiet: 0.4, weekend: 0.35, room: 0.25 };
+
+/** 같은 날 같은 채널로 나가는 건수 — 캐파가 남아도 몰리면 서로 묻힌다 */
+export function denseOn(all: Campaign[], c: Draft, d: string): number {
+  return Math.max(
+    ...spanOf(c, d).map((x) =>
+      all.filter((r) => occupies(r) && activeOn(x, r) && r.ch.some((ch) => c.ch.includes(ch)))
+        .length,
+    ),
+  );
+}
+
+/** 기간 중 가장 빠듯한 날에 남는 양 (만) */
+export function roomOn(all: Campaign[], c: Draft, d: string, exclude?: number | null): number {
+  return Math.min(
+    ...spanOf(c, d).map((x) =>
+      Math.min(
+        c.ch.includes('배너') ? bannerRem(all, x, exclude) - c.qty : 1e9,
+        c.offer === '쿠폰' ? couponRem(all, x, exclude) - c.qty : 1e9,
+      ),
+    ),
+  );
+}
 
 export interface RecScore {
   d: string;
   score: number;
+  /** 한산한 정도 0~1 (후보군 안에서 상대) */
+  quiet: number;
+  /** 캐파 여유 0~1 (후보군 안에서 상대) */
   room: number;
-  lead: number;
-  wk: number;
+  /** 금·토·일이면 1 */
+  wknd: number;
+  /** 같은 날 같은 채널 건수 (원값) */
+  dense: number;
+  /** 남는 양, 만 (원값) */
+  rem: number;
 }
 
-export function recScore(
+/**
+ * 조회 기간 안에서 점수 높은 순 상위 n개.
+ *
+ * 한도(400만) 대비로 정규화하면 한산한 구간에서는 값이 같아져 순위가 갈리지 않았다.
+ * 그래서 **후보군 안의 최소~최대로 상대 비교**한다. 어느 기간을 조회하든 갈린다.
+ */
+export function recTop(
   all: Campaign[],
   c: Draft,
-  d: string,
-  today: string,
-  exclude?: number | null,
-): RecScore {
-  const span = spanOf(c, d);
+  from: string,
+  to: string,
+  opts: { today: string; lastDay: string; exclude?: number | null },
+  n = 3,
+): RecScore[] {
+  const days = rangeDays(from, to).filter((d) => dayCheck(all, c, d, opts).ok);
+  if (!days.length) return [];
 
-  /* ① 캐파 여유 — 기간 내 가장 빠듯한 날 기준 (0~1) */
-  const room = Math.max(
-    0,
-    Math.min(
-      ...span.map((x) => {
-        const b = c.ch.includes('배너')
-          ? (bannerRem(all, x, exclude) - c.qty) / (CAPA['배너'] as number)
-          : 1;
-        const p =
-          c.offer === '쿠폰'
-            ? (couponRem(all, x, exclude) - c.qty) / (CAPA['쿠폰'] as number)
-            : 1;
-        return Math.min(b, p);
-      }),
-    ),
-  );
+  const D = days.map((d) => denseOn(all, c, d));
+  const R = days.map((d) => roomOn(all, c, d, opts.exclude));
+  const dLo = Math.min(...D), dHi = Math.max(...D);
+  const rLo = Math.min(...R), rHi = Math.max(...R);
+  const norm = (v: number, lo: number, hi: number) => (hi === lo ? 1 : (v - lo) / (hi - lo));
 
-  /* ② 준비 기간 — 시작일 D-2 이전 권고 */
-  const lead = Math.min(1, (rangeDays(today, d).length - 1) / 3);
-
-  /* ③ 요일 — 시작일은 평일 권고 */
-  const wk = [0, 6].includes(dowOf(d)) ? 0 : 1;
-
-  return {
-    d,
-    score: REC_W.room * room + REC_W.lead * lead + REC_W.weekday * wk,
-    room,
-    lead,
-    wk,
-  };
+  return days
+    .map((d, i) => {
+      const quiet = 1 - norm(D[i], dLo, dHi); // 적을수록 좋다
+      const room = norm(R[i], rLo, rHi);
+      const wknd = [5, 6, 0].includes(dowOf(d)) ? 1 : 0; // 금 토 일
+      return {
+        d,
+        score: REC_W.quiet * quiet + REC_W.weekend * wknd + REC_W.room * room,
+        quiet, room, wknd, dense: D[i], rem: R[i],
+      };
+    })
+    .sort((a, b) => b.score - a.score || (a.d < b.d ? -1 : 1))
+    .slice(0, n);
 }
