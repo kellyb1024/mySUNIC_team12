@@ -309,6 +309,16 @@ input,select,textarea{font-family:inherit;font-size:13px}
   z-index:130;box-shadow:0 4px 14px rgba(0,0,0,.2);
   border-top:6px solid transparent;background-clip:padding-box}
 .ev:hover .tip{display:block}
+/* 툴팁(222×170)이 칸(193×112)보다 커서 .ccell 의 overflow:hidden 에 잘렸다.
+   어떤 것은 다 보이고 어떤 것은 잘린 이유 — 칸 높이가 내용에 따라 다르고,
+   아래쪽 줄은 .ev.up 으로 위로 뒤집혀서 우연히 칸 안에 들어가기도 했다.
+
+   평소에는 칸이 내용을 잘라야 하므로, 칩에 올렸을 때만 그 칸을 연다.
+   층이 .calwk > .wcells > .ccell 이라 셋 다 올려야 아랫줄과 주기성 바
+   오버레이(.wspans) 위에 그려진다. */
+.ccell:has(.ev:hover){overflow:visible;z-index:100}
+.wcells:has(.ev:hover){position:relative;z-index:100}
+.calwk:has(.ev:hover){z-index:100}
 .ev .tip b{display:block;font-weight:500;margin-bottom:4px;font-size:11.5px}
 .ev .tip .tr{display:flex;justify-content:space-between;gap:10px;color:#D6D8DA}
 .ev .tip .tr span:last-child{font-family:Roboto;color:#fff}
