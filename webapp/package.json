@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "parity": "node --experimental-strip-types lib/domain.parity.ts"
+    "parity": "node --experimental-strip-types lib/domain.parity.ts",
+    "db:check": "node --env-file=.env.local --experimental-strip-types lib/db.check.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.111.0",
     "next": "16.2.12",
     "react": "19.2.4",
     "react-dom": "19.2.4"
