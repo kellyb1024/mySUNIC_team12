@@ -1350,10 +1350,12 @@ function cardList(){
    ── 취소 ──
    담당자가 논의 없이 마케터의 신청을 임의로 취소하지 못하게 두 갈래로만 연다.
      1. 마케터 — 확정 이전(확정 대기 · 조정 필요) 본인 건을 스스로 철회. 사유 없음
-     2. 담당자 — 조정 요청이 들어온 건만, 당사자와 논의한 뒤 담당자 탭에서 취소. 사유 필수
-   확정된 건은 어느 쪽도 손대지 않는다. 이미 캐파와 시간대가 잡혀 있어
-   담당자와 협의해 처리한다 (0728 미팅: "취소는 보통 안 하긴 해요 …
-   급히 취소하는 경우에는 시스템상에서 캠페인을 중단하거나").
+     2. 담당자 — 당사자와 논의한 뒤 담당자 탭에서 취소. 사유 필수
+          확정 대기 · 조정 필요 : 팝업에서 바로
+          확정               : '수정하기'를 눌러 편집으로 들어간 뒤에만
+   확정 건에 한 단계를 더 두는 이유는 이미 마케터에게 확정을 알린 건이기 때문이다
+   (0728 미팅: "취소는 보통 안 하긴 해요 … 급히 취소하는 경우에는 시스템상에서
+   캠페인을 중단하거나"). 마케터는 확정된 본인 건을 스스로 내리지 못한다.
    그래서 '사유가 남아 있으면 담당자 취소'가 성립한다 — 담당자 취소는 논의 결과라
    사유가 필수이고, 마케터 취소는 스스로 철회라 사유를 받지 않는다.
 
@@ -2049,7 +2051,10 @@ function admModal(no,st){
     ${overCap||hourJam||swapOn?moverList(r,span,hourJam):''}`:''}
     <div class="m-act">
       <button class="pill ghost" id="amNo">닫기</button>
-      ${r.status==='조정 필요'?`<button class="pill ghost" id="amCancel">신청 취소</button>`:''}
+      ${/* 확정 전(확정 대기·조정 필요)은 바로, 확정 건은 '수정하기'를 거친 뒤에만 —
+            이미 마케터에게 확정을 알린 건이라 한 단계를 더 둔다 */
+        ['신청','조정 필요'].includes(r.status)||(done&&edit)
+        ?`<button class="pill ghost" id="amCancel">신청 취소</button>`:''}
       ${done&&!edit
         ?`<button class="pill primary" id="amEdit">수정하기</button>`
         :`<button class="pill primary" id="amOk" ${overCap||swapOn?'disabled':''}>${
