@@ -19,7 +19,7 @@
 
 ```bash
 cd webapp
-npm run parity    # 규칙이 HTML 프로토타입과 같은 값을 내는가 (1,312항목)
+npm run parity    # 규칙이 HTML 프로토타입과 같은 값을 내는가 (1,087항목)
 npm run db:check  # DB 연결 · 데이터 적재 · 값 일치
 npx tsc --noEmit  # 타입
 npm run build     # 빌드
