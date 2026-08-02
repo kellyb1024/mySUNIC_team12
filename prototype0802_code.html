@@ -1983,6 +1983,9 @@ function bindAm(no,s){
   const r=requests.find(q=>q.no===no);
   const rep=r.cycle==='주기성', len=rangeDays(r.from,r.to).length||1;
   const close=()=>{admFix.no=null; noSwap(); $('modalSlot').innerHTML=''};
+  /* 팝업 바깥을 눌러도 닫는다 — 옮기던 중이면 그 선택도 함께 버린다 */
+  const ov=document.querySelector('#modalSlot .modal');
+  if(ov) ov.onclick=e=>{if(e.target===ov) close()};
 
   /* ── 선점 건 일정 조정 (0731 플로우) ── */
   document.querySelectorAll('[data-swapon]').forEach(x=>x.onclick=()=>{
