@@ -7,3 +7,9 @@ index.html
 # 도구 / OS 생성 파일
 .omc/
 .DS_Store
+
+# 웹앱 빌드 산출물
+webapp/node_modules/
+webapp/.next/
+webapp/out/
+webapp/.env*.local
