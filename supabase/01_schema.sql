@@ -51,7 +51,18 @@ create trigger campaigns_touch before update on campaigns
   for each row execute function touch_updated_at();
 
 -- 실시간 구독을 켠다 (담당자·마케터 화면이 서로의 변경을 받는다)
-alter publication supabase_realtime add table campaigns;
+-- 이미 등록돼 있으면 건너뛴다 — alter publication 은 두 번 실행하면 오류가 난다
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'campaigns'
+  ) then
+    alter publication supabase_realtime add table campaigns;
+  end if;
+end $$;
 
 -- 캐파 기준값 — 개발자 없이 바꿀 수 있게 테이블로 뺀다
 create table if not exists capa (
