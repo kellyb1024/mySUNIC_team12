@@ -124,8 +124,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dcell.on{background:var(--sk-orange-t10);border-color:var(--sk-orange);border-width:2px;padding:7px 5px}
 .dcell.on .dd{color:var(--sk-orange-text);font-weight:600}
 .dcell.on .wk{color:var(--sk-orange-text);font-weight:500}
-.dcell.on::after{content:'시작';position:absolute;bottom:3px;left:0;right:0;text-align:center;
-  font-size:9px;color:var(--sk-orange-text);font-weight:500}
+/* 고른 칸은 주황 테두리·배경으로 이미 드러난다 — '시작' 글자는 덧말이라 뺐다 */
 /* 여유가 없는 날 — 고를 수는 있다. 고르면 조정 요청으로 이어지므로 커서를 막지 않는다 */
 .dcell.no{background:var(--motif);border-style:dashed;border-color:var(--border)}
 .dcell.no .dd{color:var(--locked-text);font-weight:400} .dcell.no .dm{color:var(--locked-text)}
