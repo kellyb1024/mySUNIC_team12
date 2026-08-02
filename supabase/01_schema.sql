@@ -79,12 +79,22 @@ on conflict (channel) do update
   set limit_man = excluded.limit_man, note = excluded.note;
 
 -- ── 접근 권한 ────────────────────────────────────────────────────────
--- 지금은 로그인 전이라 익명 키로 읽고 쓸 수 있게 열어 둔다.
--- 로그인을 붙일 때 이 부분을 역할별 정책으로 좁힌다 (계획 C단계).
+-- 로그인을 아직 안 붙였으므로 익명 키로 읽고 쓸 수 있다.
+-- 저장소가 공개라 anon 키도 공개된다 — 그래서 '지우기'만은 막아 둔다.
+-- 잘못돼도 02_seed.sql 을 다시 돌리면 원래 204건으로 복구된다.
+-- 로그인을 붙일 때 이 부분을 역할별로 좁힌다 (계획 C단계).
 alter table campaigns enable row level security;
 alter table capa      enable row level security;
-drop policy if exists campaigns_all on campaigns;
-create policy campaigns_all on campaigns for all
-  using (true) with check (true);
+
+drop policy if exists campaigns_all    on campaigns;   -- 예전에 열어 둔 것 정리
+drop policy if exists campaigns_read   on campaigns;
+drop policy if exists campaigns_insert on campaigns;
+drop policy if exists campaigns_update on campaigns;
+
+create policy campaigns_read   on campaigns for select using (true);
+create policy campaigns_insert on campaigns for insert with check (true);
+create policy campaigns_update on campaigns for update using (true) with check (true);
+-- delete 정책은 만들지 않는다 → 익명으로는 지울 수 없다
+
 drop policy if exists capa_read on capa;
 create policy capa_read on capa for select using (true);
