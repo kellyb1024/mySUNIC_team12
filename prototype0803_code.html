@@ -142,6 +142,8 @@ input,select,textarea{font-family:inherit;font-size:13px}
   background:var(--sk-orange-t10);border:1px solid var(--sk-orange-t25)}
 .periodline b{font-size:16px;font-weight:600;color:var(--sk-orange-text)}
 .periodline span{font-size:11.5px;color:var(--text-muted)}
+.periodline .remain{font-family:Roboto;font-variant-numeric:tabular-nums;
+  font-size:12px;font-weight:500;color:var(--sk-orange-text);margin-left:auto}
 .periodline .src2{flex-basis:100%;font-size:11px;color:var(--text-muted);
   padding-top:5px;margin-top:2px;border-top:1px dashed var(--sk-orange-t25)}
 .periodline.warn .src2{border-top-color:var(--border)}
@@ -386,7 +388,11 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .st.sent{background:var(--l1);color:var(--text-muted)}
 .st.cancel{background:var(--motif);color:var(--locked-text);border:1px dashed var(--locked-fill)}
 
-.toasts{position:fixed;right:24px;bottom:24px;display:flex;flex-direction:column;gap:9px;z-index:200}
+/* 안내는 눈이 머무는 곳 가까이 — '가능한 날 찾기' 가 좌측 하단이라 그 옆에 띄운다.
+   우측 하단에 띄웠더니 버튼을 눌러도 아무 반응이 없는 것처럼 보였다 (0802 UT).
+   left 는 사이드 패널(폭 250px, 우측 끝 ~285px) 을 비켜 300px. 패널 위에 겹치면
+   버튼을 가려 창 높이에 따라 글자가 잘렸다. */
+.toasts{position:fixed;left:300px;bottom:24px;display:flex;flex-direction:column;gap:9px;z-index:200}
 .toast{background:var(--text-strong);color:#fff;padding:12px 16px;border-radius:6px;font-size:12.5px;
   max-width:400px;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,.16);animation:tin .2s}
 .toast.warn{background:var(--sk-red)}
@@ -1580,7 +1586,7 @@ function kpiRow(){
       <span class="kml num">${m.replace('-','. ')}</span>
       <button class="arw" data-km="${MONTHS[mi+1]||''}" ${mi>=MONTHS.length-1?'disabled':''}>›</button>
       ${/* 요약과 아래 리스트는 세는 축이 다르다. 숫자가 달라 보이는 이유를 적어 둔다 (0802 UT) */''}
-      <span class="kmn">내가 신청한 캠페인 · ${applied}건 (신청일 기준)</span>
+      <span class="kmn">이 달 내가 신청한 캠페인 ${applied}건</span>
     </div>
     <div class="kpis">
       ${box('확정 대기',wait,false,'wait')}
@@ -1701,9 +1707,7 @@ function cardApply(){
       const on=draft.date===d;
       /* 칸마다 잔여를 적는다 — 추천 3개 말고는 여유를 알 수 없어 비교가 안 됐다 (0802 UT).
          기간에서 가장 빠듯한 날 기준. 한도 없는 채널만 쓰면 적을 것이 없다. */
-      const sp=spanOf(draft,d), rm=[];
-      if(draft.ch.includes('배너')) rm.push(`배너 ${man(Math.min(...sp.map(x=>bannerRem(x))))}만`);
-      if(draft.offer==='쿠폰')      rm.push(`쿠폰 ${man(Math.min(...sp.map(x=>couponRem(x))))}만`);
+      const rm=remOn(draft,d);
       return `<div class="dcell ${c.ok?'ok':'no'}${on?' on':''}${o.dow===0?' sun':''}"
           data-d="${d}"${c.ok?'':` data-tip="${esc(c.why)}"`}>
         <span class="wk">${o.w}</span><span class="dd">${+d.slice(8)}</span>
@@ -1799,6 +1803,14 @@ const whoFields=()=>`<div class="frow3">
     </div>`;
 
 /* 최종 신청 — 시간대는 담당자가 확정하며 배정한다 */
+/* 고른 날 기준 잔여 — 달력 칸·최종 신청·확인 모달이 같은 값을 쓴다 (0802 UT).
+   기간에서 가장 빠듯한 날 기준. 한도 없는 채널만 쓰면 빈 배열이다. */
+function remOn(c,d){
+  const sp=spanOf(c,d), o=[];
+  if(c.ch.includes('배너')) o.push(`배너 ${man(Math.min(...sp.map(x=>bannerRem(x))))}만`);
+  if(c.offer==='쿠폰')      o.push(`쿠폰 ${man(Math.min(...sp.map(x=>couponRem(x))))}만`);
+  return o;
+}
 function secFinal(){
   const rep=draft.cycle==='주기성';
   const from=draft.date, len=draft.days||1;
@@ -1806,6 +1818,8 @@ function secFinal(){
     <div class="drill-hd"><b>최종 신청</b></div>
     <div class="periodline"><b>${fmtD(from)} ~ ${fmtD(addDays(from,len-1))}</b>
       <span>${rep?`${len}일간 매일 발송`:`시작일 1회 발송 · ${len}일 노출`}</span>
+      ${(()=>{const rm=remOn(draft,from);
+        return rm.length?`<span class="remain">잔여 ${rm.join(' · ')}</span>`:''})()}
       ${srcPeriod()}</div>
     ${whoFields()}
     <div class="actions">
@@ -1977,7 +1991,11 @@ const CANCELABLE=['신청','조정 필요'];
 function editReq(no){
   const r=requests.find(q=>q.no===no); if(!r) return;
   const len=rangeDays(r.from,r.to).length||1;
-  Object.assign(draft,{qFrom:r.from,qTo:r.from,days:len,cycle:r.cycle,ch:[...r.ch],gnb:r.gnb,
+  /* 수정은 대개 '날짜를 옮기려고' 들어온다. 조회 기간을 원래 시작일 하루로 좁히면
+     달력에 그 하루만 떠서 옮길 곳이 안 보였다 (0802 UT). 앞뒤로 일주일씩 열어 둔다. */
+  const qF=(x=>x<TODAY?TODAY:x)(addDays(r.from,-7));
+  const qT=(x=>x>'2026-09-30'?'2026-09-30':x)(addDays(r.from,7));
+  Object.assign(draft,{qFrom:qF,qTo:qT,days:len,cycle:r.cycle,ch:[...r.ch],gnb:r.gnb,
     offer:r.offer,qty:r.qty,camp:r.camp,dept:r.team,mk:r.mk,note:r.note||'',
     date:r.from,hour:null,editNo:r.no});
   COND.forEach(k=>form[k]=Array.isArray(draft[k])?[...draft[k]]:draft[k]);
@@ -2063,6 +2081,8 @@ function confirmModal(ask){
       ${hrow('채널 / GNB',`${draft.ch.join(' · ')} / ${draft.gnb||'—'}`)}
       ${hrow('주기 / 오퍼',`${draft.cycle} · ${draft.offer}`)}
       ${hrow(rep0?'1일 타겟수':'전체 타겟수',`${man(draft.qty)}만 건`)}
+      ${(()=>{const rm=remOn(draft,from0);
+        return rm.length?hrow('이 날 잔여',rm.join(' · ')):''})()}
       ${ask?hrow('조정 요청 사유',draft.note):''}
     </div>
     <div class="m-act">
