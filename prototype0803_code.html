@@ -1581,7 +1581,7 @@ function kpiRow(){
       <span class="kml num">${m.replace('-','. ')}</span>
       <button class="arw" data-km="${MONTHS[mi+1]||''}" ${mi>=MONTHS.length-1?'disabled':''}>›</button>
       ${/* 요약과 아래 리스트는 세는 축이 다르다. 숫자가 달라 보이는 이유를 적어 둔다 (0802 UT) */''}
-      <span class="kmn">내가 신청한 캠페인 · ${applied}건 <em class="axis">신청일 기준</em></span>
+      <span class="kmn">내가 신청한 캠페인 · ${applied}건 (신청일 기준)</span>
     </div>
     <div class="kpis">
       ${box('확정 대기',wait,false,'wait')}
@@ -1703,12 +1703,12 @@ function cardApply(){
       /* 칸마다 잔여를 적는다 — 추천 3개 말고는 여유를 알 수 없어 비교가 안 됐다 (0802 UT).
          기간에서 가장 빠듯한 날 기준. 한도 없는 채널만 쓰면 적을 것이 없다. */
       const sp=spanOf(draft,d), rm=[];
-      if(draft.ch.includes('배너')) rm.push(`배너 ${man(Math.min(...sp.map(x=>bannerRem(x))))}`);
-      if(draft.offer==='쿠폰')      rm.push(`쿠폰 ${man(Math.min(...sp.map(x=>couponRem(x))))}`);
+      if(draft.ch.includes('배너')) rm.push(`배너 ${man(Math.min(...sp.map(x=>bannerRem(x))))}만`);
+      if(draft.offer==='쿠폰')      rm.push(`쿠폰 ${man(Math.min(...sp.map(x=>couponRem(x))))}만`);
       return `<div class="dcell ${c.ok?'ok':'no'}${on?' on':''}${o.dow===0?' sun':''}"
           data-d="${d}"${c.ok?'':` data-tip="${esc(c.why)}"`}>
         <span class="wk">${o.w}</span><span class="dd">${+d.slice(8)}</span>
-        ${rm.length?`<span class="drem">${rm.join(' · ')}만</span>`:''}
+        ${rm.length?`<span class="drem">${rm.join(' · ')}</span>`:''}
         ${!on&&best[0]===d?`<span class="pin">추천</span>`:''}</div>`})).join('');
 
   return `<div class="card">${head}
@@ -1892,7 +1892,7 @@ function cardList(){
                  .sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:a.hour-b.hour);
   return `<div class="card">
     <div class="card-hd"><div class="rule"></div>
-      <div class="lbl"><span>캠페인 리스트</span><span>발송 시작일 기준</span></div>
+      <div class="lbl"><span>캠페인 리스트 (발송 시작일 기준)</span></div>
       <h2>${(()=>{const mi=MONTHS.indexOf(kpiMonth);
           return `<span class="monthnav">
             <button class="arw sm" data-km="${MONTHS[mi-1]||''}" ${mi<=0?'disabled':''}>‹</button>
