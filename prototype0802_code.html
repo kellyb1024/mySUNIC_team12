@@ -1837,7 +1837,7 @@ function recTop(n){
 }
 function cardRec(){
   const head=`<div class="card-hd"><div class="rule"></div>
-    <div class="lbl"><span>추천</span><span>혼잡도 · 금토일 · 캐파 여유</span></div></div>`;
+    <div class="lbl"><span>추천</span></div></div>`;
   const top=recTop(3);
   if(!top.length) return `<div class="card">${head}
     <div class="empty">조회 기간에 시작할 수 있는 날이 없습니다.</div></div>`;
