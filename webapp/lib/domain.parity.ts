@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import type { Campaign, Draft } from './domain.ts';
 import {
   bannerUsed, couponUsed, bannerRem, couponRem, appliedOn,
-  dayCheck, recScore, rangeDays,
+  dayCheck, recTop, rangeDays,
 } from './domain.ts';
 
 type Raw = Omit<Campaign, 'ch'> & { ch: string[] };
@@ -51,14 +51,24 @@ for (const c of ref.checks) {
   eq(`판정#${c.i} ${c.d}`, { ok: v.ok, why: v.why || '' }, { ok: c.ok, why: c.why });
 }
 
-/* ③ 추천 점수 */
-for (const r of ref.recs) {
-  const v = recScore(all, CASES[r.i], r.d, TODAY);
-  eq(`추천#${r.i} ${r.d}`, {
-    score: +v.score.toFixed(6), room: +v.room.toFixed(6),
-    lead: +v.lead.toFixed(6), wk: v.wk,
-  }, { score: r.score, room: r.room, lead: r.lead, wk: r.wk });
-}
+/* ③ 추천 — 순위와 점수가 같은가 */
+const RANGES: [string, string][] = [
+  ['2026-08-10', '2026-08-20'], ['2026-08-15', '2026-08-31'], ['2026-09-01', '2026-09-30'],
+];
+const byKey = new Map<string, typeof ref.recs[number]>();
+for (const r of ref.recs) byKey.set(`${r.i}|${r.ri}|${r.rank}`, r);
+CASES.forEach((c, i) => RANGES.forEach(([f, t], ri) => {
+  recTop(all, c, f, t, { today: TODAY, lastDay: LAST }, 5).forEach((v, rank) => {
+    const want = byKey.get(`${i}|${ri}|${rank}`);
+    eq(`추천#${i}-${ri} ${rank + 1}위`, {
+      d: v.d, score: +v.score.toFixed(6), quiet: +v.quiet.toFixed(6),
+      room: +v.room.toFixed(6), wknd: v.wknd, dense: v.dense, rem: v.rem,
+    }, want && {
+      d: want.d, score: want.score, quiet: want.quiet,
+      room: want.room, wknd: want.wknd, dense: want.dense, rem: want.rem,
+    });
+  });
+}));
 
 const total = pass + fails.length;
 console.log(`대조 ${pass}/${total} 일치`);
