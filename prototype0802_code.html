@@ -10,6 +10,8 @@
 <!-- Supabase 클라이언트. 서버를 안 쓰면(SUPA 미설정) 불러와도 아무 일도 하지 않는다.
      망에서 막히거나 실패해도 프로토타입은 아래 더미 배열로 그대로 돈다. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- 접속 정보. 파일이 없거나 비어 있으면 아래 더미 배열로 돈다 -->
+<script src="config.js"></script>
 <style>
 :root{
   --sk-orange:#EE7501; --sk-orange-text:#B35700; --sk-orange-dk:#D06600;
@@ -1277,12 +1279,9 @@ let requests=[
    지금 구현은 메모리 하나뿐이다. 로그인·실시간 연동을 붙일 때 같은 자리에
    서버 구현을 끼우면 화면 코드는 손대지 않아도 된다.
    ══════════════════════════════════════════════════════════════════════ */
-/* 서버를 쓸지 — 값이 비어 있으면 위 배열만으로 돈다 (UT·스냅샷은 항상 이 길).
-   주소창에 ?db=local 을 붙이면 서버를 켜 두고도 로컬로 돌릴 수 있다. */
-const SUPA={
-  url: '',        /* 예: https://xxxxxxxx.supabase.co */
-  key: '',        /* anon(public) 키. service_role 키는 절대 넣지 않는다 */
-};
+/* 서버를 쓸지 — config.js 가 없거나 비어 있으면 위 배열만으로 돈다
+   (UT·스냅샷은 항상 이 길). ?db=local 을 붙이면 값을 채워 둔 채로도 로컬로 돈다. */
+const SUPA=Object.assign({url:'',key:''}, window.SUPA_CONFIG||{});
 const USE_REMOTE = !!(SUPA.url && SUPA.key) && !/[?&]db=local\b/.test(location.search);
 
 const DB=(()=>{
