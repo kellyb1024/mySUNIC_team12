@@ -149,6 +149,22 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dcell.start{border-color:var(--sk-orange);border-width:2px}
 .dcell.start .wk{color:var(--sk-orange-text);font-weight:500}
 .blockbox{border:1px solid var(--sk-red);border-radius:6px;padding:13px 15px;margin:8px 0 12px}
+/* 자리를 만들려고 옮길 수 있는 건들 — 캘린더에 이미 보이는 정보를 팝업 안으로 가져온 것 */
+.movers{margin-bottom:12px}
+.movers .mvhd{font-size:11.5px;color:var(--text-muted);margin-bottom:6px}
+.mv{display:flex;align-items:center;gap:9px;padding:7px 10px;border:1px solid var(--border);
+  border-radius:5px;font-size:12px;margin-bottom:5px;background:#fff}
+.mv.on{border-color:var(--sk-orange);background:var(--sk-orange-t10)}
+.mv .mvn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-strong)}
+.mv .mvq{font-variant-numeric:tabular-nums;font-weight:500;color:var(--text-strong);flex:0 0 auto}
+.mv .mvt{font-variant-numeric:tabular-nums;color:var(--text-muted);flex:0 0 auto;min-width:58px;
+  text-align:right}
+.mv button{flex:0 0 auto}
+.swap{border:1px solid var(--sk-orange-t25);border-left:2px solid var(--sk-orange);
+  border-radius:5px;padding:11px 12px;margin:0 0 5px 0;background:var(--surface)}
+.swap .fixrow{margin-top:0}
+.adjbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:11px}
+.adjbtns .note{font-size:11px;color:var(--text-muted)}
 /* 막힘 안내는 12·8 리듬 — 8은 묶인 것끼리, 12는 블록 사이 */
 .drill.final.warn .reasonfld{margin-bottom:12px}
 .drill.final .actions{margin-top:12px}
@@ -378,17 +394,6 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .findbtn:hover{background:var(--sk-orange-dk)}
 .resetbtn{width:100%;padding:7px;font-size:11px;color:var(--text-muted);text-decoration:underline;margin-top:5px}
 
-/* ── 이번주 신청 가능 / 가장 빠른 슬롯 ── */
-.quicks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
-.qk{border:1px solid var(--border);border-radius:6px;padding:12px 14px;background:var(--sk-orange-t10)}
-.qk .qt{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:4px}
-.qk .qv{font-size:18px;font-weight:500;color:var(--text-strong);line-height:1.2}
-.qk .qv small{font-size:12px;color:var(--text-muted);font-weight:400}
-.qk .qm{font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.5}
-.qk .qb{margin-top:9px;width:100%;padding:6px;border-radius:999px;border:1px solid var(--sk-orange-text);
-  color:var(--sk-orange-text);font-size:11.5px;font-weight:500;background:#fff}
-.qk .qb:hover{background:#fff}
-
 /* ── 카드 안에서 펼쳐지는 단계 ── */
 .drill{border-top:1px solid var(--border);margin-top:18px;padding-top:16px}
 .drill.final{border-top:1px dashed var(--sk-orange-text)}
@@ -478,7 +483,11 @@ table.list td.adjd::before{content:'조정';font-size:9px;display:block;color:va
 /* ── 추천 카드 ── */
 .recs{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
 .rec-card{border:1px solid var(--border);border-radius:6px;padding:12px 13px}
-.rec-card .rt{font-size:13.5px;font-weight:500;color:var(--text-strong);margin-bottom:5px}
+.rec-card .rt{font-size:13.5px;font-weight:500;color:var(--text-strong);margin-bottom:5px;
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+/* 잔여량이 다른 정보에 묻혀 안 보인다는 UT 피드백 — 날짜 옆으로 빼서 세운다 */
+.rec-card .rq{font-family:Roboto;font-variant-numeric:tabular-nums;font-size:14.5px;
+  font-weight:600;color:var(--sk-orange-text);white-space:nowrap}
 .rec-card .rl{font-size:11.5px;color:var(--text-muted);line-height:1.6}
 .rec-card button{width:100%;margin-top:9px;padding:7px;border-radius:999px;border:1px solid var(--sk-orange-text);
   color:var(--sk-orange-text);font-size:11.5px;font-weight:500;background:#fff}
@@ -532,41 +541,6 @@ table.list.adm th:last-child,table.list.adm td.act{width:1%}
 .fdates .tl.moved{flex-basis:100%;color:var(--sk-orange-text)}
 .daychips{display:flex;gap:6px;flex-wrap:wrap}
 .hgrid.adm{grid-template-columns:repeat(11,minmax(0,1fr));flex:1}
-/* 주간 캐파 매트릭스 */
-.wknav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.wknav .arw{width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:#fff}
-.wknav .arw:hover:not(:disabled){background:var(--motif)}
-.wknav .arw:disabled{opacity:.3;cursor:not-allowed}
-.wknav .lab{font-size:14px;font-weight:500;color:var(--text-strong);min-width:170px;text-align:center}
-table.capamx{width:100%;border-collapse:separate;border-spacing:5px;margin:-5px;table-layout:fixed}
-table.capamx th:first-child{width:104px}
-table.capamx th{font-size:11.5px;font-weight:400;color:var(--text-muted);text-align:center;padding-bottom:2px}
-table.capamx th span{display:block;font-size:10.5px}
-table.capamx th.sun{color:var(--sk-red)}
-table.capamx th.today{color:var(--sk-orange-text);font-weight:500}
-table.capamx td.chn{width:104px;font-size:12px;color:var(--text-strong);white-space:nowrap;padding-right:6px}
-table.capamx td.chn small{display:block;font-size:10px;color:var(--text-muted);margin-left:14px}
-table.capamx td.chn .sw{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:5px}
-td.mx{height:50px;border-radius:4px;border:1px solid var(--cell-border);text-align:center;
-  font-family:Roboto;font-variant-numeric:tabular-nums;background:var(--l1)}
-td.mx b{display:block;font-size:14px;font-weight:500;line-height:1.1}
-td.mx small{font-size:10px;opacity:.8}
-/* 소진율 4단계는 오렌지 한 색의 농도로만 말한다. 회색은 '비어 있음' 하나에만 쓴다 */
-td.mx.zero{background:#fff;border-style:dashed;border-color:var(--border);
-  color:var(--text-muted);font-size:11px}
-td.mx.lv1{background:var(--sk-orange-t10);color:var(--l2t)}
-td.mx.lv2{background:var(--l2);color:var(--l2t)}
-td.mx.lv3{background:var(--l3);color:var(--l3t)}
-td.mx.lv4{background:var(--l4);color:var(--l4t)}
-/* 한도가 없으면 소진율이 없다 — 농도로 말할 수 없으니 숫자만 둔다 */
-td.mx.free{background:#fff;color:var(--text-strong)}
-.cellsw{display:inline-block;width:11px;height:11px;border-radius:2px;
-  border:1px solid var(--cell-border);margin-right:5px;vertical-align:-1px}
-.cellsw.lv1{background:var(--sk-orange-t10)} .cellsw.lv2{background:var(--l2)}
-.cellsw.lv3{background:var(--l3)} .cellsw.lv4{background:var(--l4)}
-.cellsw.free{background:#fff}
-.legend .lgt{color:var(--text-strong);font-weight:500}
-.legend .sep2{width:1px;height:12px;background:var(--border);display:inline-block}
 
 /* ── 수정 중 배너 ── */
 .editbar{background:var(--sk-orange-t10);border:1px solid var(--sk-orange);border-radius:6px;
@@ -650,7 +624,8 @@ const addDays=(d,n)=>{const t=new Date(d+'T00:00:00');t.setDate(t.getDate()+n);r
    신청 데이터
    ══════════════════════════════════════════════════════════════════════ */
 let seq=0; const ME={team:'A팀',mk:'철수'};
-/* adjBy — '조정 필요' 로 들어온 경로. 지금은 마케터 조정 요청('mkt') 하나뿐이다. */
+/* adjBy — '조정 필요' 로 들어온 경로. 마케터 조정 요청('mkt') 하나다.
+   담당자가 마케터에게 조정을 요청하는 경로는 0731 피드백으로 없앴다. */
 /* 신청 시각(reqAt) — 요약 4칸의 집계 기준이자 알림 D-1 판정의 근거.
    더미는 발송 10일 전으로 두되, 오늘보다 미래일 수 없으므로 당겨 붙인다. */
 const mkReq=o=>{
@@ -761,7 +736,7 @@ let requests=[
  mkReq({camp:'키즈 여름방학 마무리',from:'2026-08-03',to:'2026-08-06',ch:['배너','토스트팝업'],gnb:'홈',
    offer:'쿠폰',qty:70,team:'B팀',mk:'짱구',date:'2026-08-03',hour:16,reqAt:'2026-07-27 14:02'}),
 
- /* ── 조정 필요 · 경로 2 — 담당자가 확정 대기 건을 넘긴 경우 ── */
+ /* ── 확정 대기 ── */
  mkReq({camp:'주말 영화 추천 알림',from:'2026-08-03',to:'2026-08-06',ch:['배너'],gnb:'홈',
    offer:'없음',qty:70,team:'A팀',mk:'철수',date:'2026-08-03',hour:20,
    reqAt:'2026-07-27 16:20'}),
@@ -808,7 +783,18 @@ const REC_HOURS=[17,18,19];
 /* 마케터 선호 시간대 — 저녁 18~19시 반응률이 가장 높음 (0728 미팅) */
 const PREF=[19,18,20,21,17,22,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1];
 const prefRank=h=>PREF.indexOf(h);
-const activeOn=(d,r)=>r.cycle==='주기성' ? (d>=r.from&&d<=r.to) : (r.date===d);
+/* 자리를 비켜 주려고 옮기는 중인 확정 건은 '옮긴 자리'에 있는 것으로 쳐서 캐파를 센다.
+   덕분에 게이지·잔여·초과 판정이 모두 옮긴 결과를 미리 보여준다. */
+function swapView(r){
+  if(admSwap.no!==r.no) return r;
+  const o={...r};
+  if(admSwap.from){const n=rangeDays(r.from,r.to).length||1;
+    o.from=admSwap.from; o.to=addDays(admSwap.from,n-1); o.date=admSwap.from}
+  if(admSwap.hour!=null) o.hour=admSwap.hour;
+  return o;
+}
+const activeOn=(d,r)=>{const s=swapView(r);
+  return s.cycle==='주기성' ? (d>=s.from&&d<=s.to) : (s.date===d)};
 
 /* ── 사용량: 그 날 실제로 나가는 물량 ── */
 const usedOn=(d,pred)=>requests.filter(r=>inScope(r)&&activeOn(d,r)&&pred(r)).reduce((s,r)=>s+r.qty,0);
@@ -889,7 +875,9 @@ let draft=EMPTY_DRAFT();
 let calFilter={mode:'all',ch:[],offer:''}, calDay=null, openPanel=null, listSt='all';
 /* 담당자가 처리 중인 건 — 캐파·시간대 계산에서 자기 자신을 뺀다 */
 let admFix={no:null};
-let capaFrom='2026-07-27';                  /* 주간 캐파 현황 시작일 (월요일) */
+/* 조정 요청 건에 자리를 내주려고 옮기는 확정 건 (0731 플로우) */
+let admSwap={no:null,from:null,hour:null};
+const noSwap=()=>{admSwap={no:null,from:null,hour:null}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
@@ -1213,11 +1201,15 @@ function cardRec(){
       else tag.push('캐파 빠듯');
       tag.push(x.wk?'평일 시작':'주말 시작');
       if(x.lead<1) tag.push('준비 기간 촉박');
+      /* 기간에서 가장 빠듯한 날의 잔여를 세운다 — 주기성은 매일 캐파를 쓴다 */
+      const span=spanOf(draft,x.d), rem=[];
+      if(draft.ch.includes('배너')) rem.push(`배너 ${man(Math.min(...span.map(d=>bannerRem(d))))}만`);
+      if(draft.offer==='쿠폰')      rem.push(`쿠폰 ${man(Math.min(...span.map(d=>couponRem(d))))}만`);
       return `<div class="rec-card${draft.date===x.d?' on':''}">
-        <div class="rt">${fmtD(x.d)}${i===0?' <em>추천</em>':''}</div>
-        <div class="rl">${fmtD(x.d)} ~ ${fmtD(addDays(x.d,len-1))}<br>
-          ${draft.ch.includes('배너')?`배너 잔여 ${man(bannerRem(x.d))}만 · `:''}${tag.join(' · ')}</div>
-        <button data-d="${x.d}">이 날 시작</button></div>`}).join('')}</div>
+        <div class="rt"><span>${fmtD(x.d)}${i===0?' <em>추천</em>':''}</span>
+          ${rem.length?`<b class="rq">${rem.join(' · ')}</b>`:''}</div>
+        <div class="rl">${fmtD(x.d)} ~ ${fmtD(addDays(x.d,len-1))}<br>${tag.join(' · ')}</div>
+        <button data-d="${x.d}">이 날짜 선택하기</button></div>`}).join('')}</div>
   </div>`;
 }
 
@@ -1385,7 +1377,7 @@ function confirmModal(ask){
   const why=ask?dayCheck(draft,from0).why:'';
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
     <h3>${ask?'이 날짜로 조정 요청할까요?'
-        :draft.editNo!=null?'이 내용으로 수정할까요?':'이 신청 내용이 맞으십니까?'}</h3>
+        :draft.editNo!=null?'수정 내용을 확인해 주세요':'신청 내용을 확인해 주세요'}</h3>
     <div class="m-sub">${ask
       ?`${esc(why)} — 담당자가 그 날의 캐파를 조율합니다.`
       :'발송 시간대는 확정 후 배정됩니다.'}</div>
@@ -1401,9 +1393,9 @@ function confirmModal(ask){
       ${ask?hrow('조정 요청 사유',draft.note):''}
     </div>
     <div class="m-act">
-      <button class="pill ghost" id="mNo">다시 확인</button>
+      <button class="pill ghost" id="mNo">수정하기</button>
       <button class="pill primary" id="mYes">${
-        ask?'조정 요청하기':draft.editNo!=null?'수정하기':'신청하기'}</button>
+        ask?'조정 요청하기':draft.editNo!=null?'수정 완료':'신청하기'}</button>
     </div></div></div>`;
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
   $('mYes').onclick=()=>{
@@ -1811,6 +1803,82 @@ function admCal(){
   </div>`;
 }
 
+/* ── 캐파가 모자랄 때 자리를 만드는 길 (0731 플로우를 캐파 기준으로 옮긴 것) ──
+   0731 은 '그 시간대를 잡은 한 건'을 자동으로 찾아왔지만, 지금 제약은 하루 캐파라
+   자리를 차지한 건이 하나로 특정되지 않는다. 그래서 그 날 건들을 세우고 담당자가 고른다. */
+
+/* 얼마가 모자란지 — 기간 중 가장 빠듯한 날 기준 */
+function shortOf(r,span){
+  const gap=d=>Math.max(
+    r.ch.includes('배너') ? r.qty-bannerRem(d) : 0,
+    r.offer==='쿠폰'     ? r.qty-couponRem(d) : 0);
+  const worst=span.reduce((a,d)=>gap(d)>gap(a)?d:a,span[0]);
+  return `${man(gap(worst))}만이 더 필요합니다${span.length>1?` · ${fmtD(worst)} 기준`:''}`;
+}
+
+/* 그 날 캐파를 쓰고 있는 다른 건들 — 하나를 옮기면 자리가 난다 */
+function moversOn(r,span,byHour){
+  return requests.filter(q=>q.no!==r.no&&live(q)&&q.status!=='조정 필요'
+      /* 옮기는 중인 건은 이미 그 날·그 시간에서 빠졌어도 목록에 남겨 둔다 */
+      &&(q.no===admSwap.no||span.some(d=>activeOn(d,q)))
+      &&(byHour
+          ? REC_HOURS.includes(swapView(q).hour)&&slotClash(r,q)
+          : (r.ch.includes('배너')&&q.ch.includes('배너'))||(r.offer==='쿠폰'&&q.offer==='쿠폰')))
+    .sort((a,b)=>byHour?(swapView(a).hour-swapView(b).hour):(b.qty-a.qty));
+}
+
+function moverList(r,span,byHour){
+  const ms=moversOn(r,span,byHour);
+  if(!ms.length) return '';
+  return `<div class="movers">
+    <div class="mvhd">${byHour?'17~19시에 배정된 건':'이 날 캐파를 쓰고 있는 건'}</div>
+    ${ms.map(q=>`<div class="mv${admSwap.no===q.no?' on':''}">
+      <span class="mvn">${esc(q.camp)}</span>
+      <span class="mvq num">${man(q.qty)}만</span>
+      <span class="mvt num">${hh(swapView(q).hour)}</span>
+      <button class="pill ghost sm" data-swapon="${q.no}">일정 조정</button>
+    </div>${admSwap.no===q.no?swapPanel(r,q,span):''}`).join('')}</div>`;
+}
+
+/* 비켜 줄 건의 새 자리 — 여기서 고르면 캐파 계산이 바로 옮긴 결과로 바뀐다 */
+function swapPanel(r,hd,rSpan){
+  const rep=hd.cycle==='주기성', hours=rep?REC_HOURS:HOURS;
+  const n=rangeDays(hd.from,hd.to).length||1;
+  const to=admSwap.from||hd.from;
+  const hSpan=rangeDays(to,addDays(to,n-1));
+  const sel=admSwap.hour!=null?admSwap.hour:(hd.hour??hours[0]);
+  /* 날짜를 옮겨도, 시간만 옮겨도 자리가 난다 — 17~19시가 다 찬 경우는 시간만 바꾸면 된다 */
+  const moved=to!==hd.from, movedH=admSwap.hour!=null&&admSwap.hour!==hd.hour;
+  const changed=moved||movedH;
+  /* 옮길 자리가 이 건을 받아낼 수 있나 (swapView 가 이미 옮긴 것으로 세고 있다) */
+  const badTo=hSpan.some(d=>(hd.ch.includes('배너')&&bannerRem(d)<0)
+                          ||(hd.offer==='쿠폰'&&couponRem(d)<0));
+  /* 옮기고 나면 조정 요청 건이 들어가나 */
+  const fits=!rSpan.some(d=>(r.ch.includes('배너')&&bannerRem(d)<r.qty)
+                          ||(r.offer==='쿠폰'&&couponRem(d)<r.qty));
+  return `<div class="swap">
+    <div class="fixrow"><span>옮길 기간</span>
+      <div class="fdates">
+        <input type="date" id="swFrom" value="${to}" min="${TODAY}" max="2026-09-30">
+        <span class="tl">~ <b>${fmtD(addDays(to,n-1))}</b> · ${n}일${rep?' 매일 발송':''}</span>
+        ${moved?`<span class="tl moved">지금은 ${fmtD(hd.from)} ~ ${fmtD(hd.to)}</span>`:''}
+      </div></div>
+    <div class="fixrow"><span>캐파</span>${gaugeRow(hSpan[0],hd,0,'')}</div>
+    <div class="fixrow"><span>시간대</span>
+      <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
+        `<div class="hslot${h===sel?' on':''}" data-swh="${h}">
+          <span class="hh">${h}시</span></div>`).join('')}</div></div>
+    ${badTo?`<div class="blockbox"><b>옮길 날짜도 캐파를 넘습니다</b>
+      <div>다른 날짜를 골라 주세요.</div></div>`:''}
+    <div class="adjbtns">
+      <button class="pill primary sm" data-swapok="${hd.no}"
+        ${changed&&!badTo&&fits?'':'disabled'}>두 건 함께 확정</button>
+      <button class="pill ghost sm" data-swapno="1">되돌리기</button>
+      ${!changed?`<span class="note">옮길 날짜나 시간을 골라 주세요.</span>`
+        :fits?'':`<span class="note">아직 자리가 모자랍니다.</span>`}
+    </div></div>`;
+}
+
 /* ── 담당자 처리 팝업 ──
    상태에 따라 할 수 있는 일만 보여준다.
      확정 대기 · 조정 필요 → 발송일·시간대를 정해 확정 (필요하면 신청 취소)
@@ -1828,13 +1896,18 @@ function admModal(no,st){
      시스템이 막는 제약은 일 캐파 하나뿐이다 (0730 담당자 확인) */
   const at={};
   hours.forEach(h=>at[h]=span.reduce((n,d)=>n+requests.filter(q=>
-    inScope(q)&&activeOn(d,q)&&q.hour===h&&slotClash(r,q)).length,0));
+    inScope(q)&&activeOn(d,q)&&swapView(q).hour===h&&slotClash(r,q)).length,0));
   const sel=s.hour!=null?s.hour:(r.hour??hours[0]);
   const moved=s.from!==r.from;
   /* 자기 자신을 뺀 잔여로 본다 — 이 건을 그 날에 넣을 수 있나 */
   const overCap=span.some(d=>(r.ch.includes('배너')&&bannerRem(d)<r.qty)
                            ||(r.offer==='쿠폰'&&couponRem(d)<r.qty));
   const done=r.status==='확정';
+  /* 자리를 비켜 줄 건을 고르는 중이면 목록을 열어 두고, 단독 확정은 막는다 */
+  const swapOn=admSwap.no!=null&&requests.some(q=>q.no===admSwap.no);
+  /* 주기성은 17~19시에서만 배정한다. 세 칸이 다 차 있으면 담당자가 한 건을 옮길 수 있게 한다.
+     시간대는 제약이 아니므로(0730 담당자 확인) 막지 않고 알려만 준다. */
+  const hourJam=!overCap&&rep&&hours.every(h=>at[h]>0);
 
   if(s.ask) return $('modalSlot').innerHTML=`<div class="modal"><div class="box">
       <h3>이 신청을 취소하시겠습니까?</h3>
@@ -1885,11 +1958,14 @@ function admModal(no,st){
     </div>
     ${rep?`<div class="segnote">주기성은 17~19시 중에서 배정합니다.</div>`:''}
     ${overCap?`<div class="blockbox"><b>이 날짜는 캐파를 넘습니다</b>
-      <div>발송일을 옮기거나 마케터와 모수를 협의해 주세요.</div></div>`:''}
+      <div>${shortOf(r,span)}</div></div>`:''}
+    ${hourJam?`<div class="segnote">17~19시가 모두 차 있습니다.
+      캐파는 남아 있으니 그대로 확정해도 되고, 아래에서 한 건을 다른 시간으로 옮겨도 됩니다.</div>`:''}
+    ${overCap||hourJam||swapOn?moverList(r,span,hourJam):''}
     <div class="m-act">
       <button class="pill ghost" id="amNo">닫기</button>
       ${r.status==='조정 필요'?`<button class="pill ghost" id="amCancel">신청 취소</button>`:''}
-      <button class="pill primary" id="amOk" ${overCap?'disabled':''}>${
+      <button class="pill primary" id="amOk" ${overCap||swapOn?'disabled':''}>${
         done?'일정 조정':moved?'일정을 조정해 확정':'확정'}</button>
     </div></div></div>`;
   bindAm(no,s);
@@ -1898,7 +1974,33 @@ function admModal(no,st){
 function bindAm(no,s){
   const r=requests.find(q=>q.no===no);
   const rep=r.cycle==='주기성', len=rangeDays(r.from,r.to).length||1;
-  const close=()=>{admFix.no=null; $('modalSlot').innerHTML=''};
+  const close=()=>{admFix.no=null; noSwap(); $('modalSlot').innerHTML=''};
+
+  /* ── 선점 건 일정 조정 (0731 플로우) ── */
+  document.querySelectorAll('[data-swapon]').forEach(x=>x.onclick=()=>{
+    const hd=requests.find(q=>q.no===+x.dataset.swapon); if(!hd) return;
+    admSwap={no:hd.no,from:hd.from,hour:hd.hour}; admModal(no,s)});
+  document.querySelectorAll('[data-swh]').forEach(x=>x.onclick=()=>{
+    admSwap.hour=+x.dataset.swh; admModal(no,s)});
+  document.querySelectorAll('[data-swapno]').forEach(x=>x.onclick=()=>{
+    noSwap(); admModal(no,s)});
+  const sf=$('swFrom'); if(sf) sf.onchange=e=>{
+    admSwap.from=e.target.value<TODAY?TODAY:e.target.value; admModal(no,s)};
+
+  /* 두 건 함께 — 비켜 준 건은 확정을 유지한 채 옮기고, 조정 요청 건은 그 자리에 확정 */
+  document.querySelectorAll('[data-swapok]').forEach(x=>x.onclick=()=>{
+    const hd=requests.find(q=>q.no===+x.dataset.swapok); if(!hd) return;
+    const hn=rangeDays(hd.from,hd.to).length||1, hWas=`${fmtD(hd.from)} ~ ${fmtD(hd.to)}`;
+    hd.from=admSwap.from; hd.to=addDays(admSwap.from,hn-1); hd.date=admSwap.from;
+    if(admSwap.hour!=null) hd.hour=admSwap.hour;
+    hd.moved={from:hWas,to:`${fmtD(hd.from)} ~ ${fmtD(hd.to)}`,by:'adm',peer:r.camp};
+
+    const rWas=`${fmtD(r.from)} ~ ${fmtD(r.to)}`;
+    if(s.from!==r.from){r.from=s.from; r.to=addDays(s.from,len-1); r.date=s.from;
+      r.moved={from:rWas,to:`${fmtD(r.from)} ~ ${fmtD(r.to)}`,by:'adm'}}
+    r.hour=s.hour!=null?s.hour:(r.hour??(rep?REC_HOURS[0]:HOURS[0]));
+    r.status='확정'; r.reason=''; r.note=''; r.adjBy=null;
+    close(); toast(`두 건을 확정했습니다 — ${r.camp} · ${hd.camp} ${fmtD(hd.from)}`); render()});
   const wy=$('amWhy'); if(wy) wy.oninput=e=>s.why=e.target.value;
   const bk=$('amBack'); if(bk) bk.onclick=()=>admModal(no,{...s,ask:false});
   const ck=$('amCancelOk'); if(ck) ck.onclick=()=>{
