@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<!-- Supabase 클라이언트. 서버를 안 쓰면(SUPA 미설정) 불러와도 아무 일도 하지 않는다.
+     망에서 막히거나 실패해도 프로토타입은 아래 더미 배열로 그대로 돈다. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   --sk-orange:#EE7501; --sk-orange-text:#B35700; --sk-orange-dk:#D06600;
@@ -1274,22 +1277,95 @@ let requests=[
    지금 구현은 메모리 하나뿐이다. 로그인·실시간 연동을 붙일 때 같은 자리에
    서버 구현을 끼우면 화면 코드는 손대지 않아도 된다.
    ══════════════════════════════════════════════════════════════════════ */
+/* 서버를 쓸지 — 값이 비어 있으면 위 배열만으로 돈다 (UT·스냅샷은 항상 이 길).
+   주소창에 ?db=local 을 붙이면 서버를 켜 두고도 로컬로 돌릴 수 있다. */
+const SUPA={
+  url: '',        /* 예: https://xxxxxxxx.supabase.co */
+  key: '',        /* anon(public) 키. service_role 키는 절대 넣지 않는다 */
+};
+const USE_REMOTE = !!(SUPA.url && SUPA.key) && !/[?&]db=local\b/.test(location.search);
+
 const DB=(()=>{
   const subs=[];
   const fire=()=>subs.forEach(f=>{try{f()}catch(e){console.error(e)}});
   const pick=t=>typeof t==='object'?t:requests.find(x=>x.no===t);
-  return {
+  let sb=null, ready=!USE_REMOTE;
+
+  /* 앱 레코드 ↔ 테이블 행. 컬럼 이름이 SQL 예약어를 피해 바뀐 것을 여기서만 흡수한다 */
+  const COL={from:'from_date',to:'to_date',date:'send_date',adjBy:'adj_by',
+             admNote:'adm_note',reqAt:'req_at'};
+  const toRow=r=>{const o={};
+    Object.keys(r).forEach(k=>{if(k!=='no') o[COL[k]||k]=r[k]===undefined?null:r[k]});
+    o.no=r.no; return o};
+  const toRec=x=>({no:x.no,camp:x.camp,from:x.from_date,to:x.to_date,date:x.send_date,
+    ch:x.ch||[],gnb:x.gnb||'',cycle:x.cycle,offer:x.offer,qty:x.qty,team:x.team,mk:x.mk,
+    hour:x.hour,status:x.status,adjBy:x.adj_by,reason:x.reason||'',note:x.note||'',
+    admNote:x.adm_note||'',memo:x.memo||'',moved:x.moved||undefined,
+    reqAt:String(x.req_at||'').replace('T',' ').slice(0,16)});
+
+  /* 서버 쓰기는 화면을 막지 않는다 — 먼저 로컬에 반영하고 뒤에서 보낸다.
+     실패하면 서버 상태를 다시 받아 되돌린다. 조용히 어긋나는 것이 제일 나쁘다. */
+  const push=async(fn,what)=>{
+    if(!USE_REMOTE||!sb) return;
+    try{const {error}=await fn(); if(error) throw error}
+    catch(e){console.error('[DB]',what,e);
+      toast(`서버에 반영하지 못했습니다 — ${what}`,true); await DB.reload()}
+  };
+
+  const api={
     all:()=>requests,
     find:no=>requests.find(r=>r.no===no),
-    /* 새 신청 */
-    add(body){const r=mkReq(body); requests.push(r); fire(); return r},
-    /* 한 건 고치기 — 상태 전이도 전부 여기로 온다 */
-    set(t,patch){const r=pick(t); if(!r) return null; Object.assign(r,patch); fire(); return r},
-    /* 두 건을 한 번에 — 조정 요청 수락과 확정 건 이동은 나뉘면 안 된다 */
-    setMany(pairs){pairs.forEach(([t,p])=>{const r=pick(t); if(r) Object.assign(r,p)}); fire()},
-    /* 바깥에서 데이터가 바뀌었을 때 화면을 다시 그리기 위한 자리 */
+    isRemote:()=>USE_REMOTE,
+    isReady:()=>ready,
+
+    add(body){
+      const r=mkReq(body);
+      /* 서버에서도 같은 번호를 쓰도록 로컬 최대값 다음을 직접 정한다 */
+      if(USE_REMOTE) r.no=Math.max(0,...requests.map(x=>x.no))+1;
+      requests.push(r); fire();
+      push(()=>sb.from('campaigns').insert(toRow(r)),`${r.camp} 신청`);
+      return r;
+    },
+    set(t,patch){
+      const r=pick(t); if(!r) return null;
+      Object.assign(r,patch); fire();
+      push(()=>sb.from('campaigns').update(toRow(r)).eq('no',r.no),`${r.camp} 수정`);
+      return r;
+    },
+    setMany(pairs){
+      const hit=[];
+      pairs.forEach(([t,p])=>{const r=pick(t); if(r){Object.assign(r,p); hit.push(r)}});
+      fire();
+      push(()=>sb.from('campaigns').upsert(hit.map(toRow),{onConflict:'no'}),
+           hit.map(r=>r.camp).join(' · '));
+    },
     onChange(fn){subs.push(fn); return ()=>subs.splice(subs.indexOf(fn),1)},
+
+    /* 서버에서 전체를 다시 받아 배열 내용을 갈아 끼운다.
+       배열 자체는 그대로 둔다 — 화면 코드가 requests 를 직접 보고 있기 때문이다. */
+    async reload(){
+      if(!USE_REMOTE||!sb) return;
+      const {data,error}=await sb.from('campaigns').select('*').order('no');
+      if(error){console.error('[DB] 읽기',error); return}
+      requests.length=0; data.forEach(x=>requests.push(toRec(x)));
+      seq=Math.max(0,...requests.map(r=>r.no));
+      ready=true; fire();
+    },
+
+    /* 접속 · 초기 적재 · 실시간 구독 */
+    async connect(){
+      if(!USE_REMOTE) return false;
+      if(!window.supabase){console.error('[DB] supabase-js 를 불러오지 못했습니다'); return false}
+      sb=window.supabase.createClient(SUPA.url,SUPA.key);
+      await api.reload();
+      sb.channel('campaigns-live')
+        .on('postgres_changes',{event:'*',schema:'public',table:'campaigns'},
+            ()=>api.reload())
+        .subscribe();
+      return true;
+    },
   };
+  return api;
 })();
 
 /* 자리를 실제로 차지하는 상태.
@@ -2677,7 +2753,15 @@ $('roleMkt').onclick=()=>{role='mkt';$('roleMkt').classList.add('on');$('roleAdm
   if(tab==='manage') tab='apply'; render()};
 $('roleAdm').onclick=()=>{role='adm';$('roleAdm').classList.add('on');$('roleMkt').classList.remove('on');
   tab='manage'; render()};
+
+/* 먼저 더미로 한 번 그려서 화면이 비지 않게 하고, 서버가 있으면 받아서 다시 그린다.
+   실시간 변경도 같은 자리로 들어온다 (DB.onChange → render). */
+DB.onChange(()=>{if(DB.isRemote()&&DB.isReady()) render()});
 render();
+if(DB.isRemote()) DB.connect().then(ok=>{
+  if(ok) console.log('[DB] 서버 연결 · 실시간 구독 시작');
+}).catch(e=>{console.error('[DB] 연결 실패',e);
+  toast('서버에 연결하지 못해 로컬 데이터로 표시합니다.',true)});
 </script>
 </body>
 </html>
