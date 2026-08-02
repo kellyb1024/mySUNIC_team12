@@ -374,13 +374,17 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .segnote{font-size:11.5px;color:var(--text-muted);margin-bottom:11px;line-height:1.55}
 .actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:18px}
 .pill{border-radius:999px;padding:10px 21px;font-size:13.5px;font-weight:500}
-.pill.primary{background:var(--sk-orange);color:#1F1F1F}
-.pill.primary:hover{background:var(--sk-orange-dk)}
-.pill.primary:disabled{background:var(--motif);color:var(--locked-text);cursor:not-allowed}
-.pill.ghost{background:#fff;border:1px solid var(--border);color:var(--text)}
+/* 버튼은 세 가지뿐이다 — 채운 주황은 그 화면에서 눌러야 할 것 하나,
+   회색은 나머지, 빨강은 되돌릴 수 없는 것.
+   주황은 밝은 #EE7501 이 아니라 진주황을 쓴다. 밝은 쪽에 흰 글씨를 얹으면
+   대비가 2.9:1 로 읽기 기준(4.5:1)에 못 미친다. 진주황은 4.9:1 이다. */
+.pill.primary{background:var(--sk-orange-text);color:#fff}
+.pill.primary:hover{background:#984B01}
+.pill.primary:disabled{background:var(--motif);color:var(--locked-fill);cursor:not-allowed}
+.pill.ghost{background:var(--motif);border:1px solid var(--border);color:var(--text)}
 .pill.danger{background:var(--sk-red);color:#fff}
 .pill.danger:hover{background:#C4001F}
-.pill.ghost:hover{background:var(--motif)}
+.pill.ghost:hover{background:#E5E7E8}
 .empty{font-size:12.5px;color:var(--text-muted);text-align:center;padding:26px 0;line-height:1.7}
 .st{display:inline-block;font-size:11px;font-weight:500;border-radius:4px;padding:2px 9px;white-space:nowrap}
 .st.confirmed{border:1px solid var(--confirmed);color:var(--confirmed)}
@@ -433,9 +437,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .qtyrow input{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:4px;text-align:right;
   font-family:Roboto;font-variant-numeric:tabular-nums}
 .qtyrow span{font-size:12px;color:var(--text-muted);white-space:nowrap}
-.findbtn{width:100%;padding:11px;border-radius:999px;background:var(--sk-orange);color:#1F1F1F;
+.findbtn{width:100%;padding:11px;border-radius:999px;background:var(--sk-orange-text);color:#fff;
   font-size:13.5px;font-weight:500;margin-top:4px}
-.findbtn:hover{background:var(--sk-orange-dk)}
+.findbtn:hover{background:#984B01}
 .resetbtn{width:100%;padding:7px;font-size:11px;color:var(--text-muted);text-decoration:underline;margin-top:5px}
 
 /* ── 카드 안에서 펼쳐지는 단계 ── */
@@ -1748,7 +1752,7 @@ function blockedBody(chk,pick,len){
         placeholder="예: 제휴사와 협의된 오픈일이라 날짜를 옮기기 어렵습니다">${esc(draft.note)}</textarea>
     </div>
     <div class="actions">
-      <button class="pill ghost" id="askBtn">이 날짜로 조정 요청</button>
+      <button class="pill primary" id="askBtn">이 날짜로 조정 요청</button>
     </div>
   </div>`;
 }
