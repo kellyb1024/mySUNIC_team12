@@ -379,6 +379,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .pill.primary:disabled{background:var(--motif);color:var(--locked-text);cursor:not-allowed}
 .pill.ghost{background:#fff;border:1px solid var(--border);color:var(--text)}
 .pill.danger{background:var(--sk-red);color:#fff}
+/* 되돌릴 수 없지만 주 동작은 아닌 버튼 — 찾을 수는 있되 튀지 않게 */
+.pill.quiet-danger{background:#fff;border:1px solid var(--border);color:var(--sk-red)}
+.pill.quiet-danger:hover{background:#FFF5F6;border-color:var(--sk-red)}
 .pill.danger:hover{background:#C4001F}
 .pill.ghost:hover{background:var(--motif)}
 .empty{font-size:12.5px;color:var(--text-muted);text-align:center;padding:26px 0;line-height:1.7}
@@ -2044,8 +2047,12 @@ function cancelModal(no,ask){
     </div>
     <div class="m-act">
       <button class="pill ghost" id="cNo">${ask?'돌아가기':'닫기'}</button>
-      ${ok&&!ask?`<button class="pill ghost" id="cEdit">수정하기</button>`:''}
-      ${ok?`<button class="pill danger" id="cYes">신청 취소</button>`:''}
+      ${/* 되돌릴 수 없는 '신청 취소' 가 가장 강조돼 있었고 '수정하기' 는 닫기와
+            구분이 안 됐다. 주 동작(수정)에 색을 주고, 취소는 글자만 빨갛게 해
+            찾을 수는 있되 실수로 눌리지 않게 한다. 확인 단계에서는 취소가
+            주 동작이므로 그때만 채운다. */''}
+      ${ok?`<button class="pill ${ask?'danger':'quiet-danger'}" id="cYes">신청 취소</button>`:''}
+      ${ok&&!ask?`<button class="pill primary" id="cEdit">수정하기</button>`:''}
     </div></div></div>`;
   if(ok) $('cYes').onclick=()=>{
     if(!ask) return cancelModal(no,true);
