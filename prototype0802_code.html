@@ -361,7 +361,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .toast.warn{background:var(--sk-red)}
 @keyframes tin{from{opacity:0;transform:translateY(6px)}}
 .modal{position:fixed;inset:0;background:rgba(31,31,31,.42);display:grid;place-items:center;z-index:300;padding:20px}
-.modal .box{background:#fff;border-radius:8px;padding:22px 24px;max-width:520px;width:100%}
+/* 목록이 길어지면 화면을 넘어 잘렸다 — 박스 안에서 스크롤되게 한다 */
+.modal .box{background:#fff;border-radius:8px;padding:22px 24px;max-width:520px;width:100%;
+  max-height:calc(100vh - 40px);overflow-y:auto}
 .modal h3{font-size:16px;font-weight:500;color:var(--text-strong);margin-bottom:4px}
 .modal .m-sub{font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6}
 .modal .m-act{display:flex;gap:9px;justify-content:flex-end;margin-top:18px}
@@ -1831,7 +1833,7 @@ function moverList(r,span,byHour){
   const ms=moversOn(r,span,byHour);
   if(!ms.length) return '';
   return `<div class="movers">
-    <div class="mvhd">${byHour?'17~19시에 배정된 건':'이 날 캐파를 쓰고 있는 건'}</div>
+    <div class="mvhd">확정 건 일정 변경</div>
     ${ms.map(q=>`<div class="mv${admSwap.no===q.no?' on':''}">
       <span class="mvn">${esc(q.camp)}</span>
       <span class="mvq num">${man(q.qty)}만</span>
@@ -1847,6 +1849,10 @@ function swapPanel(r,hd,rSpan){
   const to=admSwap.from||hd.from;
   const hSpan=rangeDays(to,addDays(to,n-1));
   const sel=admSwap.hour!=null?admSwap.hour:(hd.hour??hours[0]);
+  /* 옮길 자리의 시간대 현황 — 자기 자신과 조정 요청 건은 빼고 센다 */
+  const hAt={};
+  hours.forEach(h=>hAt[h]=hSpan.reduce((n,d)=>n+requests.filter(q=>
+    inScope(q)&&q.no!==hd.no&&activeOn(d,q)&&swapView(q).hour===h&&slotClash(hd,q)).length,0));
   /* 날짜를 옮겨도, 시간만 옮겨도 자리가 난다 — 17~19시가 다 찬 경우는 시간만 바꾸면 된다 */
   const moved=to!==hd.from, movedH=admSwap.hour!=null&&admSwap.hour!==hd.hour;
   const changed=moved||movedH;
@@ -1866,8 +1872,9 @@ function swapPanel(r,hd,rSpan){
     <div class="fixrow"><span>캐파</span>${gaugeRow(hSpan[0],hd,0,'')}</div>
     <div class="fixrow"><span>시간대</span>
       <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
-        `<div class="hslot${h===sel?' on':''}" data-swh="${h}">
-          <span class="hh">${h}시</span></div>`).join('')}</div></div>
+        `<div class="hslot ${hAt[h]?'busy':''}${h===sel?' on':''}" data-swh="${h}">
+          <span class="hh">${h}시</span>
+          <span class="hs">${hAt[h]?'배정 완료':'가능'}</span></div>`).join('')}</div></div>
     ${badTo?`<div class="blockbox"><b>옮길 날짜도 캐파를 넘습니다</b>
       <div>다른 날짜를 골라 주세요.</div></div>`:''}
     <div class="adjbtns">
@@ -1954,13 +1961,12 @@ function admModal(no,st){
       <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
         `<div class="hslot ${at[h]?'busy':''}${h===sel?' on':''}" data-amh="${h}">
           <span class="hh">${h}시</span>
-          <span class="hs">${at[h]?'배정':'가능'}</span></div>`).join('')}</div>
+          <span class="hs">${at[h]?'배정 완료':'가능'}</span></div>`).join('')}</div>
     </div>
     ${rep?`<div class="segnote">주기성은 17~19시 중에서 배정합니다.</div>`:''}
     ${overCap?`<div class="blockbox"><b>이 날짜는 캐파를 넘습니다</b>
       <div>${shortOf(r,span)}</div></div>`:''}
-    ${hourJam?`<div class="segnote">17~19시가 모두 차 있습니다.
-      캐파는 남아 있으니 그대로 확정해도 되고, 아래에서 한 건을 다른 시간으로 옮겨도 됩니다.</div>`:''}
+    ${hourJam?`<div class="segnote">17~19시가 모두 차 있습니다.</div>`:''}
     ${overCap||hourJam||swapOn?moverList(r,span,hourJam):''}
     <div class="m-act">
       <button class="pill ghost" id="amNo">닫기</button>
