@@ -764,6 +764,35 @@ let requests=[
    offer:'쿠폰',qty:80,team:'B팀',mk:'훈이',date:'2026-08-24',hour:18,
    reqAt:'2026-07-22 15:47'}),
 ];
+
+/* ══════════════════════════════════════════════════════════════════════
+   데이터 계층 — 화면은 데이터가 어디서 오는지 모른다.
+
+   읽기는 지금처럼 requests 를 그대로 본다 (usedOn·bannerRem·activeOn …).
+   바꾸는 일만 전부 DB 를 거친다. 그 지점이 곧 서버에 쓰는 지점이 되고,
+   다른 사람이 바꾼 것이 들어오는 지점도 여기다.
+
+   지금 구현은 메모리 하나뿐이다. 로그인·실시간 연동을 붙일 때 같은 자리에
+   서버 구현을 끼우면 화면 코드는 손대지 않아도 된다.
+   ══════════════════════════════════════════════════════════════════════ */
+const DB=(()=>{
+  const subs=[];
+  const fire=()=>subs.forEach(f=>{try{f()}catch(e){console.error(e)}});
+  const pick=t=>typeof t==='object'?t:requests.find(x=>x.no===t);
+  return {
+    all:()=>requests,
+    find:no=>requests.find(r=>r.no===no),
+    /* 새 신청 */
+    add(body){const r=mkReq(body); requests.push(r); fire(); return r},
+    /* 한 건 고치기 — 상태 전이도 전부 여기로 온다 */
+    set(t,patch){const r=pick(t); if(!r) return null; Object.assign(r,patch); fire(); return r},
+    /* 두 건을 한 번에 — 조정 요청 수락과 확정 건 이동은 나뉘면 안 된다 */
+    setMany(pairs){pairs.forEach(([t,p])=>{const r=pick(t); if(r) Object.assign(r,p)}); fire()},
+    /* 바깥에서 데이터가 바뀌었을 때 화면을 다시 그리기 위한 자리 */
+    onChange(fn){subs.push(fn); return ()=>subs.splice(subs.indexOf(fn),1)},
+  };
+})();
+
 /* 자리를 실제로 차지하는 상태.
    '발송 완료'는 실제 발송이 끝난 뒤 발송 시스템이 찍는 상태다.
    이 대시보드는 그 전이를 만들지 않고, 더미 데이터로만 존재한다.
@@ -1387,7 +1416,7 @@ function cancelModal(no,ask){
     </div></div></div>`;
   if(ok) $('cYes').onclick=()=>{
     if(!ask) return cancelModal(no,true);
-    r.status='취소'; r.reason=''; r.note=''; r.admNote='';
+    DB.set(r,{status:'취소',reason:'',note:'',admNote:''});
     $('modalSlot').innerHTML='';
     toast(`신청을 취소했습니다 — ${r.camp}`,true);
     render();
@@ -1439,8 +1468,8 @@ function confirmModal(ask){
       reason:ask?why:'', note:ask?draft.note.trim():'', admNote:'',
       reqAt:`${TODAY} ${(()=>{const t=new Date();
         return `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`})()}`};
-    const ex=draft.editNo!=null?requests.find(r=>r.no===draft.editNo):null;
-    if(ex) Object.assign(ex,body); else requests.push(mkReq(body));
+    const ex=draft.editNo!=null?DB.find(draft.editNo):null;
+    if(ex) DB.set(ex,body); else DB.add(body);
     $('modalSlot').innerHTML='';
     toast(ex ? `수정되었습니다 — ${body.camp}`
              : ask ? `조정 요청되었습니다 — ${fmtD(from)}`
@@ -2042,23 +2071,27 @@ function bindAm(no,s){
 
   /* 두 건 함께 — 비켜 준 건은 확정을 유지한 채 옮기고, 조정 요청 건은 그 자리에 확정 */
   document.querySelectorAll('[data-swapok]').forEach(x=>x.onclick=()=>{
-    const hd=requests.find(q=>q.no===+x.dataset.swapok); if(!hd) return;
+    const hd=DB.find(+x.dataset.swapok); if(!hd) return;
     const hn=rangeDays(hd.from,hd.to).length||1, hWas=`${fmtD(hd.from)} ~ ${fmtD(hd.to)}`;
-    hd.from=admSwap.from; hd.to=addDays(admSwap.from,hn-1); hd.date=admSwap.from;
-    if(admSwap.hour!=null) hd.hour=admSwap.hour;
-    hd.moved={from:hWas,to:`${fmtD(hd.from)} ~ ${fmtD(hd.to)}`,by:'adm',peer:r.camp};
+    const hf=admSwap.from, ht=addDays(admSwap.from,hn-1);
+    const hp={from:hf,to:ht,date:hf,
+      moved:{from:hWas,to:`${fmtD(hf)} ~ ${fmtD(ht)}`,by:'adm',peer:r.camp}};
+    if(admSwap.hour!=null) hp.hour=admSwap.hour;
 
     const rWas=`${fmtD(r.from)} ~ ${fmtD(r.to)}`;
-    if(s.from!==r.from){r.from=s.from; r.to=addDays(s.from,len-1); r.date=s.from;
-      r.moved={from:rWas,to:`${fmtD(r.from)} ~ ${fmtD(r.to)}`,by:'adm'}}
-    r.hour=s.hour!=null?s.hour:(r.hour??(rep?REC_HOURS[0]:HOURS[0]));
-    r.status='확정'; r.reason=''; r.note=''; r.adjBy=null;
+    const rp={hour:s.hour!=null?s.hour:(r.hour??(rep?REC_HOURS[0]:HOURS[0])),
+      status:'확정',reason:'',note:'',adjBy:null};
+    if(s.from!==r.from){const nf=s.from, nt=addDays(s.from,len-1);
+      Object.assign(rp,{from:nf,to:nt,date:nf,
+        moved:{from:rWas,to:`${fmtD(nf)} ~ ${fmtD(nt)}`,by:'adm'}})}
+    /* 두 건은 한 번에 반영한다 — 하나만 들어가면 그 날 캐파가 잠깐 어긋난다 */
+    DB.setMany([[hd,hp],[r,rp]]);
     close(); toast(`두 건을 확정했습니다 — ${r.camp} · ${hd.camp} ${fmtD(hd.from)}`); render()});
   const wy=$('amWhy'); if(wy) wy.oninput=e=>s.why=e.target.value;
   const bk=$('amBack'); if(bk) bk.onclick=()=>admModal(no,{...s,ask:false});
   const ck=$('amCancelOk'); if(ck) ck.onclick=()=>{
     if(!s.why.trim()){toast('취소 사유를 입력해 주세요.',true); wy&&wy.focus(); return}
-    r.status='취소'; r.admNote=s.why.trim(); r.reason=''; r.adjBy=null;
+    DB.set(r,{status:'취소',admNote:s.why.trim(),reason:'',adjBy:null});
     close(); toast(`신청을 취소했습니다 — ${r.camp}`,true); render()};
   const nf=$('amFrom'); if(nf) nf.onchange=e=>
     admModal(no,{...s,from:e.target.value<TODAY?TODAY:e.target.value});
@@ -2072,11 +2105,13 @@ function bindAm(no,s){
     const sel=s.hour!=null?s.hour:(r.hour??hours[0]);
     if(sel==null){toast('시간대를 골라 주세요.',true); return}
     const was=`${fmtD(r.from)}${rep?` ~ ${fmtD(r.to)}`:''}`;
+    const patch={hour:sel,status:'확정',reason:'',note:'',adjBy:null};
     if(s.from!==r.from){
-      r.from=s.from; r.to=addDays(s.from,len-1); r.date=s.from;
-      r.moved={from:was,to:`${fmtD(r.from)}${rep?` ~ ${fmtD(r.to)}`:''}`,by:'adm'};
+      const nf=s.from, nt=addDays(s.from,len-1);
+      Object.assign(patch,{from:nf,to:nt,date:nf,
+        moved:{from:was,to:`${fmtD(nf)}${rep?` ~ ${fmtD(nt)}`:''}`,by:'adm'}});
     }
-    r.hour=sel; r.status='확정'; r.reason=''; r.note=''; r.adjBy=null;
+    DB.set(r,patch);
     close(); toast(`${fmtD(r.from)} ${hh(sel)} 로 확정했습니다 — ${r.camp}`); render()};
 }
 
