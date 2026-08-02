@@ -265,7 +265,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .ccap{display:flex;flex-direction:column;gap:1px;font-size:10px;color:var(--text-muted);
   padding:3px 0 4px;margin-bottom:3px;border-bottom:1px dashed var(--border)}
 .ccap b{font-family:Roboto;font-weight:500;color:var(--text-strong)}
-.ccap.over b{color:var(--sk-red)}
+.ccap span.over b{color:var(--sk-red)}
 .cgo{font-size:9.5px;color:var(--text-muted);padding:0 4px 2px}
 /* 확정된 건과 아직 처리 못 한 건 사이 구분 */
 .csep{border-top:1px dashed var(--border);margin:3px 2px}
@@ -1781,12 +1781,13 @@ function admCal(){
       const done=day.filter(r=>r.hour!=null).sort((a,b)=>a.hour-b.hour);
       const todo=day.filter(r=>r.hour==null).sort((a,b)=>a.reqAt<b.reqAt?-1:1);
       const bu=bannerUsed(d), cu=couponUsed(d);
-      const over=bannerRem(d)<0||couponRem(d)<0;
+      /* 넘친 채널만 빨갛게 — 한쪽이 넘었다고 다른 쪽까지 빨개지면 안 된다 */
+      const bOver=bannerRem(d)<0, cOver=couponRem(d)<0;
       return `<div class="ccell${d===TODAY?' today':''}${o&&o.dow===0?' sun':''}">
         <div class="cd num">${+d.slice(8)}</div>
-        <div class="ccap${over?' over':''}">
-          <span>배너 <b>${man(bu)}</b>/${man(CAPA['배너'].limit)}만</span>
-          <span>쿠폰 <b>${man(cu)}</b>/${man(CAPA['쿠폰'].limit)}만</span>
+        <div class="ccap">
+          <span class="${bOver?'over':''}">배너 <b>${man(bu)}</b>/${man(CAPA['배너'].limit)}만</span>
+          <span class="${cOver?'over':''}">쿠폰 <b>${man(cu)}</b>/${man(CAPA['쿠폰'].limit)}만</span>
         </div>
         ${(()=>{const on=requests.filter(r=>live(r)&&activeOn(d,r)&&r.from!==d).length;
           return on?`<div class="cgo">진행 중 ${on}건</div>`:''})()}
