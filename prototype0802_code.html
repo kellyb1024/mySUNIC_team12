@@ -761,12 +761,13 @@ let requests=[
    offer:'쿠폰',qty:80,team:'B팀',mk:'훈이',date:'2026-08-24',hour:18,
    reqAt:'2026-07-22 15:47'}),
 ];
-/* 자리를 실제로 차지하는 상태 — '조정 필요'는 아직 자리를 잡은 게 아니라 제외 */
-/* '발송 완료'는 실제 발송이 끝난 뒤 발송 시스템이 찍는 상태다.
-   이 대시보드는 그 전이를 만들지 않고, 더미 데이터로만 존재한다. */
-/* 캐파·시간대 점유 = '신청 기준'. 아직 확정 전이어도 들어온 신청은 잡고 있는 것으로 센다
-   (0731 피드백: 담당자가 그 날 얼마나 몰렸는지 보고 배정해야 하므로) */
-const live=r=>['확정','발송 완료','신청','조정 필요'].includes(r.status);
+/* 자리를 실제로 차지하는 상태.
+   '발송 완료'는 실제 발송이 끝난 뒤 발송 시스템이 찍는 상태다.
+   이 대시보드는 그 전이를 만들지 않고, 더미 데이터로만 존재한다.
+   '신청'(확정 대기)은 센다 — 담당자가 그 날 얼마나 몰렸는지 보고 배정해야 한다 (0731 피드백).
+   '조정 필요'는 빼다 — 아직 자리를 못 잡은 건이다. 이걸 세면 같은 날 확정 건을 열었을 때
+   멀쩡한 그 건이 캐파를 넘긴 것처럼 보인다. 얼마가 더 필요한지는 그 건 화면에서 따로 말한다. */
+const live=r=>['확정','발송 완료','신청'].includes(r.status);
 /* 캘린더는 '실제로 나갈 것'만 그린다. 확정 대기·조정 필요·취소 건은 제외.
    점유 판정(live)과는 별개 — 확정 대기 건도 시간대는 계속 잡고 있다. */
 const onCal=r=>['확정','발송 완료'].includes(r.status);
@@ -1113,12 +1114,15 @@ function gaugeRow(d,c=draft,add=c.qty,lab='내 신청'){
     /* 한도가 없는 채널은 비교할 분모가 없다. 그 채널이 기간 중 가장 많이 나간 날을
        기준으로 채워 '이 날은 평소 대비 얼마나 나가나'를 보여준다. */
     if(lim===null){
-      const mx=chMax(name), p=Math.min(100,used/mx*100);
+      const mx=Math.max(chMax(name),used+add);
+      const p=Math.min(100,used/mx*100), mine=Math.min(100-p,add/mx*100);
       return `<div class="gauge"><div class="gtube">
-          <div class="gfill free" style="height:${p}%"></div></div>
+          <div class="gfill free" style="height:${p}%"></div>
+          <div class="gghost" style="bottom:${p}%;height:${mine}%"></div></div>
         <div class="gmeta"><div class="gt">${name}</div>
         <div class="gn">${man(used)}만 사용</div>
-        <div style="color:var(--text-muted)">한도 없음</div></div></div>`;
+        <div style="color:var(--text-muted)">${
+          add?`${lab} +${man(add)}만`:'한도 없음'}</div></div></div>`;
     }
     const p=Math.min(100,used/lim*100), mine=Math.min(100-p,add/lim*100);
     return `<div class="gauge"><div class="gtube">
@@ -1932,6 +1936,9 @@ function admModal(no,st){
   const overCap=span.some(d=>(r.ch.includes('배너')&&bannerRem(d)<r.qty)
                            ||(r.offer==='쿠폰'&&couponRem(d)<r.qty));
   const done=r.status==='확정';
+  /* 확정 건은 요약만 보여준다. 이미 자리를 잡은 건이라 캐파·시간대를 늘어놓을 이유가 없고,
+     여는 이유는 대개 조정 요청 건에 자리를 내주려는 것이다 — 그때 '수정하기'로 펼친다. */
+  const edit=!done||!!s.edit;
   /* 자리를 비켜 줄 건을 고르는 중이면 목록을 열어 두고, 단독 확정은 막는다 */
   const swapOn=admSwap.no!=null&&requests.some(q=>q.no===admSwap.no);
   /* 주기성은 17~19시에서만 배정한다. 세 칸이 다 차 있으면 담당자가 한 건을 옮길 수 있게 한다.
@@ -1968,9 +1975,11 @@ function admModal(no,st){
       ${hrow('채널 / GNB',`${r.ch.join(' · ')||'—'} / ${r.gnb||'—'}`)}
       ${hrow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
       ${hrow(rep?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+      ${done?hrow('발송 시각',rep?`${hh(r.hour)} 매일`:`${fmtD(r.from)} ${hh(r.hour)}`):''}
       ${r.note?hrow('마케터 사유',r.note):''}
       ${r.reason?hrow('조정 요청',r.reason):''}
     </div>
+    ${edit?`
     <div class="fixrow" style="margin-top:14px"><span>발송 기간</span>
       <div class="fdates">
         <input type="date" id="amFrom" value="${s.from}" min="${TODAY}" max="2026-09-30">
@@ -1989,12 +1998,14 @@ function admModal(no,st){
     ${overCap?`<div class="blockbox"><b>이 날짜는 캐파를 넘습니다</b>
       <div>${shortOf(r,span)}</div></div>`:''}
     ${hourJam?`<div class="segnote">17~19시가 모두 차 있습니다.</div>`:''}
-    ${overCap||hourJam||swapOn?moverList(r,span,hourJam):''}
+    ${overCap||hourJam||swapOn?moverList(r,span,hourJam):''}`:''}
     <div class="m-act">
       <button class="pill ghost" id="amNo">닫기</button>
       ${r.status==='조정 필요'?`<button class="pill ghost" id="amCancel">신청 취소</button>`:''}
-      <button class="pill primary" id="amOk" ${overCap||swapOn?'disabled':''}>${
-        done?'일정 조정':moved?'일정을 조정해 확정':'확정'}</button>
+      ${done&&!edit
+        ?`<button class="pill primary" id="amEdit">수정하기</button>`
+        :`<button class="pill primary" id="amOk" ${overCap||swapOn?'disabled':''}>${
+            done?'일정 조정':moved?'일정을 조정해 확정':'확정'}</button>`}
     </div></div></div>`;
   bindAm(no,s);
 }
@@ -2042,6 +2053,7 @@ function bindAm(no,s){
   document.querySelectorAll('[data-amh]').forEach(x=>x.onclick=()=>
     admModal(no,{...s,hour:+x.dataset.amh}));
   const cn=$('amCancel'); if(cn) cn.onclick=()=>admModal(no,{...s,ask:true});
+  const ed=$('amEdit'); if(ed) ed.onclick=()=>admModal(no,{...s,edit:true});
   const no2=$('amNo'); if(no2) no2.onclick=close;
   const ok=$('amOk'); if(ok) ok.onclick=()=>{
     const hours=rep?REC_HOURS:HOURS;
