@@ -267,10 +267,8 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .ccap{display:flex;flex-direction:column;gap:1px;font-size:10px;color:var(--text-muted);
   padding:3px 0 4px;margin-bottom:3px;border-bottom:1px dashed var(--border)}
 .ccap b{font-family:Roboto;font-weight:500;color:var(--text-strong)}
+/* 빨강은 '이 날 조정이 필요한 건이 있다'는 신호 — 채널별로 따로 판정한다 */
 .ccap span.over b{color:var(--sk-red)}
-/* 조정 필요 건까지 넣었을 때의 예상 합계 — 넘기면 빨갛게 */
-.ccap em{font-style:normal;color:var(--text-muted);margin-left:3px}
-.ccap em.bad{color:var(--sk-red);font-weight:500}
 .cgo{font-size:9.5px;color:var(--text-muted);padding:0 4px 2px}
 /* 확정된 건과 아직 처리 못 한 건 사이 구분 */
 .csep{border-top:1px dashed var(--border);margin:3px 2px}
@@ -840,6 +838,10 @@ const bannerUsed=d=>usedOn(d,r=>r.ch.includes('배너'));
 const couponUsed=d=>usedOn(d,r=>r.offer==='쿠폰');
 const bannerRem=d=>CAPA['배너'].limit-bannerUsed(d);
 const couponRem=d=>CAPA['쿠폰'].limit-couponUsed(d);
+/* 캘린더 요약용 — 캐파 판정과 달리 '마케터가 신청한 값'을 그대로 더한다.
+   조정 필요 건도 포함해야 그 칸에 나열한 건들의 합과 숫자가 맞는다. */
+const appliedOn=(d,pred)=>requests.filter(r=>r.status!=='취소'&&r.no!==excNo()
+  &&activeOn(d,r)&&pred(r)).reduce((s,r)=>s+r.qty,0);
 /* ── 시간대 겹침 규칙 ──
    시스템이 막는 제약은 '일 캐파' 하나뿐이다. 같은 시각에 여러 건이 나가도
    캐파만 넘지 않으면 발송 자체는 가능하다 (0730 담당자 확인).
@@ -1836,23 +1838,19 @@ function admCal(){
       const day=requests.filter(r=>r.status!=='취소'&&r.from===d);
       const done=day.filter(r=>r.hour!=null).sort((a,b)=>a.hour-b.hour);
       const todo=day.filter(r=>r.hour==null).sort((a,b)=>a.reqAt<b.reqAt?-1:1);
-      const bu=bannerUsed(d), cu=couponUsed(d);
-      /* 넘친 채널만 빨갛게 — 한쪽이 넘었다고 다른 쪽까지 빨개지면 안 된다 */
-      const bOver=bannerRem(d)<0, cOver=couponRem(d)<0;
-      /* 조정 필요 건은 캐파를 점유하지 않는다. 다만 그 날에 미해결 건이 있다는 건
-         보여야 하므로, 그 건까지 넣었을 때의 예상 합계를 괄호로 함께 적는다. */
+      /* 요약 숫자는 '마케터가 신청한 값' 그대로 — 아래 나열한 건들의 합과 같아야 한다.
+         캐파 판정(live)에서는 조정 필요를 빼지만, 이 요약에서는 더해서 보여준다. */
+      const bu=appliedOn(d,q=>q.ch.includes('배너'));
+      const cu=appliedOn(d,q=>q.offer==='쿠폰');
+      /* 빨강은 '이 날 조정이 필요한 건이 있다'는 신호다 */
       const adj=requests.filter(q=>q.status==='조정 필요'&&activeOn(d,q));
-      const bAdj=adj.filter(q=>q.ch.includes('배너')).reduce((s,q)=>s+q.qty,0);
-      const cAdj=adj.filter(q=>q.offer==='쿠폰').reduce((s,q)=>s+q.qty,0);
-      const proj=(u,a,lim)=>a
-        ?`<em class="${u+a>lim?'bad':''}">(조정 시 ${man(u+a)})</em>`:'';
+      const bOver=adj.some(q=>q.ch.includes('배너'));
+      const cOver=adj.some(q=>q.offer==='쿠폰');
       return `<div class="ccell${d===TODAY?' today':''}${o&&o.dow===0?' sun':''}">
         <div class="cd num">${+d.slice(8)}</div>
         <div class="ccap">
-          <span class="${bOver?'over':''}">배너 <b>${man(bu)}</b>/${man(CAPA['배너'].limit)}만${
-            proj(bu,bAdj,CAPA['배너'].limit)}</span>
-          <span class="${cOver?'over':''}">쿠폰 <b>${man(cu)}</b>/${man(CAPA['쿠폰'].limit)}만${
-            proj(cu,cAdj,CAPA['쿠폰'].limit)}</span>
+          <span class="${bOver?'over':''}">배너 <b>${man(bu)}</b>/${man(CAPA['배너'].limit)}만</span>
+          <span class="${cOver?'over':''}">쿠폰 <b>${man(cu)}</b>/${man(CAPA['쿠폰'].limit)}만</span>
         </div>
         ${(()=>{const on=requests.filter(r=>live(r)&&activeOn(d,r)&&r.from!==d).length;
           return on?`<div class="cgo">진행 중 ${on}건</div>`:''})()}
