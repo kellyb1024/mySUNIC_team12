@@ -149,6 +149,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dcell.start{border-color:var(--sk-orange);border-width:2px}
 .dcell.start .wk{color:var(--sk-orange-text);font-weight:500}
 .blockbox{border:1px solid var(--sk-red);border-radius:6px;padding:13px 15px;margin:8px 0 12px}
+/* 얼마가 모자란지 — 시간대를 고르기 전에 먼저 읽혀야 하므로 그 위에 둔다 */
+.capover{display:inline-block;border:1px solid var(--sk-red);border-radius:4px;
+  padding:5px 10px;margin:0 0 10px;font-size:12px;font-weight:500;color:var(--sk-red)}
 /* 자리를 만들려고 옮길 수 있는 건들 — 캘린더에 이미 보이는 정보를 팝업 안으로 가져온 것 */
 .movers{margin-bottom:12px}
 .movers .mvhd{font-size:11.5px;color:var(--text-muted);margin-bottom:6px}
@@ -1880,7 +1883,7 @@ function shortOf(r,span){
     r.ch.includes('배너') ? r.qty-bannerRem(d) : 0,
     r.offer==='쿠폰'     ? r.qty-couponRem(d) : 0);
   const worst=span.reduce((a,d)=>gap(d)>gap(a)?d:a,span[0]);
-  return `${man(gap(worst))}만이 더 필요합니다${span.length>1?` · ${fmtD(worst)} 기준`:''}`;
+  return {amt:gap(worst), d:worst};
 }
 
 /* 그 날 캐파를 쓰고 있는 다른 건들 — 하나를 옮기면 자리가 난다 */
@@ -2027,6 +2030,9 @@ function admModal(no,st){
         ${moved?`<span class="tl moved">신청은 ${fmtD(r.from)} ~ ${fmtD(r.to)}</span>`:''}
       </div></div>
     <div class="fixrow"><span>${capLabel(r)}</span>${gaugeRow(span[0],r,r.qty,'이 건')}</div>
+    ${overCap?(()=>{const g=shortOf(r,span);
+      return `<div class="capover">${esc(r.camp)} 캐파 ${man(g.amt)}만 초과${
+        span.length>1?` · ${fmtD(g.d)}`:''}</div>`})():''}
     <div class="fixrow"><span>시간대</span>
       <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
         `<div class="hslot ${at[h]?'busy':''}${h===sel?' on':''}" data-amh="${h}">
@@ -2034,8 +2040,6 @@ function admModal(no,st){
           <span class="hs">${h===sel?`선택`:at[h]?`배정<br>완료`:`가능`}</span></div>`).join('')}</div>
     </div>
     ${rep?`<div class="segnote">주기성은 17~19시 중에서 배정합니다.</div>`:''}
-    ${overCap?`<div class="blockbox"><b>이 날짜는 캐파를 넘습니다</b>
-      <div>${shortOf(r,span)}</div></div>`:''}
     ${hourJam?`<div class="segnote">17~19시가 모두 차 있습니다.</div>`:''}
     ${overCap||hourJam||swapOn?moverList(r,span,hourJam):''}`:''}
     <div class="m-act">
