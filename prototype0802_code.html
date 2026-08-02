@@ -220,6 +220,8 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .gtube{width:40px;height:84px;border:1px solid var(--cell-border);border-radius:3px;position:relative;overflow:hidden;background:var(--l1)}
 /* 소진된 캐파 = SK 오렌지 / 내가 신청하려는 분량 = 연한 톤 빗금 */
 .gfill{position:absolute;left:0;right:0;bottom:0;background:var(--sk-orange)}
+/* 한도 없는 채널은 소진율이 아니라 사용량이다 — 주황(한도 대비)과 뜻이 달라 회색으로 */
+.gfill.free{background:var(--locked-fill)}
 .gghost{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,
   var(--sk-orange-t25) 0 4px,#FFFFFF 4px 8px);border-top:1px solid var(--sk-orange-t25)}
 .gmeta{font-size:11.5px;line-height:1.6}
@@ -1101,13 +1103,23 @@ function blockedBody(chk,pick,len){
 
 /* 캐파 게이지 — 신청 화면과 담당자 조정 화면이 같이 쓴다.
    add = 이 건이 아직 그 날 소진에 안 잡혀 있을 때 더해질 분량 (0 이면 숨김) */
+/* 한도 없는 채널의 막대 기준 — 그 채널이 기간 중 가장 많이 나간 날 */
+const chMax=name=>Math.max(1,...ALL.map(x=>usedOn(x.d,q=>q.ch.includes(name))));
+/* 배너·쿠폰이 섞이지 않으면 한도 자체가 없으므로 '캐파'가 아니라 '사용량'이다 */
+const capLabel=c=>(c.ch.includes('배너')||c.offer==='쿠폰')?'캐파':'사용량';
+
 function gaugeRow(d,c=draft,add=c.qty,lab='내 신청'){
   const g=(name,used,lim)=>{
-    /* 한도가 없어도 얼마나 나가는지는 보여준다 */
-    if(lim===null) return `<div class="gauge"><div class="gtube"></div>
-      <div class="gmeta"><div class="gt">${name}</div>
-      <div class="gn">${man(used)}만 사용</div>
-      <div style="color:var(--text-muted)">한도 없음</div></div></div>`;
+    /* 한도가 없는 채널은 비교할 분모가 없다. 그 채널이 기간 중 가장 많이 나간 날을
+       기준으로 채워 '이 날은 평소 대비 얼마나 나가나'를 보여준다. */
+    if(lim===null){
+      const mx=chMax(name), p=Math.min(100,used/mx*100);
+      return `<div class="gauge"><div class="gtube">
+          <div class="gfill free" style="height:${p}%"></div></div>
+        <div class="gmeta"><div class="gt">${name}</div>
+        <div class="gn">${man(used)}만 사용</div>
+        <div style="color:var(--text-muted)">한도 없음</div></div></div>`;
+    }
     const p=Math.min(100,used/lim*100), mine=Math.min(100-p,add/lim*100);
     return `<div class="gauge"><div class="gtube">
         <div class="gfill" style="height:${p}%"></div>
@@ -1879,7 +1891,7 @@ function swapPanel(r,hd,rSpan){
         <span class="tl">~ <b>${fmtD(addDays(to,n-1))}</b> · ${n}일${rep?' 매일 발송':''}</span>
         ${moved?`<span class="tl moved">지금은 ${fmtD(hd.from)} ~ ${fmtD(hd.to)}</span>`:''}
       </div></div>
-    <div class="fixrow"><span>캐파</span>${gaugeRow(hSpan[0],hd,0,'')}</div>
+    <div class="fixrow"><span>${capLabel(hd)}</span>${gaugeRow(hSpan[0],hd,0,'')}</div>
     <div class="fixrow"><span>시간대</span>
       <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
         `<div class="hslot ${hAt[h]?'busy':''}${h===sel?' on':''}" data-swh="${h}">
@@ -1966,7 +1978,7 @@ function admModal(no,st){
           rep?' 매일 발송':''}</span>
         ${moved?`<span class="tl moved">신청은 ${fmtD(r.from)} ~ ${fmtD(r.to)}</span>`:''}
       </div></div>
-    <div class="fixrow"><span>캐파</span>${gaugeRow(span[0],r,r.qty,'이 건')}</div>
+    <div class="fixrow"><span>${capLabel(r)}</span>${gaugeRow(span[0],r,r.qty,'이 건')}</div>
     <div class="fixrow"><span>시간대</span>
       <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
         `<div class="hslot ${at[h]?'busy':''}${h===sel?' on':''}" data-amh="${h}">
