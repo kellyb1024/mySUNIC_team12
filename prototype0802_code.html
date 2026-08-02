@@ -1324,6 +1324,12 @@ function editReq(no){
 }
 const canCancel=r=>role==='mkt'&&CANCELABLE.includes(r.status)&&r.mk===ME.mk&&r.team===ME.team;
 
+/* 팝업 배경을 눌러도 닫는다 — 배경 자신을 눌렀을 때만이라 안쪽 클릭은 유지된다 */
+function bindOverlay(fn){
+  const ov=document.querySelector('#modalSlot .modal');
+  if(ov) ov.onclick=e=>{if(e.target===ov) fn()};
+}
+
 function cancelModal(no,ask){
   const r=requests.find(q=>q.no===no); if(!r) return;
   const ok=canCancel(r);
@@ -1369,6 +1375,7 @@ function cancelModal(no,ask){
   };
   if(ok&&!ask) $('cEdit').onclick=()=>editReq(no);
   $('cNo').onclick=()=>$('modalSlot').innerHTML='';
+  bindOverlay(()=>$('modalSlot').innerHTML='');
 }
 
 /* ── 신청 확인 팝업 ── */
@@ -1401,6 +1408,7 @@ function confirmModal(ask){
         ask?'조정 요청하기':draft.editNo!=null?'수정 완료':'신청하기'}</button>
     </div></div></div>`;
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
+  bindOverlay(()=>$('modalSlot').innerHTML='');
   $('mYes').onclick=()=>{
     /* 일회성은 시작일에 1회 발송한다 — 선택한 날이 곧 캠페인 시작일이다.
        노출 기간의 길이는 마케터가 입력한 그대로 유지하고, 기간을 통째로 옮긴다. */
@@ -1983,9 +1991,8 @@ function bindAm(no,s){
   const r=requests.find(q=>q.no===no);
   const rep=r.cycle==='주기성', len=rangeDays(r.from,r.to).length||1;
   const close=()=>{admFix.no=null; noSwap(); $('modalSlot').innerHTML=''};
-  /* 팝업 바깥을 눌러도 닫는다 — 옮기던 중이면 그 선택도 함께 버린다 */
-  const ov=document.querySelector('#modalSlot .modal');
-  if(ov) ov.onclick=e=>{if(e.target===ov) close()};
+  /* 옮기던 중에 바깥으로 나가면 그 선택도 함께 버린다 (close 가 noSwap 을 한다) */
+  bindOverlay(close);
 
   /* ── 선점 건 일정 조정 (0731 플로우) ── */
   document.querySelectorAll('[data-swapon]').forEach(x=>x.onclick=()=>{
