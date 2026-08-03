@@ -376,10 +376,10 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .pill{border-radius:999px;padding:10px 21px;font-size:13.5px;font-weight:500}
 /* 버튼은 세 가지뿐이다 — 채운 주황은 그 화면에서 눌러야 할 것 하나,
    회색은 나머지, 빨강은 되돌릴 수 없는 것.
-   주황은 밝은 #EE7501 이 아니라 진주황을 쓴다. 밝은 쪽에 흰 글씨를 얹으면
-   대비가 2.9:1 로 읽기 기준(4.5:1)에 못 미친다. 진주황은 4.9:1 이다. */
-.pill.primary{background:var(--sk-orange-text);color:#fff}
-.pill.primary:hover{background:#984B01}
+   주황은 SK 브랜드색 #EE7501 을 쓴다. 흰 글씨와의 대비는 2.9:1 로 읽기
+   기준(4.5:1)에는 못 미치나 브랜드색을 우선한다 (2026-08-03 결정). */
+.pill.primary{background:var(--sk-orange);color:#fff}
+.pill.primary:hover{background:var(--sk-orange-dk)}
 .pill.primary:disabled{background:var(--motif);color:var(--locked-fill);cursor:not-allowed}
 .pill.ghost{background:var(--motif);border:1px solid var(--border);color:var(--text)}
 .pill.danger{background:var(--sk-red);color:#fff}
@@ -437,9 +437,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .qtyrow input{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:4px;text-align:right;
   font-family:Roboto;font-variant-numeric:tabular-nums}
 .qtyrow span{font-size:12px;color:var(--text-muted);white-space:nowrap}
-.findbtn{width:100%;padding:11px;border-radius:999px;background:var(--sk-orange-text);color:#fff;
+.findbtn{width:100%;padding:11px;border-radius:999px;background:var(--sk-orange);color:#fff;
   font-size:13.5px;font-weight:500;margin-top:4px}
-.findbtn:hover{background:#984B01}
+.findbtn:hover{background:var(--sk-orange-dk)}
 .resetbtn{width:100%;padding:7px;font-size:11px;color:var(--text-muted);text-decoration:underline;margin-top:5px}
 
 /* ── 카드 안에서 펼쳐지는 단계 ── */
