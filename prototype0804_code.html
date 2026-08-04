@@ -234,8 +234,10 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dcell{min-height:64px}
 /* 추천 핀과 잔여가 겹치지 않게 */
 .dcell .pin{bottom:2px}
-.dcell.sun .dd{color:var(--sk-red)}
-.dcell.on.sun .dd{color:var(--sk-red)}
+/* 일요일·공휴일 — 상태색(선택·불가)보다 뒤에 두어 날짜 숫자는 빨강을 지킨다 */
+.dcell.red .dd{color:var(--sk-red)}
+.dcell.on.red .dd{color:var(--sk-red)}
+.dcell.no.on.red .dd{color:var(--sk-red)}
 
 /* ── 시간대 슬롯 (Step 3) ── */
 .hgrid{display:grid;grid-template-columns:repeat(11,1fr);gap:5px}
@@ -328,7 +330,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .ccell.out{background:var(--motif);opacity:.55}
 .ccell.today{border-color:var(--o500);border-width:2px;padding:5px 6px}
 .ccell .cd{font-size:12px;font-family:Roboto;font-weight:500;color:var(--text-strong);margin-bottom:1px}
-.ccell.sun .cd{color:var(--sk-red)}
+.ccell.red .cd{color:var(--sk-red)}
 .ccell .cmore{font-size:10px;color:var(--text-muted);margin-top:auto}
 /* ── 담당자 캘린더 칸 ── */
 .calrow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:5px}
@@ -616,6 +618,8 @@ table.list td.nm{font-weight:400}
 .rd{height:32px;border:0;background:none;font-size:12px;color:var(--text);cursor:pointer;
   position:relative;border-radius:0}
 .rd:hover:not(.off):not(.edge){background:var(--motif)}
+/* 일요일·공휴일 — 못 고르는 날(.off)과 고른 기간(.inr .edge)이 뒤에 와서 이긴다 */
+.rd.red{color:var(--sk-red)}
 .rd.off{color:var(--locked-fill);cursor:default}
 .rd.out{visibility:hidden}
 /* 사이에 낀 날은 띠로 잇는다 — 두 끝이 하나의 기간임을 보이게 */
@@ -861,6 +865,24 @@ const dayOf=d=>ALL.find(x=>x.d===d);
 const fmtD=d=>`${+d.slice(5,7)}/${+d.slice(8)}(${dayOf(d)?.w??''})`;
 const man=n=>(Math.round(n*10)/10).toLocaleString('ko-KR');
 const addDays=(d,n)=>{const t=new Date(d+'T00:00:00');t.setDate(t.getDate()+n);return iso(t)};
+
+/* ── 빨간 날 — 일요일과 공휴일 ──
+   달력이든 조회 팝업의 작은 칩 달력이든 판정을 하나로 쓴다.
+   음력이 걸린 날(설·추석·부처님오신날)과 대체공휴일은 계산으로 낼 수 없으므로
+   해가 바뀌면 아래 표를 손으로 갱신한다. 날짜 축은 2026년 안에 있다. */
+const HOLIDAYS={
+  '2026-01-01':'신정',
+  '2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴',
+  '2026-03-01':'삼일절','2026-03-02':'삼일절 대체',
+  '2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'부처님오신날 대체',
+  '2026-06-03':'지방선거','2026-06-06':'현충일',
+  '2026-08-15':'광복절','2026-08-17':'광복절 대체',
+  '2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴','2026-09-28':'추석 대체',
+  '2026-10-03':'개천절','2026-10-05':'개천절 대체','2026-10-09':'한글날',
+  '2026-12-25':'성탄절',
+};
+/* dayOf 는 6~9월 축 안에서만 답한다 — 달 넘김 칸도 물들어야 하므로 날짜에서 직접 센다 */
+const isRed=d=>new Date(d+'T00:00:00').getDay()===0||d in HOLIDAYS;
 
 /* ══════════════════════════════════════════════════════════════════════
    신청 데이터
@@ -1938,7 +1960,7 @@ function rangePop(){
   const cells=monthDays(rangeMonth), mi=MONTHS.indexOf(rangeMonth);
   const wks=[]; for(let i=0;i<cells.length;i+=7) wks.push(cells.slice(i,i+7));
   const off=d=>d<DMIN||d>DMAX||d<TODAY;
-  const cls=d=>[from&&to&&d>from&&d<to?'inr':'', d===from?'edge f':'',
+  const cls=d=>[isRed(d)?'red':'', from&&to&&d>from&&d<to?'inr':'', d===from?'edge f':'',
                 d===to?'edge t':'', off(d)?'off':''].filter(Boolean).join(' ');
   return `<div class="rangepop" id="rangePop">
     <div class="rpL">
@@ -2029,12 +2051,12 @@ function cardApply(){
   const best=ok.length?recTop(3).map(x=>x.d):[];
   const grid=[...Array(lead)].map(()=>`<div class="dcell blank"></div>`).concat(
     days.map(d=>{
-      const c=dayCheck(draft,d), o=dayOf(d);
+      const c=dayCheck(draft,d);
       const on=draft.date===d;
       /* 칸마다 잔여를 적는다 — 추천 3개 말고는 여유를 알 수 없어 비교가 안 됐다 (0802 UT).
          기간에서 가장 빠듯한 날 기준. 한도 없는 채널만 쓰면 적을 것이 없다. */
       const rm=remOn(draft,d);
-      return `<div class="dcell ${c.ok?'ok':'no'}${on?' on':''}${o.dow===0?' sun':''}"
+      return `<div class="dcell ${c.ok?'ok':'no'}${on?' on':''}${isRed(d)?' red':''}"
           data-d="${d}"${c.ok?'':` data-tip="${esc(c.why)}"`}>
         ${/* 요일은 격자 머리에 이미 있다. 칸마다 또 적으면 잔여 숫자와 섞인다 */''}
         <span class="dd">${+d.slice(8)}</span>
@@ -2679,9 +2701,9 @@ function renderCal(){
 function calCell(c,idx,rows,lanes){
   const col=idx%7, row=Math.floor(idx/7);
   const flip=(col>=5?' rt':'')+(row>=rows-2?' up':'');
-  const o=dayOf(c.d), evs=c.out?[]:eventsOn(c.d);
+  const evs=c.out?[]:eventsOn(c.d);
   const show=evs.slice(0,3), rest=evs.length-show.length;
-  return `<div class="ccell${c.out?' out':''}${o&&o.dow===0?' sun':''}${c.d===TODAY?' today':''}"
+  return `<div class="ccell${c.out?' out':''}${isRed(c.d)?' red':''}${c.d===TODAY?' today':''}"
       ${c.out?'':`data-cd="${c.d}"`}>
     <div class="cd">${+c.d.slice(8)}</div>
     ${c.out?'':(()=>{
@@ -2950,7 +2972,7 @@ function admCal(){
     <div class="calhd">${WD.map((w,i)=>`<div class="ch${i===0?' sun':''}">${w}</div>`).join('')}</div>
     ${wks.map(wk=>`<div class="calrow">${wk.map(c=>{
       if(c.out) return `<div class="ccell out"></div>`;
-      const d=c.d, o=dayOf(d);
+      const d=c.d;
       /* 그 날 시작하는 건. 확정된 건은 발송 시각 순, 아직 처리 못 한 건은
          신청 순으로 아래에 따로 모은다 (0801 피드백) */
       const day=requests.filter(r=>r.status!=='취소'&&r.from===d);
@@ -2965,7 +2987,7 @@ function admCal(){
          멀쩡한 쿠폰까지 빨갛게 보였다 (2026-08-04) */
       const bOver=bu>CAPA['배너'].limit;
       const cOver=CAPA['쿠폰'].limit!=null&&cu>CAPA['쿠폰'].limit;
-      return `<div class="ccell${d===TODAY?' today':''}${o&&o.dow===0?' sun':''}"
+      return `<div class="ccell${d===TODAY?' today':''}${isRed(d)?' red':''}"
           ${isPast(d)?'':`data-drop="${d}"`}>
         <div class="cd num">${+d.slice(8)}</div>
         <div class="ccap">
@@ -3179,7 +3201,7 @@ function rangePopAdm(key){
   const cells=monthDays(dpMonth), mi=MONTHS.indexOf(dpMonth);
   const wks=[]; for(let i=0;i<cells.length;i+=7) wks.push(cells.slice(i,i+7));
   const off=d=>d<DMIN||d>DMAX||d<TODAY;
-  const cls=d=>[from&&to&&d>from&&d<to?'inr':'', d===from?'edge f':'',
+  const cls=d=>[isRed(d)?'red':'', from&&to&&d>from&&d<to?'inr':'', d===from?'edge f':'',
                 d===to?'edge t':'', off(d)?'off':''].filter(Boolean).join(' ');
   return `<div class="dpop wide" data-arpanel="${key}">
     <div class="rpnav">

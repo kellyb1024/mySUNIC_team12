@@ -171,8 +171,10 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .blockbox div{font-size:11.5px;color:var(--text);line-height:1.6}
 .blockbox .bm{color:var(--text-muted);margin-top:5px}
 .dcell .wk{position:absolute;top:4px;right:6px;font-size:9px;color:var(--text-muted)}
-.dcell.sun .dd{color:var(--sk-red)}
-.dcell.on.sun .dd{color:var(--sk-red)}
+/* 일요일·공휴일 — 상태색(선택·불가)보다 뒤에 두어 날짜 숫자는 빨강을 지킨다 */
+.dcell.red .dd{color:var(--sk-red)}
+.dcell.on.red .dd{color:var(--sk-red)}
+.dcell.no.on.red .dd{color:var(--sk-red)}
 
 /* ── 시간대 슬롯 (Step 3) ── */
 .hgrid{display:grid;grid-template-columns:repeat(11,1fr);gap:5px}
@@ -259,7 +261,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .ccell.out{background:var(--motif);opacity:.55}
 .ccell.today{border-color:var(--sk-orange);border-width:2px;padding:5px 6px}
 .ccell .cd{font-size:12px;font-family:Roboto;font-weight:500;color:var(--text-strong);margin-bottom:1px}
-.ccell.sun .cd{color:var(--sk-red)}
+.ccell.red .cd{color:var(--sk-red)}
 .ccell .cmore{font-size:10px;color:var(--text-muted);margin-top:auto}
 /* ── 담당자 캘린더 칸 ── */
 .calrow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:5px}

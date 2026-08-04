@@ -4,7 +4,7 @@
    펼쳐놓고 날짜별 신청 캐파와 캠페인 리스트를 보여준다. 시작일 기준. */
 import { useMemo } from 'react';
 import type { Campaign, Status } from '@/lib/domain';
-import { CAPA, WD, appliedOn, activeOn, occupies, man, hh, iso } from '@/lib/domain';
+import { CAPA, WD, appliedOn, activeOn, occupies, man, hh, iso, isRed } from '@/lib/domain';
 import { TODAY } from '@/lib/config';
 
 /** 상태별 점 색 — 0731 피드백: 확정대기 파란색, 조정필요 빨간색 */
@@ -65,10 +65,9 @@ export default function ManageCalendar({
             const cOver = adj.some((r) => r.offer === '쿠폰');
             /* 그 날 지나가는 중인 건 (시작일이 아닌 날) */
             const going = all.filter((r) => occupies(r) && activeOn(c.d, r) && r.from !== c.d).length;
-            const sun = new Date(`${c.d}T00:00:00`).getDay() === 0;
 
             return (
-              <div className={`ccell${c.d === TODAY ? ' today' : ''}${sun ? ' sun' : ''}`} key={c.d}>
+              <div className={`ccell${c.d === TODAY ? ' today' : ''}${isRed(c.d) ? ' red' : ''}`} key={c.d}>
                 <div className="cd num">{+c.d.slice(8)}</div>
 
                 <div className="ccap">
