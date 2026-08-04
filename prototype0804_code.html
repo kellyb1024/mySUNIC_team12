@@ -1895,7 +1895,7 @@ function statePanel(m,key){
       </div>
       ${r.moved?`<div class="adjwhy"><span>담당자 일정 변경</span>${
         esc(r.moved.from)} → ${esc(r.moved.to)}</div>`:''}
-      ${r.reason?`<div class="adjwhy"><span>사유</span>${esc(r.reason)}</div>`:''}
+      ${(()=>{const w=liveReason(r); return w?`<div class="adjwhy"><span>사유</span>${esc(w)}</div>`:''})()}
       ${r.note?`<div class="adjnote"><span>신청 시 작성한 사유</span>${esc(r.note)}</div>`:''}
       ${r.admNote?`<div class="adjnote"><span>담당자 사유</span>${esc(r.admNote)}</div>`:''}
       ${p.act?`<div class="adjbtns">
@@ -1907,6 +1907,18 @@ function statePanel(m,key){
     </div>`).join('')}
   </div>`;
 }
+
+/* 조정 필요 건의 사유는 볼 때 다시 계산한다.
+   저장된 문구는 '신청 시점의 스냅샷'이라, 그 날의 다른 건이 취소되어 자리가 나면
+   화면은 「캐파 초과」라고 말하는데 시간대는 열리고 확정 버튼은 눌리는 모순이 생긴다.
+   무작위 조작 실험(2026-08-04)에서 23번째 조작 만에 잡혔다.
+   자리가 나면 사유도 같이 사라져야 화면이 거짓말을 하지 않는다. */
+const liveReason=r=>{
+  if(r.status!=='조정 필요') return r.reason||'';
+  const k=dayCheck({ch:r.ch,offer:r.offer,qty:r.qty,cycle:r.cycle,
+                    days:rangeDays(r.from,r.to).length}, r.from);
+  return k.ok ? '' : k.why;
+};
 
 /* 프리셋 — 자주 쓰는 기간을 한 번에 잡는다. 달력에서 직접 고르면 '직접 입력'으로 돌아간다 */
 const RANGE_PRESETS=[['custom','직접 입력'],['thismonth','이번 달'],
@@ -2262,7 +2274,7 @@ function cardList(){
           /* 윗줄 = 이 사유가 누구 것인지, 아랫줄 = 사유 설명 */
           const cancByAdm=r.status==='취소'&&r.admNote;
           const adm=false;
-          const from=cancByAdm?'담당자 취소':r.moved?'담당자 일정 변경':adm?'담당자 사유':r.reason;
+          const from=cancByAdm?'담당자 취소':r.moved?'담당자 일정 변경':adm?'담당자 사유':liveReason(r);
           const txt =cancByAdm?r.admNote
                     :r.moved?`${r.moved.from} → ${r.moved.to}`
                     :adm?r.admNote:r.note;
@@ -2365,7 +2377,7 @@ function cancelModal(no,ask){
       ${hrow('신청 시각',fmtReq(r.reqAt))}
       ${r.status==='취소'&&r.admNote?hrow('취소 사유',r.admNote):''}
       ${r.moved?hrow('일정 변경',`${r.moved.from} → ${r.moved.to}`):''}
-      ${r.reason?hrow('사유',r.reason+(r.note?` — ${r.note}`:'')):''}
+      ${(()=>{const w=liveReason(r); return w?hrow('사유',w+(r.note?` — ${r.note}`:'')):''})()}
     </div>
     <div class="m-act">
       <button class="pill quiet" id="cNo">${ask?'돌아가기':'닫기'}</button>
@@ -2871,7 +2883,7 @@ function admStatePanel(key){
         ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
         ${cfRow('신청 시각',fmtReq(r.reqAt))}
       </div>
-      ${r.reason?`<div class="adjwhy"><span>사유</span>${esc(r.reason)}</div>`:''}
+      ${(()=>{const w=liveReason(r); return w?`<div class="adjwhy"><span>사유</span>${esc(w)}</div>`:''})()}
       ${r.note?`<div class="adjnote"><span>마케터 사유</span>${esc(r.note)}</div>`:''}
       ${r.admNote?`<div class="adjnote"><span>담당자 사유</span>${esc(r.admNote)}</div>`:''}
       ${p.act?`<div class="adjbtns">
@@ -3269,7 +3281,7 @@ function admModal(no,st){
       ${hrow(rep?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
       ${done?hrow('발송 시각',rep?`${hh(r.hour)} 매일`:`${fmtD(r.from)} ${hh(r.hour)}`):''}
       ${r.note?hrow('마케터 사유',r.note):''}
-      ${r.reason?hrow('조정 요청',r.reason):''}
+      ${(()=>{const w=liveReason(r); return w?hrow('조정 요청',w):''})()}
     </div>
     ${edit?`
     ${/* 날짜를 바꿀 수 없는 건(확정 대기)은 이 줄을 적지 않는다 —

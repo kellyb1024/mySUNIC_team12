@@ -67,7 +67,7 @@ export interface Campaign {
   hour: number | null;
   status: Status;
   adjBy?: AdjBy;
-  /** 조정 요청 시점의 잔여 캐파 문구 */
+  /** 조정 요청 시점의 초과 캐파 문구 */
   reason?: string;
   /** 마케터가 적은 사유 */
   note?: string;
@@ -236,11 +236,13 @@ export function dayCheck(
   for (const x of spanOf(c, d)) {
     if (c.ch.includes('배너')) {
       const rem = bannerRem(all, x, opts.exclude);
-      if (rem < c.qty) return { ok: false, why: `${fmtD(x)} 배너 잔여 ${man(rem)}만` };
+      // 「얼마가 모자란지」로 적는다 — 잔여를 적으면 마케터가 뺄셈을 해야 한다.
+      // 프로토타입과 문구가 갈려 있었고 parity 대조에서 38곳이 잡혔다 (2026-08-04)
+      if (rem < c.qty) return { ok: false, why: `${fmtD(x)} 배너 캐파 ${man(c.qty - rem)}만 초과` };
     }
     if (c.offer === '쿠폰') {
       const rem = couponRem(all, x, opts.exclude);
-      if (rem < c.qty) return { ok: false, why: `${fmtD(x)} 쿠폰 잔여 ${man(rem)}만` };
+      if (rem < c.qty) return { ok: false, why: `${fmtD(x)} 쿠폰 캐파 ${man(c.qty - rem)}만 초과` };
     }
   }
   return { ok: true };
