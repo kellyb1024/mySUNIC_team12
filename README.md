@@ -27,13 +27,13 @@
 ### HTML 프로토타입 — 설치 없음
 
 ```
-prototype0802_code.html 을 브라우저로 엽니다
+prototype0804_code.html 을 브라우저로 엽니다
 ```
 
 네트워크 없이 돕니다. 데이터는 파일 안에 있어 새로고침하면 초기화됩니다.
-`prototype0728 ~ 0801` 은 날짜별 스냅샷이라 **비교용으로 얼려 둔 것**입니다. 고치지 마세요.
+`prototype0728 ~ 0803` 은 날짜별 스냅샷이라 **비교용으로 얼려 둔 것**입니다. 고치지 마세요.
 
-배포본 — https://kellyb1024.github.io/mySUNIC_team12/prototype0802_code.html
+배포본 — https://kellyb1024.github.io/mySUNIC_team12/prototype0804_code.html
 
 ### 웹앱 — 이식 중
 
@@ -51,7 +51,7 @@ npm run dev        # http://localhost:3000
 ## 구조
 
 ```
-prototype0728~0802_code.html   날짜별 스냅샷. 0802 가 최신
+prototype0728~0804_code.html   날짜별 스냅샷. 0804 가 최신
 config.js                      HTML 용 접속 정보
 supabase/                      스키마 · 시드 204건
 webapp/
