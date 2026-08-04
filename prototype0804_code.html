@@ -14,16 +14,39 @@
 <script src="config.js"></script>
 <style>
 :root{
-  --sk-orange:#EE7501; --sk-orange-text:#B35700; --sk-orange-dk:#D06600;
-  --sk-orange-t25:#FBD9B4; --sk-orange-t10:#FDEFE0; --sk-red:#EA002C;
-  --l1:#EEF0F2; --l1t:#1F1F1F; --l2:#FBD9B4; --l2t:#5A3400;
-  --l3:#EE7501; --l3t:#1F1F1F; --l4:#EA002C; --l4t:#FFFFFF;
-  --cell-border:#85898C; --bg:#F5F6F7; --surface:#FFF; --border:#E5E7E8; --motif:#F0F1F2;
-  --text-strong:#1F1F1F; --text:#4A4E52; --text-muted:#6E7276;
-  --locked-fill:#9A9EA2; --locked-text:#5F6368;
-  --waiting-bg:#FFF3CC; --waiting-text:#5C4700; --waiting-border:#C9A227;
+  /* Primary(Orange) 램프 — 500 이 기준색이고 나머지는 여기서 파생된다.
+     100 선택 배경 · 300 테두리/보조 면 · 500 액션 · 700 틴트 위 텍스트
+       500 #FF890C  흰글자 2.38:1 · 진한글자 7.08:1  ← 진한 글자라야 기준을 넘는다
+       700 #B35700  흰바탕 4.91:1 (램프 계산값 #B35E05 보다 대비가 나아 기존 값을 유지) */
+  --o100:#FFEEDD; --o300:#FFC292; --o500:#FF890C; --o700:#B34000;
+  --sk-orange:var(--o500); --sk-orange-text:var(--o700); --sk-orange-dk:#E67A05;
+  --sk-orange-t25:var(--o300); --sk-orange-t10:var(--o100);
+
+  /* Danger(Red) — 브랜드 빨강 #E0002A 가 500. 금지·초과·취소에만 쓴다 */
+  --r100:#FFE0DC; --r300:#FA928C; --r500:#E0002A; --r700:#A20000;
+  --sk-red:var(--r500);
+
+  /* Info(Blue) — 주황의 반대편(H 260°). 액션이 아닌 '알림'에만.
+     파랑이 버튼에 쓰이는 순간 두 개의 액션색이 생겨 주황이 뜻을 잃는다 */
+  --b100:#DBECFF; --b300:#89B4FA; --b500:#1F6FEB; --b700:#0036B3;
+  --l1:#EEF0F2; --l1t:#1F1F1F; --l2:var(--o300); --l2t:#5A3400;
+  --l3:var(--o500); --l3t:#1F1F1F; --l4:var(--r500); --l4t:#FFFFFF;
+  /* Secondary(Neutral) 램프 — 구조를 맡는다. Primary 가 '누를 것'이라면 이쪽은 '읽을 것'.
+     회색은 완전 중성(r≈g≈b)으로 둔다. 푸른 기가 섞인 회색(#4A4E52 처럼 b>g>r)은
+     따뜻한 주황과 만나면 탁해진다. 중성이라야 주황이 깨끗하게 뜬다 (2026-08-04)
+
+     Primary 는 100·300·500·700 네 단계면 충분하지만 중성은 여섯 단계가 필요하다.
+     면(100)과 헤어라인(200)과 격자(300)는 실제로 다른 일을 하고, 셋을 합치면
+     카드 경계가 사라지거나 격자가 뭉갠다. 단계를 줄이려다 화면을 잃는다. */
+  --n050:#F5F5F7; --n100:#F2F2F4; --n200:#E5E5E7; --n300:#C7C7CC;
+  --n500:#86868B; --n700:#515154; --n900:#1D1D1F;
+  --bg:var(--n050); --surface:#FFF; --motif:var(--n100);
+  --border:var(--n200); --cell-border:var(--n300);
+  --text-strong:var(--n900); --text:var(--n700); --text-muted:var(--n500);
+  --locked-fill:var(--n300); --locked-text:var(--n500);
+  --waiting-bg:#FFF6E3; --waiting-text:#7A5200; --waiting-border:#E8BE55;
   --confirmed:#1F1F1F;
-  --ch-banner:#B35700; --ch-tv:#EE7501; --ch-toast:#F7A85C; --ch-coupon:#FBD0A0;
+  --ch-banner:#B35700; --ch-tv:var(--o500); --ch-toast:#F7A85C; --ch-coupon:#FBD0A0;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{font-size:14px}
@@ -51,7 +74,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
   display:flex;gap:4px;position:sticky;top:58px;z-index:59}
 .tabbar a{padding:13px 20px 11px;font-size:14px;color:var(--text-muted);cursor:pointer;
   border-bottom:2px solid transparent;margin-bottom:-1px}
-.tabbar a.on{color:var(--sk-orange-text);font-weight:500;border-bottom-color:var(--sk-orange)}
+.tabbar a.on{color:var(--text-strong);font-weight:500;border-bottom-color:var(--sk-orange)}
 .tabbar a:hover:not(.on){color:var(--text-strong)}
 
 .wrap{padding:24px 40px 90px;max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
@@ -59,10 +82,18 @@ input,select,textarea{font-family:inherit;font-size:13px}
 
 .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:17px 19px 19px}
 .card-hd{margin-bottom:15px}
-.card-hd .rule{height:1px;background:var(--sk-orange);margin-bottom:8px}
-.card-hd .lbl{display:flex;justify-content:space-between;font-size:12px;font-weight:500;color:var(--sk-orange-text)}
-.card-hd h2{font-size:17px;font-weight:500;color:var(--text-strong);margin-top:3px;
+.card-hd .rule{height:1px;background:var(--border);margin-bottom:8px}
+/* 카드 제목은 구조다. 주황은 '누를 것'과 '고른 것'에만 남긴다 —
+   구조까지 주황이면 어디가 중요한지 신호가 사라진다 (2026-08-04 디자인 정리) */
+/* 패널 맨 위 제목은 주황을 유지한다 — 카드가 어디서 시작하는지 알리는 표식이고,
+   화면에서 브랜드가 드러나는 유일한 구조 요소다. 오른쪽 보조 문구는 회색으로 눌러
+   한 줄 안에서도 위계가 생기게 한다. (사용자 지정 · 2026-08-04) */
+.card-hd .lbl{display:flex;justify-content:space-between;font-size:13px;font-weight:500;color:var(--sk-orange-text)}
+.card-hd .lbl span:last-child{font-size:12px;font-weight:400;color:var(--text-muted)}
+.card-hd .lbl span:only-child{font-size:13px;font-weight:500;color:var(--sk-orange-text)}
+.card-hd h2{font-size:17px;font-weight:500;color:var(--text-strong);margin-top:10px;
   display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+
 .card-hd h2 .badge{font-size:11px;font-weight:400;color:var(--text-muted);border:1px solid var(--border);
   border-radius:999px;padding:2px 9px}
 
@@ -71,12 +102,12 @@ input,select,textarea{font-family:inherit;font-size:13px}
   border:1px solid var(--text-muted);color:var(--text-muted);font-size:9px;font-style:normal;
   font-family:Roboto;cursor:help;position:relative;vertical-align:1px;margin-left:4px;flex:0 0 14px}
 .i::before{content:'i';font-family:Roboto;font-weight:500;line-height:1}
-.i:hover{border-color:var(--sk-orange-text);color:var(--sk-orange-text)}
+.i:hover{border-color:var(--o500);color:var(--n900)}
 .i::after{content:attr(data-tip);position:absolute;left:calc(100% + 9px);top:50%;transform:translateY(-50%);
   background:var(--text-strong);color:#fff;font-size:11.5px;font-weight:400;line-height:1.55;
-  padding:8px 11px;border-radius:5px;width:220px;text-align:left;white-space:pre-line;
+  padding:8px 11px;border-radius:4px;width:220px;text-align:left;white-space:pre-line;
   opacity:0;visibility:hidden;transition:opacity .12s;z-index:120;pointer-events:none;
-  box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  box-shadow:0 4px 16px rgba(0,0,0,.16)}
 /* 꼬리 */
 .i::marker{content:''}
 .i:hover::after{opacity:1;visibility:visible}
@@ -95,7 +126,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 /* ── 폼 ── */
 .frow{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:16px}
 .fld{display:flex;flex-direction:column;gap:5px;min-width:0}
-.fld > label{font-size:11.5px;font-weight:500;color:var(--sk-orange-text);display:flex;align-items:center}
+.fld > label{font-size:11.5px;font-weight:500;color:var(--text);display:flex;align-items:center}
 .fld input[type=date],.fld input[type=text],.fld input[type=number],.fld select{
   padding:9px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;width:100%}
 .fld input:focus,.fld select:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
@@ -105,7 +136,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
   background:#fff;color:var(--text);white-space:nowrap}
 .chip.on{border-color:var(--text-strong);background:var(--text-strong);color:#fff}
 .chip.sm{padding:5px 11px;font-size:11.5px}
-.chip.sm.on{background:var(--sk-orange-t10);border-color:var(--sk-orange-text);color:var(--sk-orange-text)}
+.chip.sm.on{background:var(--sk-orange-t10);border-color:var(--o500);color:var(--n900)}
 .unit{display:flex;align-items:center;gap:7px}
 .unit span{font-size:12px;color:var(--text-muted);white-space:nowrap}
 .hintline{font-size:11px;color:var(--text-muted);margin-top:3px;line-height:1.5}
@@ -114,65 +145,77 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .dgrid .dh{font-size:11px;color:var(--text-muted);text-align:center;padding-bottom:3px}
 .dgrid .dh.sun{color:var(--sk-red)}
-.dcell{border:1px solid var(--cell-border);border-radius:5px;padding:8px 6px;min-height:54px;
+.dcell{border:1px solid var(--cell-border);border-radius:4px;padding:8px 6px;min-height:54px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   background:#fff;cursor:pointer;position:relative;transition:transform .1s}
 .dcell .dd{font-size:14px;font-weight:500;font-family:Roboto;color:var(--text-strong)}
 .dcell .dm{font-size:10.5px;color:var(--text-muted);text-align:center;line-height:1.35}
-.dcell.ok:hover{transform:translateY(-1px);border-color:var(--sk-orange-text)}
+.dcell.ok:hover{transform:translateY(-1px);border-color:var(--o500)}
 .dcell.ok .dm{color:var(--sk-orange-text)}
-.dcell.on{background:var(--sk-orange-t10);border-color:var(--sk-orange);border-width:2px;padding:7px 5px}
-.dcell.on .dd{color:var(--sk-orange-text);font-weight:600}
+.dcell.on{background:var(--o100);border-color:var(--o500);padding:7px 5px}
+.dcell.on .dd{color:var(--sk-orange-text);font-weight:500}
 .dcell.on .wk{color:var(--sk-orange-text);font-weight:500}
 /* 고른 칸은 주황 테두리·배경으로 이미 드러난다 — '시작' 글자는 덧말이라 뺐다 */
 /* 여유가 없는 날 — 고를 수는 있다. 고르면 조정 요청으로 이어지므로 커서를 막지 않는다 */
 .dcell.no{background:var(--motif);border-style:dashed;border-color:var(--border)}
 .dcell.no .dd{color:var(--locked-text);font-weight:400} .dcell.no .dm{color:var(--locked-text)}
 .dcell.no:hover{transform:translateY(-1px);border-color:var(--locked-text)}
-.dcell.no.on{border-color:var(--sk-orange);background:var(--sk-orange-t10)}
-.dcell.no.on .dd{color:var(--sk-orange-text);font-weight:600}
+.dcell.no.on{border-color:var(--o500);background:var(--sk-orange-t10)}
+.dcell.no.on .dd{color:var(--sk-orange-text);font-weight:500}
 .dcell.blank{border:none;background:none;cursor:default;min-height:0}
 /* 추천 1순위 표시 */
 .dcell .pin{position:absolute;bottom:3px;left:0;right:0;text-align:center;
   font-size:9px;color:var(--sk-orange-text);font-weight:500}
-.rec-card.on{border-color:var(--sk-orange);background:var(--sk-orange-t10)}
+.rec-card.on{border-color:var(--o500);background:var(--sk-orange-t10)}
 /* 고른 기간을 한눈에 */
 .periodline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
-  padding:11px 14px;margin-bottom:12px;border-radius:6px;
+  padding:11px 14px;margin-bottom:12px;border-radius:8px;
   background:var(--sk-orange-t10);border:1px solid var(--sk-orange-t25)}
-.periodline b{font-size:16px;font-weight:600;color:var(--sk-orange-text)}
+.periodline b{font-size:16px;font-weight:500;color:var(--text-strong)}
 .periodline span{font-size:11.5px;color:var(--text-muted)}
 .periodline .remain{font-family:Roboto;font-variant-numeric:tabular-nums;
-  font-size:12px;font-weight:500;color:var(--sk-orange-text);margin-left:auto}
+  font-size:12px;font-weight:500;color:var(--text-muted);margin-left:auto}
 .periodline .src2{flex-basis:100%;font-size:11px;color:var(--text-muted);
   padding-top:5px;margin-top:2px;border-top:1px dashed var(--sk-orange-t25)}
 .periodline.warn .src2{border-top-color:var(--border)}
 .periodline.warn{background:var(--motif);border-color:var(--border);margin-bottom:8px}
 .periodline.warn b{color:var(--text-strong)}
 .rec-card .rt em{font-style:normal;font-size:9.5px;color:var(--sk-orange-text);
-  background:var(--sk-orange-t10);border-radius:3px;padding:1px 5px;margin-left:5px;vertical-align:2px}
+  background:var(--sk-orange-t10);border-radius:2px;padding:1px 5px;margin-left:5px;vertical-align:2px}
 .dcell.busy{background:var(--sk-orange-t10);border-color:var(--sk-orange-t25)}
-.dcell.start{border-color:var(--sk-orange);border-width:2px}
+.dcell.start{border-color:var(--o500);border-width:2px;padding:7px 5px}
 .dcell.start .wk{color:var(--sk-orange-text);font-weight:500}
-.blockbox{border:1px solid var(--sk-red);border-radius:6px;padding:13px 15px;margin:8px 0 12px}
+.blockbox{border:1px solid var(--sk-red);border-radius:8px;padding:13px 15px;margin:8px 0 12px}
 /* 얼마가 모자란지 — 시간대를 고르기 전에 먼저 읽혀야 하므로 그 위에 둔다 */
 .capover{display:inline-block;border:1px solid var(--sk-red);border-radius:4px;
   padding:5px 10px;margin:0 6px 10px 0;font-size:12px;font-weight:500;color:var(--sk-red)}
 /* 자리를 만들려고 옮길 수 있는 건들 — 캘린더에 이미 보이는 정보를 팝업 안으로 가져온 것 */
 .movers{margin-bottom:12px}
-.movers .mvhd{font-size:11.5px;color:var(--text-muted);margin-bottom:6px}
+.movers{display:flex;flex-direction:column;gap:6px}
+.movers .mvhd{font-size:11.5px;color:var(--text-muted);margin-bottom:0}
 .mv{display:flex;align-items:center;gap:9px;padding:7px 10px;border:1px solid var(--border);
-  border-radius:5px;font-size:12px;margin-bottom:5px;background:#fff}
-.mv.on{border-color:var(--sk-orange);background:var(--sk-orange-t10)}
-.mv .mvn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-strong)}
-.mv .mvq{font-variant-numeric:tabular-nums;font-weight:500;color:var(--text-strong);flex:0 0 auto}
-.mv .mvt{font-variant-numeric:tabular-nums;color:var(--text-muted);flex:0 0 auto;min-width:58px;
-  text-align:right}
-.mv button{flex:0 0 auto}
+  border-radius:4px;font-size:12px;margin-bottom:5px;background:#fff}
+/* 행끼리 열이 맞아야 읽힌다 — 내용 길이에 따라 폭이 달라지면 눈이 훑지 못한다.
+   한글과 Roboto 는 줄높이가 달라 line-height 를 1 로 맞추고 flex 로 가운데 정렬한다 */
+.mv .mvn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--text-strong);line-height:1}
+.mv .mvcy{flex:0 0 40px;font-size:10.5px;color:var(--text-muted);white-space:nowrap;
+  line-height:1;text-align:left}
+.mv .mvcy.rep{color:var(--waiting-text)}
+.mv .mvq{flex:0 0 62px;text-align:right;font-variant-numeric:tabular-nums;
+  font-weight:500;color:var(--text-strong);line-height:1}
+.mv .mvt{flex:0 0 50px;text-align:right;font-variant-numeric:tabular-nums;
+  color:var(--text-muted);line-height:1}
+.mv button{flex:0 0 auto;margin-left:2px}
+.mv.on{border-color:var(--o500);background:var(--sk-orange-t10)}
+/* 주기 — 주기성은 기간 전체가 움직이고 매일 캐파를 쓴다. 고르기 전에 보여야 한다 */
 .swap{border:1px solid var(--sk-orange-t25);border-left:2px solid var(--sk-orange);
-  border-radius:5px;padding:11px 12px;margin:0 0 5px 0;background:var(--surface)}
-.swap .fixrow{margin-top:0}
-.adjbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:11px}
+  border-radius:4px;padding:11px 12px;margin:0 0 5px 0;background:var(--surface)}
+/* 자리 만들기 패널 안의 간격은 12px 하나로 — 바깥 모달과 같은 규칙 */
+.swap{padding:12px}
+.swap .fixrow{margin-top:0;margin-bottom:12px}
+.swap .fixrow:last-of-type{margin-bottom:0}
+.adjbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
 .adjbtns .note{font-size:11px;color:var(--text-muted)}
 /* 막힘 안내는 12·8 리듬 — 8은 묶인 것끼리, 12는 블록 사이 */
 .drill.final.warn .reasonfld{margin-bottom:12px}
@@ -199,13 +242,14 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .hgrid.rec3{grid-template-columns:repeat(3,minmax(0,180px))}
 .hslot{border:1px solid var(--cell-border);border-radius:4px;height:52px;background:#fff;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
-.hslot .hh{font-size:12px;font-family:Roboto;font-weight:500;color:var(--text-strong)}
+.hslot .hh{font-size:12px;font-family:Roboto;font-weight:500;color:var(--text-strong);
+  white-space:nowrap;line-height:1.15}
 .hslot .hs{font-size:9.5px;color:var(--text-muted);min-height:12px;white-space:nowrap;
   line-height:1.25;text-align:center}
-.hslot:hover:not(.taken):not(.on){border-color:var(--sk-orange-text);background:var(--sk-orange-t10)}
+.hslot:hover:not(.taken):not(.on){border-color:var(--o500);background:var(--sk-orange-t10)}
 /* 고른 시간대 — 검정은 '막힘'으로 읽혀 주황으로 표시한다 */
-.hslot.on{background:var(--sk-orange-t10);border-color:var(--sk-orange);border-width:2px}
-.hslot.on .hh{color:var(--sk-orange-text);font-weight:600}
+.hslot.on{background:var(--o100);border-color:var(--o500)}
+.hslot.on .hh{color:var(--sk-orange-text);font-weight:500}
 .hslot.on .hs{color:var(--sk-orange-text)}
 /* 같은 시각에 이미 배정된 건이 있다는 표시 — 제약이 아니라 참고 정보다 */
 .hslot.busy{background:var(--l1);border-color:var(--cell-border)}
@@ -217,26 +261,29 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .hslot.taken:hover:not(.on) .swap{display:inline;color:var(--waiting-text);font-weight:500}
 /* 읽기 전용(일자 상세) — 호버 반응 없음 */
 .hslot.ro{cursor:default}
-.hslot.ro:hover{background:var(--l1);border-color:var(--locked-fill)}
+/* 캐파가 해결되기 전에는 고를 수 없다 */
+.hgrid.locked{opacity:.5}
+.hgrid.locked .hslot{cursor:default}
+.hslot.ro:hover{background:#fff;border-color:var(--cell-border)}
 .hslot.ro:hover .hh{color:var(--locked-text)}
-.hslot.rec{border-color:var(--sk-orange);border-width:2px}
+.hslot.rec{border-color:var(--o500)}
 .top3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
-.t3{border:1px solid var(--border);border-radius:6px;padding:11px 12px}
-.t3 .r{font-size:10px;color:var(--sk-orange-text);font-weight:500}
+.t3{border:1px solid var(--border);border-radius:8px;padding:11px 12px}
+.t3 .r{font-size:10px;color:var(--text-muted);font-weight:500}
 .t3 .h{font-size:16px;font-weight:500;color:var(--text-strong);font-family:Roboto;margin:2px 0}
 .t3 .m{font-size:11px;color:var(--text-muted)}
-.t3 button{margin-top:8px;width:100%;padding:7px;border-radius:999px;border:1px solid var(--sk-orange-text);
-  color:var(--sk-orange-text);font-size:11.5px;font-weight:500;background:#fff}
+.t3 button{margin-top:8px;width:100%;padding:7px;border-radius:999px;border:1px solid var(--o500);
+  color:var(--n900);font-size:11.5px;font-weight:500;background:#fff}
 .t3 button:hover{background:var(--sk-orange-t10)}
 
 /* ── 요약 / 게이지 ── */
-.sumbox{border:1px solid var(--border);border-radius:6px;padding:14px 16px;background:var(--sk-orange-t10);
+.sumbox{border:1px solid var(--border);border-radius:8px;padding:14px 16px;background:var(--sk-orange-t10);
   display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
-.sumbox .sv{font-size:11px;color:var(--sk-orange-text);font-weight:500;margin-bottom:3px}
+.sumbox .sv{font-size:11px;color:var(--text-muted);font-weight:500;margin-bottom:3px}
 .sumbox .sd{font-size:14px;color:var(--text-strong);font-weight:500}
 .gauges{display:flex;gap:22px;flex-wrap:wrap;margin:4px 0 14px}
 .gauge{display:flex;gap:10px;align-items:flex-end}
-.gtube{width:40px;height:84px;border:1px solid var(--cell-border);border-radius:3px;position:relative;overflow:hidden;background:var(--l1)}
+.gtube{width:40px;height:84px;border:1px solid var(--cell-border);border-radius:2px;position:relative;overflow:hidden;background:var(--l1)}
 /* 소진된 캐파 = SK 오렌지 / 내가 신청하려는 분량 = 연한 톤 빗금 */
 .gfill{position:absolute;left:0;right:0;bottom:0;background:var(--sk-orange)}
 /* 한도 없는 채널은 소진율이 아니라 사용량이다 — 주황(한도 대비)과 뜻이 달라 회색으로 */
@@ -244,12 +291,12 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .gghost{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,
   var(--sk-orange-t25) 0 4px,#FFFFFF 4px 8px);border-top:1px solid var(--sk-orange-t25)}
 .gmeta{font-size:11.5px;line-height:1.6}
-.gmeta .gt{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:2px;display:flex;align-items:center}
+.gmeta .gt{font-size:11px;font-weight:500;color:var(--text-muted);margin-bottom:2px;display:flex;align-items:center}
 .gmeta .gn{font-family:Roboto;font-variant-numeric:tabular-nums;color:var(--text-strong)}
 
 /* ── 캘린더 ── */
 .calnav{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.calnav button.arw{width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:#fff}
+.calnav button.arw{width:30px;height:30px;border:1px solid var(--border);border-radius:8px;background:#fff}
 .calnav button.arw:hover:not(:disabled){background:var(--motif)}
 .calnav button.arw:disabled{opacity:.3;cursor:not-allowed}
 .calnav .lab{font-size:16px;font-weight:500;color:var(--text-strong);min-width:130px;text-align:center;font-family:Roboto}
@@ -262,32 +309,42 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .calwk{position:relative;margin-bottom:5px}
 .wcells{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
 .lanegap{flex:0 0 auto}
-.wspans{position:absolute;left:0;right:0;top:25px;display:grid;
+/* 캐파 줄 아래로 — 실측: 캐파 줄이 25px 에서 시작해 53.6px 에서 끝난다.
+   두 줄 형식으로 바뀌면서 38px 로는 그 줄을 덮었다 (2026-08-04) */
+.wspans{position:absolute;left:0;right:0;top:56px;display:grid;
   grid-template-columns:repeat(7,1fr);gap:5px;grid-auto-rows:19px;row-gap:3px;
   pointer-events:none}
 /* 주기성 바는 배치만 담당 — 생김새는 일회성 칩(.ev) 규칙을 그대로 쓴다 */
 .span{pointer-events:auto;min-width:0}
 /* 주 경계에서 이어지는 쪽은 좌측 액센트와 모서리를 없앤다 */
 .span:not(.head){border-left:none;border-radius:0 3px 3px 0}
-.span:not(.tail){border-radius:3px 0 0 3px}
+.span:not(.tail){border-radius:2px 0 0 3px}
 .span:not(.head):not(.tail){border-radius:0}
 .cal{display:block}
 .cal .ch{font-size:11.5px;color:var(--text-muted);text-align:center;padding:4px 0 6px;font-weight:500}
 .cal .ch.sun{color:var(--sk-red)}
-.ccell{border:1px solid var(--border);border-radius:5px;min-height:112px;padding:6px 7px;background:#fff;
+.ccell{border:1px solid var(--border);border-radius:4px;min-height:112px;padding:6px 7px;background:#fff;
   display:flex;flex-direction:column;gap:3px;position:relative;min-width:0;overflow:hidden}
 .ccell.out{background:var(--motif);opacity:.55}
-.ccell.today{border-color:var(--sk-orange);border-width:2px;padding:5px 6px}
+.ccell.today{border-color:var(--o500);border-width:2px;padding:5px 6px}
 .ccell .cd{font-size:12px;font-family:Roboto;font-weight:500;color:var(--text-strong);margin-bottom:1px}
 .ccell.sun .cd{color:var(--sk-red)}
 .ccell .cmore{font-size:10px;color:var(--text-muted);margin-top:auto}
 /* ── 담당자 캘린더 칸 ── */
 .calrow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:5px}
-.ccap{display:flex;flex-direction:column;gap:1px;font-size:10px;color:var(--text-muted);
-  padding:3px 0 4px;margin-bottom:3px;border-bottom:1px dashed var(--border)}
+/* 한 줄에 세 덩어리 — 줄바꿈을 막고 넘치면 말줄임. 세로로 늘어나지 않게 flex 고정.
+   '만'은 끝에 한 번만 적는다. 앞뒤 한도가 같은 단위라 반복할 이유가 없다 */
+.ccap{display:block;flex:0 0 auto;font-size:9.5px;color:var(--text-muted);
+  padding:3px 0 4px;margin-bottom:3px;border-bottom:1px dashed var(--border);line-height:1.4}
+.ccap .capk,.ccapline .capk{color:var(--text-strong)}
+.ccap .capv,.ccapline .capv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ccap b{font-family:Roboto;font-weight:500;color:var(--text-strong)}
 /* 빨강은 '이 날 조정이 필요한 건이 있다'는 신호 — 채널별로 따로 판정한다 */
 .ccap span.over b{color:var(--sk-red)}
+/* 캘린더 칸의 확정 캐파 — 한 줄. 넘치면 줄이지 말고 말줄임 */
+.ccapline{font-size:9.5px;line-height:1.4;color:var(--text-muted);padding:0 4px 2px}
+.ccapline b{font-family:Roboto;font-weight:500;color:var(--text-strong)}
+.ccapline .capk{color:var(--text-strong)}
 .cgo{font-size:9.5px;color:var(--text-muted);padding:0 4px 2px}
 /* 확정된 건과 아직 처리 못 한 건 사이 구분 */
 .csep{border-top:1px dashed var(--border);margin:3px 2px}
@@ -295,9 +352,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
   cursor:pointer;min-width:0}
 .crow:hover{background:var(--sk-orange-t10)}
 .crow i{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
-.crow.wait i{background:#2E75B6}
+.crow.wait i{background:var(--b500)}
 .crow.need i{background:var(--sk-red)}
-.crow.conf i{background:var(--cell-border)}
+.crow.conf i,.crow.sent i,.crow.canc i{display:none}
 /* 발송 완료 — 이미 나간 건이라 속 빈 점과 흐린 글씨로 가라앉힌다 */
 .crow.sent i{background:#fff;border:1px solid var(--cell-border)}
 .crow.sent .cn,.crow.sent .cq,.crow.sent .cs{color:var(--locked-text)}
@@ -305,9 +362,9 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .crow .cn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-strong)}
 .crow .cq{color:var(--text-muted);font-variant-numeric:tabular-nums;flex:0 0 auto}
 .crow .cs{flex:0 0 auto;font-size:9.5px;color:var(--text-muted)}
-.crow.wait .cs{color:#2E75B6;font-weight:500}
+.crow.wait .cs{color:var(--b500);font-weight:500}
 .crow.need .cs{color:var(--sk-red);font-weight:500}
-.ev{font-size:10.5px;padding:2px 5px;border-radius:3px;line-height:1.4;cursor:pointer;position:relative;
+.ev{font-size:10.5px;padding:2px 5px;border-radius:2px;line-height:1.4;cursor:pointer;position:relative;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid var(--text-muted)}
 .ev.start{background:var(--sk-orange-t10);border-left-color:var(--sk-orange);color:var(--sk-orange-text)}
 .ev.end{background:var(--l1);border-left-color:var(--locked-fill);color:var(--text)}
@@ -316,8 +373,8 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .ev.rt .tip{left:auto;right:0}
 .ev.up .tip{top:auto;bottom:100%;border-top:none;border-bottom:6px solid transparent}
 .ev .tip{display:none;position:absolute;top:100%;left:0;background:var(--text-strong);color:#fff;
-  padding:9px 11px;border-radius:5px;font-size:11px;line-height:1.6;width:222px;white-space:normal;
-  z-index:130;box-shadow:0 4px 14px rgba(0,0,0,.2);
+  padding:9px 11px;border-radius:4px;font-size:11px;line-height:1.6;width:222px;white-space:normal;
+  z-index:130;box-shadow:0 4px 16px rgba(0,0,0,.16);
   border-top:6px solid transparent;background-clip:padding-box}
 .ev:hover .tip{display:block}
 /* 툴팁(222×170)이 칸(193×112)보다 커서 .ccell 의 overflow:hidden 에 잘렸다.
@@ -335,13 +392,14 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .ev .tip .tr span:last-child{font-family:Roboto;color:#fff}
 
 .ccell[data-cd]{cursor:pointer}
-.ccell[data-cd]:hover{border-color:var(--sk-orange-text);background:#FFFDFA}
+.ccell[data-cd]:hover{border-color:var(--o500);background:#FFFDFA}
 
 /* ── 일자 상세 리스트 ── */
-.daylist{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.daylist{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
 .dayrow{display:grid;grid-template-columns:58px minmax(0,1fr) 150px 78px 84px 76px;gap:12px;
   align-items:center;padding:11px 13px;background:#fff;font-size:12.5px}
-.dayrow .dh2{color:var(--sk-orange-text);font-weight:500}
+.dayrow{align-items:center;min-height:34px}
+.dayrow .dh2{color:var(--text-strong);font-weight:500}
 .dayrow .dnm{color:var(--text-strong);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dayrow .dch,.dayrow .dw{color:var(--text-muted);font-size:11.5px}
 .dayrow .dq{text-align:right;color:var(--text-strong)}
@@ -352,15 +410,16 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .cbrow{display:flex;align-items:center;gap:11px}
 .cbrow .cl{width:70px;flex:0 0 70px;font-size:11.5px;color:var(--text-strong);display:flex;align-items:center;gap:5px}
 .cbrow .cl i.sw{width:9px;height:9px;border-radius:2px;display:inline-block;flex:0 0 9px}
-.cbtrack{flex:1;height:20px;background:var(--l1);border-radius:3px;overflow:hidden;position:relative}
-.cbtrack b{display:block;height:100%;border-radius:3px}
+.cbtrack{flex:1;height:20px;background:var(--l1);border-radius:2px;overflow:hidden;position:relative}
+
+.cbtrack b{background:var(--o500);display:block;height:100%;border-radius:2px}
 .cbrow .cn{width:104px;text-align:right;font-family:Roboto;font-variant-numeric:tabular-nums;
   font-size:12px;color:var(--text-strong);flex:0 0 104px}
-.sparkwrap{border:1px solid var(--border);border-radius:6px;padding:13px 14px}
-.sparkwrap .st2{font-size:11.5px;color:var(--sk-orange-text);font-weight:500;margin-bottom:9px;display:flex;align-items:center}
+.sparkwrap{border:1px solid var(--border);border-radius:8px;padding:13px 14px}
+.sparkwrap .st2{font-size:11.5px;color:var(--text-muted);font-weight:500;margin-bottom:9px;display:flex;align-items:center}
 .spark{display:flex;align-items:stretch;gap:2px;height:86px}
 .spark .sb{flex:1;background:var(--l1);border-radius:2px;position:relative}
-.spark .sb b{position:absolute;left:0;right:0;bottom:0;background:var(--sk-orange);border-radius:2px;min-height:1px}
+.spark .sb b{position:absolute;left:0;right:0;bottom:0;background:var(--o500);border-radius:2px;min-height:1px}
 .spark .sb:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 5px);left:50%;
   transform:translateX(-50%);background:var(--text-strong);color:#fff;font-size:10.5px;padding:5px 8px;
   border-radius:4px;white-space:nowrap;z-index:50}
@@ -373,7 +432,8 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .note{font-size:11.5px;color:var(--text-muted);margin-top:9px;line-height:1.6}
 .segnote{font-size:11.5px;color:var(--text-muted);margin-bottom:11px;line-height:1.55}
 .actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-top:18px}
-.pill{border-radius:999px;padding:10px 21px;font-size:13.5px;font-weight:500}
+/* 버튼 글자는 줄높이를 못 박아 어느 변형이든 세로 중심이 같게 한다 */
+.pill{border-radius:999px;padding:10px 21px;font-size:13.5px;font-weight:500;line-height:1.2}
 /* 버튼은 세 가지뿐이다 — 채운 주황은 그 화면에서 눌러야 할 것 하나,
    회색은 나머지, 빨강은 되돌릴 수 없는 것.
    주황은 SK 브랜드색 #EE7501 을 쓴다. 흰 글씨와의 대비는 2.9:1 로 읽기
@@ -381,19 +441,19 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .pill.primary{background:var(--sk-orange);color:#fff}
 .pill.primary:hover{background:var(--sk-orange-dk)}
 .pill.primary:disabled{background:var(--motif);color:var(--locked-fill);cursor:not-allowed}
-.pill.ghost{background:var(--motif);border:1px solid var(--border);color:var(--text)}
-.pill.danger{background:var(--sk-red);color:#fff}
-.pill.danger:hover{background:#C4001F}
-.pill.ghost:hover{background:#E5E7E8}
+.pill.ghost{background:var(--surface);border:1px solid var(--o500);color:var(--n900)}
+.pill.danger{background:var(--surface);border:1px solid var(--r500);color:var(--r500)}
+.pill.danger:hover{background:var(--r100)}
+.pill.ghost:hover{background:var(--o100)}
 .empty{font-size:12.5px;color:var(--text-muted);text-align:center;padding:26px 0;line-height:1.7}
 .st{display:inline-block;font-size:11px;font-weight:500;border-radius:4px;padding:2px 9px;white-space:nowrap}
-.st.confirmed{border:1px solid var(--confirmed);color:var(--confirmed)}
+.st.confirmed{background:var(--o100);color:var(--o700);border:1px solid var(--o300)}
 /* 신청한 내용과 다르게 확정된 건 — 담당자가 일정을 옮겼다는 표시.
    마케터가 리스트를 훑다가 '내가 넣은 날이 아니네' 를 놓치지 않게 한다. */
 .st.diff{position:relative;padding-right:15px}
 .st.diff::after{content:'';position:absolute;top:50%;right:6px;transform:translateY(-50%);
-  width:5px;height:5px;border-radius:50%;background:var(--sk-red)}
-.st.applied{background:var(--waiting-bg);color:var(--waiting-text);border:1px solid var(--waiting-border)}
+  width:5px;height:5px;border-radius:50%;background:var(--o500)}
+.st.applied{background:var(--b100);color:var(--b700);border:1px solid var(--b300)}
 .st.sent{background:var(--l1);color:var(--text-muted)}
 .st.cancel{background:var(--motif);color:var(--locked-text);border:1px dashed var(--locked-fill)}
 
@@ -402,18 +462,22 @@ input,select,textarea{font-family:inherit;font-size:13px}
    left 는 사이드 패널(폭 250px, 우측 끝 ~285px) 을 비켜 300px. 패널 위에 겹치면
    버튼을 가려 창 높이에 따라 글자가 잘렸다. */
 .toasts{position:fixed;left:300px;bottom:24px;display:flex;flex-direction:column;gap:9px;z-index:200}
-.toast{background:var(--text-strong);color:#fff;padding:12px 16px;border-radius:6px;font-size:12.5px;
+.toast{background:var(--text-strong);color:#fff;padding:12px 16px;border-radius:8px;font-size:12.5px;
   max-width:400px;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,.16);animation:tin .2s}
 .toast.warn{background:var(--sk-red)}
 @keyframes tin{from{opacity:0;transform:translateY(6px)}}
-.modal{position:fixed;inset:0;background:rgba(31,31,31,.42);display:grid;place-items:center;z-index:300;padding:20px}
+/* 세로 가운데로 두면 안쪽이 펼쳐질 때마다 높이가 바뀌어 팝업 전체가 위아래로 움직인다.
+   확정 건을 하나씩 눌러 볼 때 머리가 계속 튄다. 위에 매달아 아래로만 자라게 한다 (2026-08-04) */
+.modal{position:fixed;inset:0;background:rgba(31,31,31,.42);display:grid;
+  place-items:start center;z-index:300;padding:28px 20px}
 /* 목록이 길어지면 화면을 넘어 잘렸다 — 박스 안에서 스크롤되게 한다 */
 .modal .box{background:#fff;border-radius:8px;padding:22px 24px;max-width:520px;width:100%;
-  max-height:calc(100vh - 40px);overflow-y:auto}
+  max-height:calc(100vh - 56px);overflow-y:auto}
 .modal h3{font-size:16px;font-weight:500;color:var(--text-strong);margin-bottom:4px}
 .modal .m-sub{font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.6}
 .modal .m-act{display:flex;gap:9px;justify-content:flex-end;margin-top:18px}
-.herocard{border:1px solid var(--sk-orange);border-radius:7px;background:var(--sk-orange-t10);padding:15px 17px}
+/* 면이 primary-100 인 정보 카드다. 테두리까지 500 이면 누를 수 있는 것처럼 보인다 */
+.herocard{border:1px solid var(--o300);border-radius:8px;background:var(--o100);padding:15px 17px}
 .herocard .hr{display:flex;gap:14px;padding:6px 0;font-size:12.5px;
   border-bottom:1px dashed var(--sk-orange-t25)}
 .herocard .hr:last-child{border-bottom:none}
@@ -428,7 +492,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .side{width:250px;flex:0 0 250px;position:sticky;top:112px;z-index:40}
 .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:20px}
 .fgroup{margin-bottom:13px}
-.ftitle{font-size:11px;font-weight:500;color:var(--sk-orange-text);margin-bottom:5px;display:flex;align-items:center}
+.ftitle{font-size:11px;font-weight:500;color:var(--text-strong);margin-bottom:5px;display:flex;align-items:center}
 .side input[type=date],.side input[type=text]{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:4px;background:#fff}
 .side input:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
 .opt{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:12.5px;color:var(--text-strong);cursor:pointer}
@@ -449,19 +513,127 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .drill-hd b{font-size:14.5px;font-weight:500;color:var(--text-strong)}
 .drill-hd span{font-size:11.5px;color:var(--text-muted)}
 .frow3{display:grid;grid-template-columns:minmax(0,2fr) 1fr 1fr;gap:14px}
-.frow3 .fld label{font-size:11.5px;font-weight:500;color:var(--sk-orange-text)}
+.frow3 .fld label{font-size:11.5px;font-weight:500;color:var(--text)}
 .frow3 .fld input{padding:9px 10px;border:1px solid var(--border);border-radius:4px;width:100%}
 .frow3 .fld input:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
+/* 신청자는 고쳐 넣는 값이 아니라 로그인 정보다.
+   편집이 되면 신청 건이 남의 것이 되어 마케터 화면 네 곳에서 동시에 사라진다 (0802 UT) */
+.frow3 .fld .ro{padding:9px 10px;border:1px solid var(--border);border-radius:4px;width:100%;
+  box-sizing:border-box;background:var(--motif);color:var(--text-muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 오늘 처리할 일 — 담당자 알림. 급한 순서는 발송일이 얼마나 가까운가로 정한다 */
+.alerts{display:flex;flex-direction:column}
+.alrow{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--border)}
+.alrow:first-child{border-top:0}
+.aldot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.aldot.hot{background:var(--sk-red)}
+.aldot.warn{background:var(--sk-orange)}
+.aldot.calm{background:var(--locked-fill)}
+.allbl{font-weight:400;color:var(--text-strong);white-space:nowrap}
+.alcnt{color:var(--text-muted);white-space:nowrap}
+.alitems{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto;align-items:center}
+.alitem{border:1px solid var(--border);background:var(--surface);border-radius:999px;
+  padding:5px 11px;font-size:12px;color:var(--text);cursor:pointer;max-width:280px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alitem:hover{border-color:var(--o500);color:var(--n900)}
+.almore{font-size:12px;color:var(--text-muted);white-space:nowrap}
+.alnone{padding:14px 2px;color:var(--text-muted)}
+/* 넣을 수 있는 날 — 담당자 조정 모달 */
+.sugwrap{flex:1;min-width:0}
+/* 추천은 최대 3개다. 폭을 내용에 맡기면 줄이 넘어가므로 3등분해 한 줄에 둔다 */
+.sugs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sug{border:1px solid var(--border);background:var(--surface);border-radius:8px;
+  padding:9px 11px;text-align:left;cursor:pointer;display:flex;flex-direction:column;
+  gap:2px;min-width:0;font-family:inherit}
+.sug:hover{border-color:var(--o500);background:var(--o100)}
+.sug b{font-size:13px;font-weight:500;color:var(--text-strong)}
+.sug span{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sugnone{font-size:12px;color:var(--text-muted);line-height:1.6}
+/* 드래그로 날짜 옮기기 — 끌 수 있는 것과 놓을 수 있는 곳이 눈에 보여야 한다 */
+.crow[draggable="true"]{cursor:grab}
+.crow.dragging{opacity:.4}
+body.dnd [data-drop]{background:#FFFDFA}
+.ccell.dropon{outline:2px solid var(--o500);outline-offset:-2px;background:var(--o100)}
+.sug.sm{padding:7px 10px}
+/* 단일 날짜 선택기 */
+.dpwrap{position:relative;display:inline-block}
+.rangetrig.dpt{width:auto;min-width:136px}
+.dpop.wide{width:306px}
+.arfoot{display:flex;gap:6px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.arfoot .rpf{margin-bottom:0;flex:1}
+.arfoot .pill.sm{flex:0 0 auto}
+.dpop{position:absolute;top:calc(100% + 6px);left:0;z-index:70;width:290px;padding:12px 14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 4px 16px rgba(0,0,0,.16);cursor:default}
+.sug.sm b{font-size:12px}
+.mvhd{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.listmore{display:flex;justify-content:center;padding:14px 0 2px}
+/* b·strong 은 CSS 가 안 잡으면 브라우저 기본 700 이 된다. 이 시스템의 상한은 600 */
+b,strong{font-weight:500}
+/* 리스트 본문은 굵기를 상속에 맡기지 않는다 — 강조는 색이 맡는다 */
+.crow .cn,.crow .cq,.crow .cs,.ccap,table.list td,/* 한글 산문은 낱말째 넘긴다 — 기본은 글자 단위라 '어렵습' / '니다' 처럼 잘린다 */
+table.list td.rsn, .adjwhy, .adjnote, .adjrej, .capnote, .sugnone,
+.blockbox, .adjbtns .note, .segnote, .empty{word-break:keep-all}
+table.list td.nm{font-weight:400}
+
+/* ── 조회 기간 선택기 ── */
+.rangewrap{position:relative}
+.rangetrig{display:flex;align-items:center;gap:8px;width:100%;padding:9px 10px;
+  border:1px solid var(--border);border-radius:4px;background:var(--surface);
+  font-size:12px;color:var(--text-strong);cursor:pointer;text-align:left}
+.rangetrig:hover{border-color:var(--o500)}
+.rangetrig.on{border-color:var(--o500);outline:2px solid var(--sk-orange);outline-offset:-1px}
+.rangetrig .rti{width:14px;height:14px;flex:0 0 auto;fill:none;
+  stroke:var(--sk-orange);stroke-width:1.4;stroke-linecap:round}
+.rangetrig .rtv{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rangetrig .rtv.ph{color:var(--text-muted)}
+.rangetrig .rtc{color:var(--text-muted);font-size:10px}
+
+.rangepop{position:absolute;top:calc(100% + 8px);left:0;z-index:60;display:flex;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 4px 16px rgba(0,0,0,.16);cursor:default}
+.rpL{width:150px;padding:14px;border-right:1px solid var(--border);flex:0 0 auto}
+.rpt{font-size:11px;color:var(--text-muted);margin-bottom:9px}
+.rpsel{width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:4px;
+  background:var(--surface);font-size:12px;color:var(--text-strong);margin-bottom:9px}
+.rpf{display:flex;align-items:center;gap:8px;width:100%;padding:8px 9px;margin-bottom:6px;
+  border:1px solid var(--border);border-radius:4px;background:var(--surface);cursor:pointer}
+.rpf.on{border-color:var(--o500);background:var(--sk-orange-t10)}
+.rpk{font-size:10px;color:var(--text-muted);flex:0 0 auto}
+.rpv{font-size:12px;font-weight:500;color:var(--text-strong);margin-left:auto}
+.rpv.ph{font-weight:400;color:var(--text-muted)}
+/* 팝오버 안 버튼은 위 입력칸(8px 여백·12px)에 맞춘다 — 본 화면의 큰 버튼 크기를 그대로 쓰면 혼자 튄다 */
+.rpok{margin-top:8px;padding:9px;font-size:12px}
+.rpok:disabled{background:var(--locked-fill);cursor:default}
+
+.rpR{padding:14px;width:266px;flex:0 0 auto}
+.rpnav{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px}
+.rpm{font-size:13px;font-weight:500;color:var(--text-strong)}
+.rphd,.rprow{display:grid;grid-template-columns:repeat(7,1fr)}
+.rphd span{text-align:center;font-size:10px;color:var(--text-muted);padding-bottom:6px}
+.rphd .sun{color:var(--sk-red)}
+.rd{height:32px;border:0;background:none;font-size:12px;color:var(--text);cursor:pointer;
+  position:relative;border-radius:0}
+.rd:hover:not(.off):not(.edge){background:var(--motif)}
+.rd.off{color:var(--locked-fill);cursor:default}
+.rd.out{visibility:hidden}
+/* 사이에 낀 날은 띠로 잇는다 — 두 끝이 하나의 기간임을 보이게 */
+.rd.inr{background:var(--sk-orange-t10);color:var(--sk-orange-text)}
+.rd.edge{background:var(--sk-orange);color:#fff;font-weight:400}
+.rd.edge.f{border-radius:999px 0 0 999px}
+.rd.edge.t{border-radius:0 999px 999px 0}
+.rd.edge.f.t{border-radius:999px}
 
 /* ── 맨 위 · 내 캠페인 월간 현황 요약 ── */
-.hslot.taken.on{background:var(--waiting-bg);border-color:var(--waiting-border);border-width:2px}
+.hslot.taken.on{background:var(--waiting-bg);border-color:var(--waiting-border)}
 .hslot.taken.on .hh{color:var(--waiting-text);font-weight:500}
 .hslot.taken.on .hs{color:var(--waiting-text)}
 .drill.final.warn{border-top:1px dashed var(--waiting-border)}
-.conflict{border:1px solid var(--waiting-border);background:var(--waiting-bg);border-radius:6px;
+.conflict{border:1px solid var(--waiting-border);background:var(--waiting-bg);border-radius:8px;
   padding:12px 14px;margin-bottom:14px}
 .conflict .cft{font-size:12.5px;font-weight:500;color:var(--waiting-text);margin-bottom:7px}
-.conflict .cfbox{background:#fff;border:1px solid var(--waiting-border);border-radius:5px;
+.conflict .cfbox{background:#fff;border:1px solid var(--waiting-border);border-radius:4px;
   padding:11px 13px;margin-bottom:9px}
 .conflict .cfhd{display:flex;align-items:center;gap:9px;margin-bottom:9px;
   padding-bottom:8px;border-bottom:1px dashed var(--waiting-border)}
@@ -475,8 +647,8 @@ table.list td.rsn{color:var(--text-muted);font-size:11.5px;max-width:230px;white
 table.list td.rsn .src{color:var(--waiting-text)}
 /* 신청한 날과 다르게 조정되어 확정된 건 — 발송 일시를 구분해 보여준다 */
 table.list td.adjd{color:var(--sk-orange-text);font-weight:500;position:relative;cursor:help}
-table.list td.adjd::before{content:'조정';font-size:9px;display:block;color:var(--sk-orange-text)}
-.reasonfld label{font-size:11.5px;font-weight:500;color:var(--sk-orange-text);
+
+.reasonfld label{font-size:11.5px;font-weight:500;color:var(--text);
   display:flex;align-items:center;margin-bottom:5px}
 .reasonfld{margin-bottom:14px}
 .reasonfld textarea{width:100%;padding:9px 10px;border:1px solid var(--waiting-border);border-radius:4px;
@@ -488,15 +660,14 @@ table.list td.adjd::before{content:'조정';font-size:9px;display:block;color:va
 .kpi .k{font-size:11.5px;color:var(--text-muted);margin-bottom:5px}
 .kpi .v{font-size:26px;font-weight:500;color:var(--text-strong);line-height:1.15;letter-spacing:-.02em}
 .kpi .k{display:flex;align-items:center;gap:5px}
-.kpi.hero{background:var(--sk-orange-t10);padding-left:19px}
-.kpi.hero::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
-  background:var(--sk-orange);border-radius:8px 0 0 8px}
-.kpi.hero .k{color:var(--sk-orange-text);font-weight:500}
 .kpi.clickable{cursor:pointer}
-.kpi.clickable:hover{border-color:var(--sk-orange-text)}
+/* 확인하지 않은 변경 — 있을 때만 존재한다. 본 뒤에는 점이 사라진다 */
+.kpi .k .ndot{width:6px;height:6px;border-radius:50%;background:var(--o500);flex:0 0 auto}
+.kpi.unseen .k{color:var(--n900);font-weight:500}
+.kpi.clickable:hover{border-color:var(--o500)}
 .kpi.clickable .s{color:var(--sk-orange-text)}
 .kpi.open{outline:2px solid var(--sk-orange);outline-offset:-1px}
-.adjitem{border:1px solid var(--border);border-radius:6px;padding:13px 15px;margin-bottom:11px}
+.adjitem{border:1px solid var(--border);border-radius:8px;padding:13px 15px;margin-bottom:11px}
 .adjitem:last-child{margin-bottom:0}
 .adjhd{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px}
 .adjhd b{font-size:13.5px;font-weight:500;color:var(--text-strong)}
@@ -514,37 +685,52 @@ table.list td.adjd::before{content:'조정';font-size:9px;display:block;color:va
 .adjrej{margin-top:7px;font-size:12px;color:var(--sk-red);background:#FFF5F6;
   border:1px solid #F5C2C8;border-radius:4px;padding:7px 10px;display:flex;gap:8px;line-height:1.55}
 .adjrej span{font-weight:500;flex:0 0 auto}
-.adjbtns{display:flex;gap:8px;margin-top:11px}
+.adjbtns{display:flex;gap:8px;margin-top:12px}
 .pill.sm{padding:7px 14px;font-size:12px}
+/* 테두리형은 1px 이 상자를 키운다 — 채움형과 나란히 놓았을 때 같아 보이도록 여백에서 뺀다 */
+.pill.ghost,.pill.danger{padding:9px 20px}
+.pill.sm.ghost,.pill.sm.danger{padding:6px 13px}
+/* 회색 채움 — 되돌아가 고치는 동작(수정하기). 0803 의 세 버튼 규칙을 따른다.
+   테두리가 없어 주황 채움과 크기가 저절로 같아진다 */
+.pill.neutral{background:var(--n100);color:var(--n900)}
+.pill.neutral:hover{background:var(--n200)}
+.pill.neutral:disabled{background:var(--n100);color:var(--n500);cursor:default}
+/* 고른 상태 — 회색은 '비활성'으로만 읽힌다. 주황 계열이라야 '이걸 골랐다'가 보인다 */
+.pill.picked{background:var(--o100);color:var(--o700)}
+.pill.picked:disabled{background:var(--o100);color:var(--o700);cursor:default}
+/* 조용한 버튼 — 아무 일도 하지 않고 나가는 것(닫기·돌아가기).
+   테두리를 두면 취소와 형태가 같아져 둘이 헷갈린다. 무게로 갈라 놓는다 */
+.pill.quiet{background:none;color:var(--n500);padding:10px 14px}
+.pill.quiet:hover{background:var(--n100);color:var(--n900)}
 .kpihd{display:flex;align-items:center;gap:9px;margin-bottom:-6px}
-.kpihd .arw{width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:12px}
+.kpihd .arw{width:26px;height:26px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px}
 .kpihd .arw:hover:not(:disabled){background:var(--motif)}
 .kpihd .arw:disabled{opacity:.3;cursor:not-allowed}
 .kpihd .kml{font-size:14px;font-weight:500;color:var(--text-strong);min-width:74px;text-align:center}
 .kpihd .kmn{font-size:11.5px;color:var(--text-muted)}
 .monthnav{display:flex;align-items:center;gap:7px}
 .monthnav .mlab{font-size:16px;font-weight:500;color:var(--text-strong);min-width:66px;text-align:center}
-.arw.sm{width:24px;height:24px;border:1px solid var(--border);border-radius:5px;background:#fff;font-size:11px}
+.arw.sm{width:24px;height:24px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:11px}
 .arw.sm:hover:not(:disabled){background:var(--motif)}
 .arw.sm:disabled{opacity:.3;cursor:not-allowed}
 
 /* ── 추천 카드 ── */
 .recs{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
-.rec-card{border:1px solid var(--border);border-radius:6px;padding:12px 13px}
+.rec-card{border:1px solid var(--border);border-radius:8px;padding:12px 13px}
 .rec-card .rt{font-size:13.5px;font-weight:500;color:var(--text-strong);margin-bottom:5px;
   display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 /* 잔여량이 다른 정보에 묻혀 안 보인다는 UT 피드백 — 날짜 옆으로 빼서 세운다 */
 .rec-card .rq{font-family:Roboto;font-variant-numeric:tabular-nums;font-size:14.5px;
-  font-weight:600;color:var(--sk-orange-text);white-space:nowrap}
+  font-weight:500;color:var(--sk-orange-text);white-space:nowrap}
 .rec-card .rl{font-size:11.5px;color:var(--text-muted);line-height:1.6}
-.rec-card button{width:100%;margin-top:9px;padding:7px;border-radius:999px;border:1px solid var(--sk-orange-text);
-  color:var(--sk-orange-text);font-size:11.5px;font-weight:500;background:#fff}
+.rec-card button{width:100%;margin-top:9px;padding:7px;border-radius:999px;border:1px solid var(--o500);
+  color:var(--n900);font-size:11.5px;font-weight:500;background:#fff}
 .rec-card button:hover{background:var(--sk-orange-t10)}
 
 /* ── 리스트 ── */
 .tabs{display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;width:max-content}
 .tabs button{padding:6px 15px;font-size:12px;color:var(--text-muted);white-space:nowrap}
-.tabs button.on{background:var(--text-strong);color:#fff}
+.tabs button.on{background:var(--sk-orange);color:#1F1F1F}
 .tabs.sm button{padding:5px 12px;font-size:11.5px}
 .tblwrap{overflow-x:auto}
 table.list{width:100%;min-width:1080px;border-collapse:collapse;font-size:12.5px}
@@ -554,7 +740,9 @@ table.list th{font-size:11px;font-weight:400;color:var(--text-muted);text-align:
   height:40px;border-bottom:1px solid var(--cell-border);white-space:nowrap;vertical-align:middle}
 table.list td{padding:10px 9px;border-bottom:1px solid var(--border);vertical-align:middle;
   color:var(--text-strong);white-space:nowrap}
-table.list td.nm{white-space:normal;min-width:200px}
+/* 한글은 기본이 글자 단위 줄바꿈이라 '늦여름 시리' / '즈 정주행' 처럼 낱말이 잘린다.
+   keep-all 로 띄어쓰기에서만 넘긴다 (2026-08-04) */
+table.list td.nm{white-space:normal;min-width:200px;word-break:keep-all;line-height:1.45}
 table.list tr.rw:hover td{background:#FCFCFD}
 table.list tr.rw.clk{cursor:pointer}
 .stfil{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
@@ -563,7 +751,7 @@ table.list tr.rw.clk{cursor:pointer}
 .stfil .chip.on .num{color:inherit}
 .stfil .chip:disabled{opacity:.4;cursor:default}
 table.list .r{text-align:right;font-family:Roboto;font-variant-numeric:tabular-nums}
-.st.needfix{background:var(--waiting-bg);color:var(--waiting-text);border:1px solid var(--waiting-border)}
+.st.needfix{background:var(--r100);color:var(--r700);border:1px solid var(--r300)}
 
 /* ── 담당자 화면 ── */
 .pill.xs{padding:5px 11px;font-size:11.5px;border-radius:999px}
@@ -577,30 +765,33 @@ table.list td.act{white-space:nowrap;text-align:right;width:1%}
 table.list.adm td.act{white-space:nowrap;text-align:right}
 table.list.adm td.act .pill{margin-left:5px}
 table.list.adm th:last-child,table.list.adm td.act{width:1%}
-.adjitem.on{border-color:var(--sk-orange)}
+.adjitem.on{border-color:var(--o500)}
 .fixpanel{margin-top:12px;padding-top:12px;border-top:1px dashed var(--sk-orange)}
-.fixhd{font-size:12px;font-weight:500;color:var(--sk-orange-text);margin-bottom:10px}
-.fixrow{display:flex;gap:12px;align-items:flex-start;margin-bottom:11px}
-.fixrow > span{flex:0 0 56px;font-size:11.5px;color:var(--text-muted);padding-top:6px}
-.fdates{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:1px}
+.fixhd{font-size:12px;font-weight:500;color:var(--text-strong);margin-bottom:10px}
+.fixrow{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
+.fixrow > span{flex:0 0 76px;font-size:11.5px;color:var(--text-muted);padding-top:6px;white-space:nowrap}
+/* 캐파 초과 사유 — 라벨 아래 작게. 별도 블록으로 세우면 화면이 한 칸 더 길어진다 */
+.capnote{display:block;margin-top:5px;font-size:10px;font-style:normal;font-weight:400;
+  color:var(--r500);white-space:normal;line-height:1.45}
+.fdates{display:flex;align-items:center;column-gap:8px;row-gap:3px;flex-wrap:wrap;padding-top:1px}
 .fdates input[type=date]{padding:7px 9px;border:1px solid var(--border);border-radius:4px;
   font-size:12px;font-family:inherit;color:var(--text-strong);background:#fff}
 .fdates input[type=date]:focus{outline:2px solid var(--sk-orange);outline-offset:-1px}
 .fdates .tl{font-size:11.5px;color:var(--text-muted)}
-.fdates .tl b{font-weight:600;color:var(--sk-orange-text)}
+.fdates .tl b{font-weight:500;color:var(--sk-orange-text)}
 .fdates .tl.moved{flex-basis:100%;color:var(--sk-orange-text)}
 .daychips{display:flex;gap:6px;flex-wrap:wrap}
 .hgrid.adm{grid-template-columns:repeat(11,minmax(0,1fr));flex:1}
 
 /* ── 수정 중 배너 ── */
-.editbar{background:var(--sk-orange-t10);border:1px solid var(--sk-orange);border-radius:6px;
-  padding:10px 14px;font-size:12.5px;color:var(--sk-orange-text);display:flex;align-items:center;gap:8px}
+.editbar{background:var(--sk-orange-t10);border:1px solid var(--o500);border-radius:8px;
+  padding:10px 14px;font-size:12.5px;color:var(--n900);display:flex;align-items:center;gap:8px}
 .editbar b{font-weight:500}
 .editbar button{margin-left:auto;font-size:11.5px;color:var(--sk-orange-text);
   text-decoration:underline;padding:2px 4px}
 
 /* ── 데이터 재정의 예정 배너 ── */
-.wipbar{background:var(--waiting-bg);border:1px solid var(--waiting-border);border-radius:6px;
+.wipbar{background:var(--waiting-bg);border:1px solid var(--waiting-border);border-radius:8px;
   padding:10px 14px;font-size:12px;color:var(--waiting-text);line-height:1.6}
 .wipbar b{font-weight:500}
 </style>
@@ -629,7 +820,7 @@ table.list.adm th:last-child,table.list.adm td.act{width:1%}
 /* ══════════════════════════════════════════════════════════════════════
    기준 상수
    ══════════════════════════════════════════════════════════════════════ */
-const TODAY='2026-08-04';
+const TODAY='2026-08-07';
 const HOURS=Array.from({length:22},(_,i)=>i+1);   /* 1시 ~ 22시 (0시·23시 미발송) */
 const WD=['일','월','화','수','목','금','토'];
 
@@ -657,7 +848,8 @@ const CH_LIST=['TV팝업','배너','토스트팝업'];
 
 /* ── 날짜 축 (주말 포함) ── */
 function buildDays(){
-  const out=[], s=new Date('2026-07-01T00:00:00'), e=new Date('2026-09-30T00:00:00');
+  /* 6월은 지난 데이터다 — 담당자가 '평소 이 정도 나갔다'를 볼 수 있게 둔다 (2026-08-04) */
+  const out=[], s=new Date('2026-06-01T00:00:00'), e=new Date('2026-09-30T00:00:00');
   for(let t=new Date(s); t<=e; t.setDate(t.getDate()+1)){
     out.push({d:iso(t), w:WD[t.getDay()], dow:t.getDay()});
   }
@@ -679,7 +871,10 @@ let seq=0; const ME={team:'A팀',mk:'철수'};
 /* 신청 시각(reqAt) — 요약 4칸의 집계 기준이자 알림 D-1 판정의 근거.
    더미는 발송 10일 전으로 두되, 오늘보다 미래일 수 없으므로 당겨 붙인다. */
 const mkReq=o=>{
-  const r=Object.assign({no:++seq,gnb:'홈',cycle:'일회성',memo:'',status:'확정',adjBy:null},o);
+  /* seen — 마케터가 이 건의 '변화'를 확인했는가.
+   담당자가 손대면 false 가 되고, 마케터가 해당 요약 칸을 펼치면 true 로 돌아온다.
+   시드는 전부 true — 지금까지의 것은 이미 본 것으로 본다 (2026-08-04) */
+  const r=Object.assign({no:++seq,gnb:'홈',cycle:'일회성',memo:'',status:'확정',adjBy:null,seen:true},o);
   /* 확정 전에는 시간대가 없다 — 담당자가 확정하며 배정한다 (0731 피드백) */
   if(['신청','조정 필요'].includes(r.status)) r.hour=null;
   if(!r.reqAt||r.reqAt.slice(0,10)>TODAY){
@@ -700,77 +895,77 @@ let requests=[
  mkReq({camp:'영화 월정액 주말 50% 할인 프로모션',from:'2026-07-23',to:'2026-07-26',ch:['배너','TV팝업'],gnb:'영화 홈',
    offer:'쿠폰',qty:20,team:'B팀',mk:'짱구',date:'2026-07-23',hour:5,status:'발송 완료'}),
  mkReq({camp:'<왕과 사는 남자> 3,300원 할인 프로모션',from:'2026-07-24',to:'2026-07-30',ch:['배너'],
-   cycle:'주기성',offer:'쿠폰',qty:5,team:'C팀',mk:'유리',date:'2026-07-24',hour:17}),
+   cycle:'주기성',offer:'쿠폰',qty:5,team:'C팀',mk:'유리',date:'2026-07-24',hour:17,status:'발송 완료'}),
  mkReq({camp:'<군체> 론칭 안내',from:'2026-07-29',to:'2026-08-02',ch:['TV팝업'],
-   offer:'없음',qty:300,team:'C팀',mk:'맹구',date:'2026-07-29',hour:20}),
+   offer:'없음',qty:300,team:'C팀',mk:'맹구',date:'2026-07-29',hour:20,status:'발송 완료'}),
  mkReq({camp:'영화 월정액 이용 안내',from:'2026-08-10',to:'2026-08-14',ch:['배너'],gnb:'영화 홈',
    cycle:'주기성',offer:'없음',qty:30,team:'B팀',mk:'훈이',date:'2026-08-10',hour:17,memo:'17시 고정'}),
  mkReq({camp:'여름 마감 혜택 안내',from:'2026-07-31',to:'2026-08-05',ch:['배너'],gnb:'홈',
-   offer:'없음',qty:60,team:'B팀',mk:'훈이',date:'2026-07-31',hour:14}),
+   offer:'없음',qty:60,team:'B팀',mk:'훈이',date:'2026-07-31',hour:14,status:'발송 완료'}),
  /* 오늘이 8/4 로 넘어오면서 8/3 이 지난 날이 됐다. 조정 필요 건이 어제에
     남아 있으면 담당자가 손쓸 수 없는 것이 화면에 떠 있게 된다. 앞으로 옮긴다.
     8/11 에는 이미 조정 필요 건이 있어 겹치지 않게 8/5 로 두고, 그 날 잔여가
     141만이라 100만으로는 초과가 아니어서 규모를 올려 초과 상황을 유지한다. */
- mkReq({camp:'여름세일',from:'2026-08-05',to:'2026-08-12',ch:['배너'],
-   offer:'없음',qty:220,team:'A팀',mk:'철수',date:'2026-08-05',status:'조정 필요',
-   adjBy:'mkt', reason:'8/5(수) 배너 캐파 79만 초과',
+ mkReq({camp:'여름세일',from:'2026-08-11',to:'2026-08-18',ch:['배너'],
+   offer:'없음',qty:220,team:'A팀',mk:'철수',date:'2026-08-11',status:'조정 필요',
+   adjBy:'mkt', reason:'8/11(화) 배너 캐파 120만 초과',
    note:'세일 오픈일이 대외 공지되어 있어 날짜를 옮기기 어렵습니다'}),
  mkReq({camp:'8월 콘텐츠 추천',from:'2026-07-29',to:'2026-08-31',ch:['배너'],
-   offer:'쿠폰',qty:15,team:'C팀',mk:'유리',date:'2026-07-29',hour:10}),
- mkReq({camp:'주말 극장 동시상영',from:'2026-08-01',to:'2026-08-02',ch:['배너','TV팝업'],
-   offer:'쿠폰',qty:18,team:'B팀',mk:'짱구',date:'2026-08-01',hour:11}),
+   offer:'쿠폰',qty:15,team:'C팀',mk:'유리',date:'2026-07-29',hour:10,status:'발송 완료'}),
+ mkReq({camp:'주말 극장 동시상영',from:'2026-08-01',to:'2026-08-03',ch:['배너','TV팝업'],
+   offer:'쿠폰',qty:18,team:'B팀',mk:'짱구',date:'2026-08-01',hour:11,status:'발송 완료'}),
  mkReq({camp:'가을 프리뷰 티저',from:'2026-08-04',to:'2026-08-11',ch:['TV팝업'],
-   offer:'없음',qty:120,team:'C팀',mk:'유리',date:'2026-08-04',hour:19}),
+   offer:'없음',qty:120,team:'C팀',mk:'유리',date:'2026-08-04',hour:19,status:'발송 완료'}),
  mkReq({camp:'키즈 VOD 반값 특가',from:'2026-08-06',to:'2026-08-09',ch:['배너'],
-   offer:'쿠폰',qty:12,team:'A팀',mk:'짱아',date:'2026-08-06',hour:15}),
+   offer:'쿠폰',qty:12,team:'A팀',mk:'짱아',date:'2026-08-06',hour:15,status:'발송 완료'}),
  mkReq({camp:'프리미엄 무료체험 안내',from:'2026-08-08',to:'2026-08-16',ch:['토스트팝업'],
    offer:'없음',qty:60,team:'B팀',mk:'훈이',date:'2026-08-08',hour:9}),
  mkReq({camp:'스포츠 시즌권 프로모션',from:'2026-08-11',to:'2026-08-18',ch:['배너','TV팝업'],
    offer:'쿠폰',qty:20,team:'C팀',mk:'맹구',date:'2026-08-11',hour:13}),
  mkReq({camp:'드라마 정주행 쿠폰',from:'2026-08-14',to:'2026-08-20',ch:['배너'],
    offer:'쿠폰',qty:16,team:'A팀',mk:'철수',date:'2026-08-14',hour:16}),
- mkReq({camp:'신규 가입 웰컴 오퍼',from:'2026-08-17',to:'2026-08-31',ch:['토스트팝업'],
-   offer:'쿠폰',qty:8,team:'B팀',mk:'짱구',date:'2026-08-17',hour:8}),
- mkReq({camp:'휴면 고객 리텐션',from:'2026-08-20',to:'2026-08-27',ch:['배너'],
-   offer:'없음',qty:150,team:'C팀',mk:'유리',date:'2026-08-20',hour:12}),
+ mkReq({camp:'신규 가입 웰컴 오퍼',from:'2026-08-16',to:'2026-08-30',ch:['토스트팝업'],
+   offer:'쿠폰',qty:8,team:'B팀',mk:'짱구',date:'2026-08-16',hour:8}),
+ mkReq({camp:'휴면 고객 리텐션',from:'2026-08-22',to:'2026-08-29',ch:['배너'],
+   offer:'없음',qty:150,team:'C팀',mk:'유리',date:'2026-08-22',hour:12}),
  mkReq({camp:'추석 특선영화 안내',from:'2026-08-24',to:'2026-09-06',ch:['TV팝업','배너'],
    offer:'쿠폰',qty:22,team:'A팀',mk:'짱아',date:'2026-08-24',hour:18}),
  mkReq({camp:'인기 예능 몰아보기',from:'2026-08-26',to:'2026-08-30',ch:['배너'],
    offer:'없음',qty:90,team:'B팀',mk:'훈이',date:'2026-08-26',hour:21}),
 
  /* ── 확정 대기 (마케터가 1차 배치한 신청 건) ── */
- mkReq({camp:'가을 편성표 사전 안내',from:'2026-08-17',to:'2026-08-23',ch:['배너'],gnb:'홈',
-   offer:'없음',qty:60,team:'A팀',mk:'짱아',date:'2026-08-17',hour:11,
-   status:'신청',reqAt:'2026-08-13 09:20'}),
+ mkReq({camp:'가을 편성표 사전 안내',from:'2026-08-16',to:'2026-08-22',ch:['배너'],gnb:'홈',
+   offer:'없음',qty:60,team:'A팀',mk:'짱아',date:'2026-08-16',hour:11,
+   hour:22,status:'확정',reqAt:'2026-08-13 09:20'}),
  mkReq({camp:'키즈 콘텐츠 신규 오픈',from:'2026-08-18',to:'2026-08-25',ch:['토스트팝업'],gnb:'홈',
    offer:'쿠폰',qty:15,team:'B팀',mk:'짱구',date:'2026-08-18',hour:15,
-   status:'신청',reqAt:'2026-08-13 14:05'}),
- mkReq({camp:'프로야구 포스트시즌 예고',from:'2026-08-19',to:'2026-08-22',ch:['TV팝업'],gnb:'홈',
-   offer:'없음',qty:120,team:'C팀',mk:'맹구',date:'2026-08-19',hour:20,
-   status:'신청',reqAt:'2026-08-14 10:41'}),
+   hour:19,status:'확정',reqAt:'2026-08-13 14:05'}),
+ mkReq({camp:'프로야구 포스트시즌 예고',from:'2026-08-21',to:'2026-08-24',ch:['TV팝업'],gnb:'홈',
+   offer:'없음',qty:120,team:'C팀',mk:'맹구',date:'2026-08-21',hour:20,
+   hour:19,status:'확정',reqAt:'2026-08-14 10:41'}),
  mkReq({camp:'월정액 업셀 리마인드',from:'2026-08-21',to:'2026-08-28',ch:['배너'],gnb:'영화 홈',
    offer:'쿠폰',qty:45,team:'A팀',mk:'철수',date:'2026-08-21',hour:18,
-   status:'신청',reqAt:'2026-08-14 16:12'}),
- mkReq({camp:'주말 특선 편성 안내',from:'2026-08-24',to:'2026-08-26',ch:['배너'],gnb:'홈',
-   cycle:'주기성',offer:'없음',qty:12,team:'B팀',mk:'훈이',date:'2026-08-24',hour:19,
-   status:'신청',reqAt:'2026-08-17 09:03'}),
+   hour:19,status:'확정',reqAt:'2026-08-14 16:12',moved:{from:'8/18(화)',to:'8/21(금)',by:'adm'},seen:false}),
+ mkReq({camp:'주말 특선 편성 안내',from:'2026-08-23',to:'2026-08-25',ch:['배너'],gnb:'홈',
+   cycle:'주기성',offer:'없음',qty:12,team:'B팀',mk:'훈이',date:'2026-08-23',hour:19,
+   hour:19,status:'확정',reqAt:'2026-08-17 09:03'}),
  mkReq({camp:'신규 가입자 온보딩',from:'2026-08-26',to:'2026-09-05',ch:['토스트팝업'],gnb:'영화 홈',
    offer:'없음',qty:30,team:'C팀',mk:'유리',date:'2026-08-26',hour:9,
-   status:'신청',reqAt:'2026-08-18 11:30'}),
+   hour:19,status:'확정',reqAt:'2026-08-18 11:30'}),
 
  mkReq({camp:'프로야구 개막 대형 프로모션',from:'2026-08-11',to:'2026-08-18',ch:['배너'],gnb:'홈',
-   offer:'없음',qty:320,team:'C팀',mk:'맹구',date:'2026-08-11',hour:11,reqAt:'2026-07-26 13:20'}),
+   offer:'없음',qty:250,team:'C팀',mk:'맹구',date:'2026-08-11',hour:11,reqAt:'2026-07-26 13:20'}),
 
  /* ── 8/1 오늘 들어온 신청 — 이 달 요약이 비지 않도록 ── */
  mkReq({camp:'가을 개편 티저',from:'2026-08-18',to:'2026-08-24',ch:['배너'],gnb:'홈',
    offer:'없음',qty:50,team:'A팀',mk:'철수',date:'2026-08-18',
-   status:'신청',reqAt:'2026-08-01 09:12'}),
+   hour:22,status:'확정',reqAt:'2026-08-01 09:12'}),
  mkReq({camp:'추석 사전 예고',from:'2026-08-25',to:'2026-08-31',ch:['토스트팝업'],gnb:'홈',
    offer:'쿠폰',qty:35,team:'A팀',mk:'철수',date:'2026-08-25',
-   status:'신청',reqAt:'2026-08-01 10:47'}),
+   hour:19,status:'확정',reqAt:'2026-08-01 10:47'}),
  mkReq({camp:'주말 영화 큐레이션',from:'2026-08-14',to:'2026-08-20',ch:['TV팝업'],gnb:'영화 홈',
    offer:'없음',qty:80,team:'B팀',mk:'짱구',date:'2026-08-14',
-   status:'신청',reqAt:'2026-08-01 11:30'}),
+   hour:19,status:'확정',reqAt:'2026-08-01 11:30'}),
  /* 담당자가 이미 확정한 건 — 마케터 화면에서 '확정' 확인용 */
  mkReq({camp:'8월 신작 영화 알림',from:'2026-08-20',to:'2026-08-26',ch:['배너'],gnb:'홈',
    offer:'없음',qty:45,team:'A팀',mk:'철수',date:'2026-08-20',hour:19,
@@ -784,26 +979,26 @@ let requests=[
  /* ── 8월 첫 주 월요일(8/3) 혼잡 — 시작일이 몰려 배너 잔여가 20만만 남는다.
         원본 안내문: "캠페인 시작일은 평일로 설정" → 월요일에 쏠린다 ── */
  mkReq({camp:'8월 신규 요금제 안내',from:'2026-08-03',to:'2026-08-09',ch:['배너','TV팝업'],gnb:'홈',
-   offer:'쿠폰',qty:150,team:'A팀',mk:'짱아',date:'2026-08-03',hour:10,reqAt:'2026-07-24 09:15'}),
- mkReq({camp:'여름 결산 특별전',from:'2026-08-03',to:'2026-08-07',ch:['배너'],gnb:'영화 홈',
-   offer:'없음',qty:90,team:'C팀',mk:'맹구',date:'2026-08-03',hour:14,reqAt:'2026-07-25 11:40'}),
+   offer:'쿠폰',qty:150,team:'A팀',mk:'짱아',date:'2026-08-03',hour:10,reqAt:'2026-07-24 09:15',status:'발송 완료'}),
+ mkReq({camp:'여름 결산 특별전',from:'2026-08-05',to:'2026-08-09',ch:['배너'],gnb:'영화 홈',
+   offer:'없음',qty:90,team:'C팀',mk:'맹구',date:'2026-08-05',hour:18,reqAt:'2026-07-25 11:40',status:'발송 완료'}),
  mkReq({camp:'키즈 여름방학 마무리',from:'2026-08-03',to:'2026-08-06',ch:['배너','토스트팝업'],gnb:'홈',
-   offer:'쿠폰',qty:70,team:'B팀',mk:'짱구',date:'2026-08-03',hour:16,reqAt:'2026-07-27 14:02'}),
+   offer:'쿠폰',qty:70,team:'B팀',mk:'짱구',date:'2026-08-03',hour:16,reqAt:'2026-07-27 14:02',status:'발송 완료'}),
 
  /* ── 확정 대기 ── */
- mkReq({camp:'주말 영화 추천 알림',from:'2026-08-03',to:'2026-08-06',ch:['배너'],gnb:'홈',
-   offer:'없음',qty:70,team:'A팀',mk:'철수',date:'2026-08-03',hour:20,
-   reqAt:'2026-07-27 16:20'}),
+ mkReq({camp:'주말 영화 추천 알림',from:'2026-08-05',to:'2026-08-08',ch:['배너'],gnb:'홈',
+   offer:'없음',qty:70,team:'A팀',mk:'철수',date:'2026-08-05',hour:20,
+   reqAt:'2026-07-27 16:20',status:'발송 완료'}),
 
- mkReq({camp:'가을 신작 라인업 안내',from:'2026-08-13',to:'2026-08-19',ch:['배너'],gnb:'홈',
-   offer:'쿠폰',qty:120,team:'A팀',mk:'철수',date:'2026-08-13',hour:19,
-   reqAt:'2026-08-06 10:12'}),
+ mkReq({camp:'가을 신작 라인업 안내',from:'2026-08-08',to:'2026-08-14',ch:['배너'],gnb:'홈',
+   offer:'쿠폰',qty:120,team:'A팀',mk:'철수',date:'2026-08-08',hour:19,
+   reqAt:'2026-08-06 10:12',moved:{from:'8/5(수)',to:'8/8(토)',by:'adm'},seen:false}),
 
  /* ── 조정 필요 — 캐파가 모자란데도 그 날을 유지하고 싶어 조정 요청한 건 ── */
  mkReq({camp:'주중 영화 할인 알림',from:'2026-08-11',to:'2026-08-16',ch:['배너'],gnb:'홈',
    offer:'쿠폰',qty:40,team:'A팀',mk:'철수',date:'2026-08-11',hour:13,
-   status:'조정 필요',reqAt:'2026-08-01 08:20',adjBy:'mkt',
-   reason:'8/11(화) 배너 캐파 10만 초과',
+   status:'취소',admNote:'같은 날 여름세일과 캐파가 겹쳐 마케터와 협의해 이번 건은 취소했습니다',reqAt:'2026-08-01 08:20',adjBy:null,
+   reason:'',
    note:'할인 시작일에 맞춰 나가야 해서 날짜를 옮기기 어렵습니다'}),
 
  mkReq({camp:'추석 선물 프로모션',from:'2026-08-24',to:'2026-08-30',ch:['배너'],gnb:'홈',
@@ -819,7 +1014,7 @@ let requests=[
     생성기가 reqAt 을 7/5 로 깔아 두어 시작일을 지나 있었다. 앞으로 당겼다.
     7/1~7/2 시작 건은 6월에 신청한 것이 되는데, 신청일 기준 요약은 7~9월만
     보므로 그 달 집계에서 빠진다 — 실제로 6월에 넣은 것이니 맞는 셈이다. */
- mkReq({camp:'장마철 인터넷 결합 특가 안내',from:'2026-07-01',to:'2026-07-01',ch:['배너'],gnb:'영화 홈',cycle:'일회성',
+ mkReq({camp:'장마철 인터넷 결합 특가 안내',from:'2026-07-01',to:'2026-07-03',ch:['배너'],gnb:'영화 홈',cycle:'일회성',
    offer:'쿠폰',qty:86,team:'A팀',mk:'철수',date:'2026-07-01',hour:12,status:'발송 완료',
    reqAt:'2026-06-25 11:27'}),
  mkReq({camp:'한여름 다큐 특선 안내',from:'2026-07-02',to:'2026-07-08',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
@@ -834,7 +1029,7 @@ let requests=[
  mkReq({camp:'장마철 와이파이 공유기 특가 안내',from:'2026-07-04',to:'2026-07-10',ch:['배너','TV팝업'],gnb:'영화 홈',
    cycle:'주기성',offer:'쿠폰',qty:13,team:'C팀',mk:'유리',date:'2026-07-04',hour:18,status:'발송 완료',
    reqAt:'2026-06-29 11:32'}),
- mkReq({camp:'장마철 예능 하이라이트 쿠폰 이벤트',from:'2026-07-05',to:'2026-07-05',ch:['배너'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'장마철 예능 하이라이트 쿠폰 이벤트',from:'2026-07-05',to:'2026-07-07',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'쿠폰',qty:130,team:'B팀',mk:'훈이',date:'2026-07-05',hour:10,status:'발송 완료',
    reqAt:'2026-07-01 14:25'}),
  mkReq({camp:'한여름 프리미엄 채널 런칭 알림',from:'2026-07-05',to:'2026-07-11',ch:['TV팝업','토스트팝업'],gnb:'영화 홈',
@@ -846,7 +1041,7 @@ let requests=[
  mkReq({camp:'7월 월정액 패키지 런칭 알림',from:'2026-07-07',to:'2026-07-11',ch:['배너'],gnb:'홈',cycle:'주기성',
    offer:'없음',qty:6,team:'A팀',mk:'철수',date:'2026-07-07',hour:17,status:'발송 완료',
    reqAt:'2026-07-05 10:18'}),
- mkReq({camp:'장마철 스포츠 중계 혜택 안내',from:'2026-07-07',to:'2026-07-07',ch:['배너'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'장마철 스포츠 중계 혜택 안내',from:'2026-07-07',to:'2026-07-09',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'쿠폰',qty:128,team:'B팀',mk:'훈이',date:'2026-07-07',hour:14,status:'발송 완료',
    reqAt:'2026-07-05 11:29'}),
  mkReq({camp:'한여름 다큐 특선 할인 프로모션',from:'2026-07-08',to:'2026-07-10',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
@@ -870,7 +1065,7 @@ let requests=[
  mkReq({camp:'한여름 해외 드라마 혜택 안내',from:'2026-07-13',to:'2026-07-19',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
    offer:'없음',qty:77,team:'B팀',mk:'짱구',date:'2026-07-13',hour:10,status:'발송 완료',
    reqAt:'2026-07-05 13:15'}),
- mkReq({camp:'한여름 신작 영화 신규 가입 이벤트',from:'2026-07-14',to:'2026-07-14',ch:['TV팝업','토스트팝업'],gnb:'키즈 홈',
+ mkReq({camp:'한여름 신작 영화 신규 가입 이벤트',from:'2026-07-14',to:'2026-07-16',ch:['TV팝업','토스트팝업'],gnb:'키즈 홈',
    cycle:'일회성',offer:'없음',qty:95,team:'A팀',mk:'짱아',date:'2026-07-14',hour:10,status:'발송 완료',
    reqAt:'2026-07-05 10:27'}),
  mkReq({camp:'한여름 월정액 패키지 기획전',from:'2026-07-14',to:'2026-07-16',ch:['배너'],gnb:'홈',cycle:'일회성',
@@ -915,7 +1110,7 @@ let requests=[
  mkReq({camp:'한여름 프리미엄 채널 신규 가입 이벤트',from:'2026-07-27',to:'2026-07-29',ch:['TV팝업'],gnb:'홈',
    cycle:'일회성',offer:'쿠폰',qty:122,team:'B팀',mk:'훈이',date:'2026-07-27',hour:9,status:'발송 완료',
    reqAt:'2026-07-10 18:01'}),
- mkReq({camp:'장마철 키즈 전용관 기획전',from:'2026-07-28',to:'2026-07-28',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
+ mkReq({camp:'장마철 키즈 전용관 기획전',from:'2026-07-28',to:'2026-07-30',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
    offer:'쿠폰',qty:120,team:'B팀',mk:'훈이',date:'2026-07-28',hour:18,status:'발송 완료',
    reqAt:'2026-07-17 17:28'}),
  mkReq({camp:'장마철 시리즈 정주행 체험 이벤트',from:'2026-07-29',to:'2026-08-07',ch:['배너'],gnb:'홈',cycle:'일회성',
@@ -925,33 +1120,33 @@ let requests=[
    offer:'없음',qty:107,team:'A팀',mk:'철수',date:'2026-07-30',hour:12,status:'발송 완료',
    reqAt:'2026-07-19 14:04'}),
  mkReq({camp:'늦여름 다큐 특선 런칭 알림',from:'2026-08-02',to:'2026-08-11',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
-   offer:'없음',qty:162,team:'A팀',mk:'짱아',date:'2026-08-02',hour:16,status:'확정',
+   offer:'없음',qty:162,team:'A팀',mk:'짱아',date:'2026-08-02',hour:16,status:'발송 완료',
    reqAt:'2026-07-25 13:55'}),
  mkReq({camp:'8월 예능 하이라이트 신규 가입 이벤트',from:'2026-08-04',to:'2026-08-13',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:111,team:'C팀',mk:'맹구',date:'2026-08-04',hour:11,status:'확정',
+   offer:'없음',qty:111,team:'C팀',mk:'맹구',date:'2026-08-04',hour:11,status:'발송 완료',
    reqAt:'2026-07-23 18:33'}),
  mkReq({camp:'8월 오리지널 시리즈 신규 가입 이벤트',from:'2026-08-04',to:'2026-08-10',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:112,team:'B팀',mk:'짱구',date:'2026-08-04',hour:15,status:'확정',
+   offer:'쿠폰',qty:112,team:'B팀',mk:'짱구',date:'2026-08-04',hour:15,status:'발송 완료',
    reqAt:'2026-07-24 16:31'}),
- mkReq({camp:'늦여름 시리즈 정주행 기획전',from:'2026-08-05',to:'2026-08-05',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:155,team:'B팀',mk:'훈이',date:'2026-08-05',hour:null,status:'신청',
-   reqAt:'2026-07-26 14:50'}),
- mkReq({camp:'휴가 시즌 셋톱박스 교체 할인 프로모션',from:'2026-08-05',to:'2026-08-05',ch:['배너'],gnb:'스포츠 홈',
-   cycle:'일회성',offer:'없음',qty:104,team:'A팀',mk:'철수',date:'2026-08-05',hour:null,status:'신청',
-   reqAt:'2026-07-22 13:08'}),
+ mkReq({camp:'늦여름 시리즈 정주행 기획전',from:'2026-08-08',to:'2026-08-10',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:155,team:'B팀',mk:'훈이',date:'2026-08-08',hour:null,status:'신청',
+   reqAt:'2026-08-04 14:50'}),
+ mkReq({camp:'휴가 시즌 셋톱박스 교체 할인 프로모션',from:'2026-08-12',to:'2026-08-14',ch:['배너'],gnb:'스포츠 홈',
+   cycle:'일회성',offer:'없음',qty:104,team:'A팀',mk:'철수',date:'2026-08-12',hour:null,status:'신청',
+   reqAt:'2026-08-05 13:08'}),
  mkReq({camp:'개학 시니어 추천관 쿠폰 이벤트',from:'2026-08-06',to:'2026-08-10',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
-   offer:'없음',qty:76,team:'C팀',mk:'유리',date:'2026-08-06',hour:9,status:'확정',reqAt:'2026-07-19 13:13'}),
+   offer:'없음',qty:76,team:'C팀',mk:'유리',date:'2026-08-06',hour:9,status:'발송 완료',reqAt:'2026-07-19 13:13'}),
  mkReq({camp:'개학 월정액 패키지 라인업 공개',from:'2026-08-06',to:'2026-08-10',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
-   offer:'없음',qty:192,team:'C팀',mk:'맹구',date:'2026-08-06',hour:15,status:'확정',
+   offer:'없음',qty:192,team:'C팀',mk:'맹구',date:'2026-08-06',hour:15,status:'발송 완료',
    reqAt:'2026-07-25 15:12'}),
  mkReq({camp:'8월 애니메이션 라인업 공개',from:'2026-08-07',to:'2026-08-09',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
    offer:'쿠폰',qty:59,team:'B팀',mk:'훈이',date:'2026-08-07',hour:10,status:'확정',
    reqAt:'2026-07-28 18:48'}),
- mkReq({camp:'늦여름 예능 하이라이트 체험 이벤트',from:'2026-08-07',to:'2026-08-07',ch:['배너'],gnb:'키즈 홈',
+ mkReq({camp:'늦여름 예능 하이라이트 체험 이벤트',from:'2026-08-07',to:'2026-08-09',ch:['배너'],gnb:'키즈 홈',
    cycle:'일회성',offer:'없음',qty:111,team:'A팀',mk:'철수',date:'2026-08-07',hour:null,status:'신청',
-   reqAt:'2026-07-22 10:22'}),
+   reqAt:'2026-08-03 10:22'}),
  mkReq({camp:'8월 시리즈 정주행 신규 가입 이벤트',from:'2026-08-08',to:'2026-08-10',ch:['배너'],gnb:'영화 홈',
-   cycle:'일회성',offer:'없음',qty:118,team:'B팀',mk:'훈이',date:'2026-08-08',hour:null,status:'신청',
+   cycle:'일회성',offer:'없음',qty:118,team:'B팀',mk:'훈이',date:'2026-08-08',hour:19,status:'확정',
    reqAt:'2026-08-01 10:40'}),
  mkReq({camp:'늦여름 오리지널 시리즈 라인업 공개',from:'2026-08-09',to:'2026-08-13',ch:['배너'],gnb:'스포츠 홈',
    cycle:'일회성',offer:'쿠폰',qty:105,team:'A팀',mk:'철수',date:'2026-08-09',hour:16,status:'확정',
@@ -959,27 +1154,27 @@ let requests=[
  mkReq({camp:'늦여름 키즈 콘텐츠 런칭 알림',from:'2026-08-09',to:'2026-08-15',ch:['배너'],gnb:'영화 홈',cycle:'일회성',
    offer:'없음',qty:188,team:'A팀',mk:'철수',date:'2026-08-09',hour:18,status:'확정',
    reqAt:'2026-07-30 14:11'}),
- mkReq({camp:'휴가 시즌 모바일 결합 기획전',from:'2026-08-09',to:'2026-08-09',ch:['토스트팝업'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'휴가 시즌 모바일 결합 기획전',from:'2026-08-09',to:'2026-08-11',ch:['토스트팝업'],gnb:'홈',cycle:'일회성',
    offer:'쿠폰',qty:28,team:'B팀',mk:'훈이',date:'2026-08-09',hour:14,status:'확정',
    reqAt:'2026-07-24 09:38'}),
- mkReq({camp:'8월 예능 하이라이트 체험 이벤트',from:'2026-08-10',to:'2026-08-10',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'8월 예능 하이라이트 체험 이벤트',from:'2026-08-10',to:'2026-08-12',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
    offer:'쿠폰',qty:34,team:'B팀',mk:'훈이',date:'2026-08-10',hour:17,status:'확정',
    reqAt:'2026-07-24 09:38'}),
- mkReq({camp:'개학 모바일 결합 추천 알림',from:'2026-08-10',to:'2026-08-10',ch:['배너'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'개학 모바일 결합 추천 알림',from:'2026-08-10',to:'2026-08-12',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'쿠폰',qty:185,team:'B팀',mk:'짱구',date:'2026-08-10',hour:10,status:'확정',
    reqAt:'2026-08-02 15:49'}),
- mkReq({camp:'휴가 시즌 다큐 특선 혜택 안내',from:'2026-08-12',to:'2026-08-18',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
-   offer:'없음',qty:199,team:'B팀',mk:'짱구',date:'2026-08-12',hour:null,status:'신청',
+ mkReq({camp:'휴가 시즌 다큐 특선 혜택 안내',from:'2026-08-14',to:'2026-08-20',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
+   offer:'없음',qty:199,team:'B팀',mk:'짱구',date:'2026-08-14',hour:18,status:'확정',
    reqAt:'2026-07-31 17:51'}),
- mkReq({camp:'늦여름 오리지널 시리즈 체험 이벤트',from:'2026-08-13',to:'2026-08-19',ch:['배너'],gnb:'키즈 홈',
-   cycle:'일회성',offer:'쿠폰',qty:65,team:'B팀',mk:'짱구',date:'2026-08-13',hour:15,status:'확정',
+ mkReq({camp:'늦여름 오리지널 시리즈 체험 이벤트',from:'2026-08-09',to:'2026-08-15',ch:['배너'],gnb:'키즈 홈',
+   cycle:'일회성',offer:'쿠폰',qty:65,team:'B팀',mk:'짱구',date:'2026-08-09',hour:15,status:'확정',
    reqAt:'2026-07-31 12:20'}),
- mkReq({camp:'휴가 시즌 스포츠 중계 사전 예약',from:'2026-08-13',to:'2026-08-13',ch:['배너'],gnb:'영화 홈',cycle:'일회성',
+ mkReq({camp:'휴가 시즌 스포츠 중계 사전 예약',from:'2026-08-13',to:'2026-08-15',ch:['배너'],gnb:'영화 홈',cycle:'일회성',
    offer:'쿠폰',qty:42,team:'B팀',mk:'훈이',date:'2026-08-13',hour:9,status:'확정',reqAt:'2026-07-24 09:38'}),
  mkReq({camp:'8월 프리미엄 채널 라인업 공개',from:'2026-08-14',to:'2026-08-16',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:82,team:'C팀',mk:'유리',date:'2026-08-14',hour:null,status:'신청',
+   offer:'없음',qty:82,team:'C팀',mk:'유리',date:'2026-08-14',hour:19,status:'확정',
    reqAt:'2026-07-31 15:08'}),
- mkReq({camp:'8월 셋톱박스 교체 런칭 알림',from:'2026-08-15',to:'2026-08-15',ch:['토스트팝업'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'8월 셋톱박스 교체 런칭 알림',from:'2026-08-15',to:'2026-08-17',ch:['토스트팝업'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:30,team:'C팀',mk:'유리',date:'2026-08-15',hour:12,status:'확정',
    reqAt:'2026-08-01 11:40'}),
  mkReq({camp:'8월 키즈 콘텐츠 신규 가입 이벤트',from:'2026-08-15',to:'2026-08-19',ch:['TV팝업','토스트팝업'],gnb:'키즈 홈',
@@ -991,49 +1186,49 @@ let requests=[
  mkReq({camp:'늦여름 오리지널 시리즈 런칭 알림',from:'2026-08-15',to:'2026-08-24',ch:['배너'],gnb:'영화 홈',cycle:'일회성',
    offer:'없음',qty:159,team:'B팀',mk:'훈이',date:'2026-08-15',hour:12,status:'확정',
    reqAt:'2026-07-31 12:48'}),
- mkReq({camp:'늦여름 신작 영화 사전 예약',from:'2026-08-16',to:'2026-08-16',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
+ mkReq({camp:'늦여름 신작 영화 사전 예약',from:'2026-08-16',to:'2026-08-18',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
    offer:'없음',qty:203,team:'C팀',mk:'유리',date:'2026-08-16',hour:null,status:'신청',
    reqAt:'2026-08-01 13:24'}),
- mkReq({camp:'늦여름 스포츠 중계 사전 예약',from:'2026-08-17',to:'2026-08-17',ch:['토스트팝업'],gnb:'시리즈 홈',
+ mkReq({camp:'늦여름 스포츠 중계 사전 예약',from:'2026-08-17',to:'2026-08-19',ch:['토스트팝업'],gnb:'시리즈 홈',
    cycle:'일회성',offer:'없음',qty:42,team:'C팀',mk:'유리',date:'2026-08-17',hour:9,status:'확정',
    reqAt:'2026-08-02 14:38'}),
- mkReq({camp:'늦여름 시니어 추천관 추천 알림',from:'2026-08-17',to:'2026-08-19',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:158,team:'B팀',mk:'짱구',date:'2026-08-17',hour:19,status:'확정',
+ mkReq({camp:'늦여름 시니어 추천관 추천 알림',from:'2026-08-21',to:'2026-08-23',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:158,team:'B팀',mk:'짱구',date:'2026-08-21',hour:19,status:'확정',
    reqAt:'2026-07-31 17:30'}),
- mkReq({camp:'휴가 시즌 시리즈 정주행 혜택 안내',from:'2026-08-17',to:'2026-08-26',ch:['배너'],gnb:'영화 홈',
-   cycle:'일회성',offer:'쿠폰',qty:123,team:'C팀',mk:'유리',date:'2026-08-17',hour:12,status:'확정',
+ mkReq({camp:'휴가 시즌 시리즈 정주행 혜택 안내',from:'2026-08-16',to:'2026-08-25',ch:['배너'],gnb:'영화 홈',
+   cycle:'일회성',offer:'쿠폰',qty:123,team:'C팀',mk:'유리',date:'2026-08-16',hour:12,status:'확정',
    reqAt:'2026-07-29 17:29'}),
- mkReq({camp:'늦여름 오리지널 시리즈 추천 알림',from:'2026-08-18',to:'2026-08-27',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
-   offer:'없음',qty:108,team:'B팀',mk:'훈이',date:'2026-08-18',hour:null,status:'신청',
+ mkReq({camp:'늦여름 오리지널 시리즈 추천 알림',from:'2026-08-22',to:'2026-08-31',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
+   offer:'없음',qty:108,team:'B팀',mk:'훈이',date:'2026-08-22',hour:22,status:'확정',
    reqAt:'2026-07-29 11:33'}),
  mkReq({camp:'8월 B tv 요금제 할인 프로모션',from:'2026-08-19',to:'2026-08-28',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:139,team:'A팀',mk:'철수',date:'2026-08-19',hour:15,status:'확정',
    reqAt:'2026-07-30 18:30'}),
- mkReq({camp:'8월 해외 드라마 사전 예약',from:'2026-08-19',to:'2026-08-19',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'8월 해외 드라마 사전 예약',from:'2026-08-19',to:'2026-08-21',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:63,team:'C팀',mk:'유리',date:'2026-08-19',hour:16,status:'확정',
    reqAt:'2026-08-02 14:38'}),
  mkReq({camp:'늦여름 다큐 특선 혜택 안내',from:'2026-08-19',to:'2026-08-25',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
-   offer:'쿠폰',qty:101,team:'C팀',mk:'유리',date:'2026-08-19',hour:null,status:'신청',
+   offer:'쿠폰',qty:101,team:'C팀',mk:'유리',date:'2026-08-19',hour:22,status:'확정',
    reqAt:'2026-07-30 14:31'}),
- mkReq({camp:'늦여름 모바일 결합 신규 가입 이벤트',from:'2026-08-19',to:'2026-08-19',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:58,team:'C팀',mk:'유리',date:'2026-08-19',hour:null,status:'신청',
+ mkReq({camp:'늦여름 모바일 결합 신규 가입 이벤트',from:'2026-08-19',to:'2026-08-21',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:58,team:'C팀',mk:'유리',date:'2026-08-19',hour:19,status:'확정',
    reqAt:'2026-08-01 11:40'}),
- mkReq({camp:'휴가 시즌 시리즈 정주행 추천 알림',from:'2026-08-19',to:'2026-08-19',ch:['토스트팝업'],gnb:'영화 홈',
+ mkReq({camp:'휴가 시즌 시리즈 정주행 추천 알림',from:'2026-08-19',to:'2026-08-21',ch:['토스트팝업'],gnb:'영화 홈',
    cycle:'일회성',offer:'쿠폰',qty:62,team:'C팀',mk:'유리',date:'2026-08-19',hour:null,status:'취소',
    admNote:'마케터와 협의해 이번 분기에는 진행하지 않기로 했습니다',reqAt:'2026-08-02 14:38'}),
- mkReq({camp:'늦여름 신작 영화 특가 안내',from:'2026-08-21',to:'2026-08-21',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'늦여름 신작 영화 특가 안내',from:'2026-08-21',to:'2026-08-23',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:53,team:'C팀',mk:'유리',date:'2026-08-21',hour:null,status:'취소',
    reqAt:'2026-08-01 11:40'}),
- mkReq({camp:'휴가 시즌 인터넷 결합 체험 이벤트',from:'2026-08-21',to:'2026-08-21',ch:['배너'],gnb:'시리즈 홈',
+ mkReq({camp:'휴가 시즌 인터넷 결합 체험 이벤트',from:'2026-08-21',to:'2026-08-23',ch:['배너'],gnb:'시리즈 홈',
    cycle:'일회성',offer:'없음',qty:64,team:'B팀',mk:'훈이',date:'2026-08-21',hour:17,status:'확정',
    reqAt:'2026-07-28 09:59'}),
  mkReq({camp:'늦여름 모바일 결합 혜택 안내',from:'2026-08-22',to:'2026-08-28',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:142,team:'B팀',mk:'훈이',date:'2026-08-22',hour:18,status:'확정',
    reqAt:'2026-07-28 11:19'}),
- mkReq({camp:'개학 키즈 전용관 특가 안내',from:'2026-08-23',to:'2026-08-23',ch:['배너'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'개학 키즈 전용관 특가 안내',from:'2026-08-23',to:'2026-08-25',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:53,team:'C팀',mk:'유리',date:'2026-08-23',hour:21,status:'확정',
    reqAt:'2026-08-02 14:38'}),
- mkReq({camp:'늦여름 모바일 결합 특가 안내',from:'2026-08-23',to:'2026-08-23',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
+ mkReq({camp:'늦여름 모바일 결합 특가 안내',from:'2026-08-23',to:'2026-08-25',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
    offer:'없음',qty:191,team:'B팀',mk:'훈이',date:'2026-08-23',hour:10,status:'확정',
    reqAt:'2026-07-29 12:10'}),
  mkReq({camp:'개학 셋톱박스 교체 혜택 안내',from:'2026-08-24',to:'2026-09-02',ch:['토스트팝업'],gnb:'영화 홈',
@@ -1042,20 +1237,20 @@ let requests=[
  mkReq({camp:'늦여름 인기 예능 체험 이벤트',from:'2026-08-24',to:'2026-08-30',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:35,team:'B팀',mk:'짱구',date:'2026-08-24',hour:12,status:'확정',
    reqAt:'2026-07-29 17:51'}),
- mkReq({camp:'휴가 시즌 키즈 전용관 추천 알림',from:'2026-08-24',to:'2026-08-30',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:106,team:'C팀',mk:'유리',date:'2026-08-24',hour:null,status:'신청',
+ mkReq({camp:'휴가 시즌 키즈 전용관 추천 알림',from:'2026-08-23',to:'2026-08-29',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:106,team:'C팀',mk:'유리',date:'2026-08-23',hour:22,status:'확정',
    reqAt:'2026-07-31 15:51'}),
- mkReq({camp:'개학 스포츠 중계 추천 알림',from:'2026-08-25',to:'2026-08-25',ch:['TV팝업','토스트팝업'],gnb:'홈',
-   cycle:'일회성',offer:'없음',qty:127,team:'B팀',mk:'훈이',date:'2026-08-25',hour:null,status:'신청',
+ mkReq({camp:'개학 스포츠 중계 추천 알림',from:'2026-08-28',to:'2026-08-30',ch:['TV팝업','토스트팝업'],gnb:'홈',
+   cycle:'일회성',offer:'없음',qty:127,team:'B팀',mk:'훈이',date:'2026-08-28',hour:19,status:'확정',
    reqAt:'2026-08-02 10:42'}),
- mkReq({camp:'개학 와이파이 공유기 사전 예약',from:'2026-08-25',to:'2026-08-25',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
+ mkReq({camp:'개학 와이파이 공유기 사전 예약',from:'2026-08-25',to:'2026-08-27',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
    offer:'없음',qty:194,team:'B팀',mk:'짱구',date:'2026-08-25',hour:null,status:'신청',
    reqAt:'2026-08-02 17:42'}),
  mkReq({camp:'늦여름 영화 대여 런칭 알림',from:'2026-08-26',to:'2026-08-28',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
    offer:'없음',qty:101,team:'B팀',mk:'훈이',date:'2026-08-26',hour:17,status:'확정',
    reqAt:'2026-08-01 11:05'}),
  mkReq({camp:'늦여름 다큐 특선 라인업 공개',from:'2026-08-27',to:'2026-08-29',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:85,team:'B팀',mk:'훈이',date:'2026-08-27',hour:null,status:'신청',
+   offer:'없음',qty:85,team:'B팀',mk:'훈이',date:'2026-08-27',hour:19,status:'확정',
    reqAt:'2026-07-28 09:41'}),
  mkReq({camp:'늦여름 셋톱박스 교체 추천 알림',from:'2026-08-27',to:'2026-09-02',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
    offer:'없음',qty:148,team:'C팀',mk:'맹구',date:'2026-08-27',hour:21,status:'확정',
@@ -1063,12 +1258,12 @@ let requests=[
  mkReq({camp:'개학 프리미엄 채널 라인업 공개',from:'2026-08-28',to:'2026-09-06',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
    offer:'없음',qty:137,team:'C팀',mk:'맹구',date:'2026-08-28',hour:18,status:'확정',
    reqAt:'2026-07-31 12:08'}),
- mkReq({camp:'늦여름 영화 대여 기획전',from:'2026-08-28',to:'2026-08-28',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'늦여름 영화 대여 기획전',from:'2026-08-28',to:'2026-08-30',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
    offer:'쿠폰',qty:69,team:'B팀',mk:'짱구',date:'2026-08-28',hour:8,status:'확정',reqAt:'2026-07-31 11:00'}),
  mkReq({camp:'늦여름 키즈 전용관 안내',from:'2026-08-29',to:'2026-09-07',ch:['배너'],gnb:'영화 홈',cycle:'일회성',
    offer:'쿠폰',qty:156,team:'B팀',mk:'짱구',date:'2026-08-29',hour:17,status:'확정',
    reqAt:'2026-07-31 16:28'}),
- mkReq({camp:'휴가 시즌 스포츠 중계 라인업 공개',from:'2026-08-29',to:'2026-08-29',ch:['TV팝업'],gnb:'키즈 홈',
+ mkReq({camp:'휴가 시즌 스포츠 중계 라인업 공개',from:'2026-08-29',to:'2026-08-31',ch:['TV팝업'],gnb:'키즈 홈',
    cycle:'일회성',offer:'쿠폰',qty:45,team:'B팀',mk:'짱구',date:'2026-08-29',hour:9,status:'확정',
    reqAt:'2026-07-31 11:00'}),
  mkReq({camp:'8월 다큐 특선 할인 프로모션',from:'2026-08-30',to:'2026-09-05',ch:['배너'],gnb:'홈',cycle:'일회성',
@@ -1083,24 +1278,24 @@ let requests=[
  mkReq({camp:'8월 B tv 요금제 기획전',from:'2026-08-31',to:'2026-09-04',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
    offer:'쿠폰',qty:99,team:'A팀',mk:'짱아',date:'2026-08-31',hour:13,status:'확정',
    reqAt:'2026-08-01 13:18'}),
- mkReq({camp:'8월 애니메이션 런칭 알림',from:'2026-08-31',to:'2026-09-09',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
-   offer:'없음',qty:180,team:'A팀',mk:'철수',date:'2026-08-31',hour:17,status:'확정',
+ mkReq({camp:'8월 애니메이션 런칭 알림',from:'2026-08-28',to:'2026-09-06',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
+   offer:'없음',qty:180,team:'A팀',mk:'철수',date:'2026-08-28',hour:17,status:'확정',
    reqAt:'2026-07-30 15:35'}),
- mkReq({camp:'휴가 시즌 B tv 요금제 할인 프로모션',from:'2026-08-31',to:'2026-08-31',ch:['배너'],gnb:'홈',
+ mkReq({camp:'휴가 시즌 B tv 요금제 할인 프로모션',from:'2026-08-31',to:'2026-09-02',ch:['배너'],gnb:'홈',
    cycle:'일회성',offer:'없음',qty:98,team:'A팀',mk:'짱아',date:'2026-08-31',hour:12,status:'확정',
    reqAt:'2026-07-29 12:38'}),
- mkReq({camp:'9월 인터넷 결합 신규 가입 이벤트',from:'2026-09-01',to:'2026-09-07',ch:['배너'],gnb:'홈',cycle:'주기성',
-   offer:'없음',qty:8,team:'C팀',mk:'유리',date:'2026-09-01',hour:19,status:'확정',reqAt:'2026-08-02 11:16'}),
- mkReq({camp:'가을 개편 오리지널 시리즈 체험 이벤트',from:'2026-09-01',to:'2026-09-10',ch:['배너'],gnb:'시리즈 홈',
-   cycle:'일회성',offer:'쿠폰',qty:184,team:'A팀',mk:'철수',date:'2026-09-01',hour:null,status:'신청',
+ mkReq({camp:'6월 인터넷 결합 신규 가입 이벤트',from:'2026-06-01',to:'2026-06-07',ch:['배너'],gnb:'홈',cycle:'주기성',
+   offer:'없음',qty:8,team:'C팀',mk:'유리',date:'2026-06-01',hour:19,status:'발송 완료',reqAt:'2026-05-10 09:00'}),
+ mkReq({camp:'가을 개편 오리지널 시리즈 체험 이벤트',from:'2026-09-04',to:'2026-09-13',ch:['배너'],gnb:'시리즈 홈',
+   cycle:'일회성',offer:'쿠폰',qty:184,team:'A팀',mk:'철수',date:'2026-09-04',hour:22,status:'확정',
    reqAt:'2026-07-31 17:02'}),
  mkReq({camp:'초가을 와이파이 공유기 특가 안내',from:'2026-09-01',to:'2026-09-10',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:97,team:'A팀',mk:'철수',date:'2026-09-01',hour:null,status:'조정 필요',adjBy:'mkt',
-   reason:'9/1(화) 배너 캐파 71만 초과',note:'제휴사와 협의된 오픈일이라 날짜를 옮기기 어렵습니다',reqAt:'2026-07-31 15:01'}),
- mkReq({camp:'초가을 키즈 콘텐츠 특가 안내',from:'2026-09-01',to:'2026-09-01',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:182,team:'B팀',mk:'훈이',date:'2026-09-01',hour:null,status:'신청',
+   offer:'없음',qty:97,team:'A팀',mk:'철수',date:'2026-09-01',hour:null,status:'취소',admNote:'9월 개편 일정과 겹쳐 마케터와 협의해 취소했습니다',adjBy:null,
+   reason:'',note:'제휴사와 협의된 오픈일이라 날짜를 옮기기 어렵습니다',reqAt:'2026-07-31 15:01'}),
+ mkReq({camp:'초가을 키즈 콘텐츠 특가 안내',from:'2026-08-29',to:'2026-08-31',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:182,team:'B팀',mk:'훈이',date:'2026-08-29',hour:18,status:'확정',
    reqAt:'2026-07-30 18:42'}),
- mkReq({camp:'초가을 신작 영화 안내',from:'2026-09-02',to:'2026-09-02',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
+ mkReq({camp:'초가을 신작 영화 안내',from:'2026-09-02',to:'2026-09-04',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
    offer:'없음',qty:140,team:'C팀',mk:'유리',date:'2026-09-02',hour:17,status:'확정',
    reqAt:'2026-08-02 09:42'}),
  mkReq({camp:'추석 프리미엄 채널 체험 이벤트',from:'2026-09-02',to:'2026-09-04',ch:['TV팝업','토스트팝업'],gnb:'스포츠 홈',
@@ -1109,210 +1304,210 @@ let requests=[
  mkReq({camp:'가을 개편 다큐 특선 특가 안내',from:'2026-09-03',to:'2026-09-09',ch:['TV팝업','토스트팝업'],gnb:'홈',
    cycle:'일회성',offer:'쿠폰',qty:71,team:'C팀',mk:'맹구',date:'2026-09-03',hour:null,status:'취소',
    reqAt:'2026-07-30 15:12'}),
- mkReq({camp:'가을 개편 인터넷 결합 라인업 공개',from:'2026-09-03',to:'2026-09-03',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:110,team:'C팀',mk:'유리',date:'2026-09-03',hour:null,status:'신청',
+ mkReq({camp:'가을 개편 인터넷 결합 라인업 공개',from:'2026-08-30',to:'2026-09-01',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:110,team:'C팀',mk:'유리',date:'2026-08-30',hour:18,status:'확정',
    reqAt:'2026-07-28 11:12'}),
- mkReq({camp:'추석 예능 하이라이트 런칭 알림',from:'2026-09-03',to:'2026-09-09',ch:['배너'],gnb:'영화 홈',cycle:'일회성',
-   offer:'없음',qty:139,team:'A팀',mk:'짱아',date:'2026-09-03',hour:11,status:'확정',
-   reqAt:'2026-08-01 11:16'}),
- mkReq({camp:'9월 월정액 패키지 쿠폰 이벤트',from:'2026-09-04',to:'2026-09-04',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:64,team:'B팀',mk:'짱구',date:'2026-09-04',hour:null,status:'신청',
-   reqAt:'2026-07-31 12:51'}),
+ mkReq({camp:'여름 휴가 예능 하이라이트 런칭 알림',from:'2026-06-24',to:'2026-06-30',ch:['배너'],gnb:'영화 홈',cycle:'일회성',
+   offer:'없음',qty:139,team:'A팀',mk:'짱아',date:'2026-06-24',hour:18,status:'발송 완료',
+   reqAt:'2026-05-11 10:07'}),
+ mkReq({camp:'6월 월정액 패키지 쿠폰 이벤트',from:'2026-06-10',to:'2026-06-12',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:64,team:'B팀',mk:'짱구',date:'2026-06-10',hour:22,status:'발송 완료',
+   reqAt:'2026-05-12 11:14'}),
  mkReq({camp:'추석 셋톱박스 교체 사전 예약',from:'2026-09-04',to:'2026-09-06',ch:['TV팝업','토스트팝업'],gnb:'스포츠 홈',
    cycle:'일회성',offer:'없음',qty:29,team:'B팀',mk:'짱구',date:'2026-09-04',hour:8,status:'확정',
    reqAt:'2026-08-02 09:15'}),
- mkReq({camp:'추석 월정액 패키지 기획전',from:'2026-09-04',to:'2026-09-04',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:143,team:'A팀',mk:'짱아',date:'2026-09-04',hour:9,status:'확정',
-   reqAt:'2026-07-31 14:32'}),
+ mkReq({camp:'여름 휴가 월정액 패키지 기획전',from:'2026-06-05',to:'2026-06-07',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:143,team:'A팀',mk:'짱아',date:'2026-06-05',hour:21,status:'발송 완료',
+   reqAt:'2026-05-13 12:21'}),
  mkReq({camp:'가을 개편 키즈 전용관 체험 이벤트',from:'2026-09-05',to:'2026-09-11',ch:['배너'],gnb:'시리즈 홈',
    cycle:'일회성',offer:'없음',qty:141,team:'B팀',mk:'훈이',date:'2026-09-05',hour:21,status:'확정',
    reqAt:'2026-07-31 16:04'}),
- mkReq({camp:'9월 신작 영화 추천 알림',from:'2026-09-06',to:'2026-09-06',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
-   offer:'없음',qty:43,team:'B팀',mk:'짱구',date:'2026-09-06',hour:null,status:'신청',
+ mkReq({camp:'9월 신작 영화 추천 알림',from:'2026-09-06',to:'2026-09-08',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
+   offer:'없음',qty:43,team:'B팀',mk:'짱구',date:'2026-09-06',hour:22,status:'확정',
    reqAt:'2026-07-31 12:51'}),
- mkReq({camp:'가을 개편 예능 하이라이트 특가 안내',from:'2026-09-06',to:'2026-09-12',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:116,team:'C팀',mk:'유리',date:'2026-09-06',hour:18,status:'확정',
-   reqAt:'2026-07-31 17:33'}),
+ mkReq({camp:'여름 개편 예능 하이라이트 특가 안내',from:'2026-06-11',to:'2026-06-17',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:116,team:'C팀',mk:'유리',date:'2026-06-11',hour:22,status:'발송 완료',
+   reqAt:'2026-05-15 14:35'}),
  mkReq({camp:'초가을 월정액 패키지 런칭 알림',from:'2026-09-06',to:'2026-09-10',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
-   offer:'없음',qty:147,team:'A팀',mk:'짱아',date:'2026-09-06',hour:null,status:'신청',
+   offer:'없음',qty:147,team:'A팀',mk:'짱아',date:'2026-09-06',hour:22,status:'확정',
    reqAt:'2026-07-28 12:42'}),
- mkReq({camp:'9월 시리즈 정주행 체험 이벤트',from:'2026-09-07',to:'2026-09-07',ch:['배너'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'9월 시리즈 정주행 체험 이벤트',from:'2026-09-07',to:'2026-09-09',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:151,team:'B팀',mk:'짱구',date:'2026-09-07',hour:21,status:'확정',
    reqAt:'2026-07-29 16:46'}),
  mkReq({camp:'가을 개편 키즈 콘텐츠 체험 이벤트',from:'2026-09-07',to:'2026-09-20',ch:['토스트팝업'],gnb:'스포츠 홈',
    cycle:'주기성',offer:'없음',qty:7,team:'A팀',mk:'짱아',date:'2026-09-07',hour:null,status:'취소',
    reqAt:'2026-08-02 16:41'}),
- mkReq({camp:'초가을 프리미엄 채널 신규 가입 이벤트',from:'2026-09-07',to:'2026-09-13',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:126,team:'C팀',mk:'맹구',date:'2026-09-07',hour:null,status:'신청',
-   reqAt:'2026-07-29 09:43'}),
- mkReq({camp:'초가을 월정액 패키지 안내',from:'2026-09-08',to:'2026-09-14',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:184,team:'C팀',mk:'맹구',date:'2026-09-08',hour:19,status:'확정',
-   reqAt:'2026-08-02 09:44'}),
- mkReq({camp:'추석 스포츠 중계 혜택 안내',from:'2026-09-08',to:'2026-09-08',ch:['TV팝업','토스트팝업'],gnb:'홈',
-   cycle:'일회성',offer:'없음',qty:43,team:'B팀',mk:'훈이',date:'2026-09-08',hour:null,status:'신청',
+ mkReq({camp:'초여름 프리미엄 채널 신규 가입 이벤트',from:'2026-06-07',to:'2026-06-13',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:126,team:'C팀',mk:'맹구',date:'2026-06-07',hour:18,status:'발송 완료',
+   reqAt:'2026-05-17 16:49'}),
+ mkReq({camp:'초여름 월정액 패키지 안내',from:'2026-06-06',to:'2026-06-12',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:184,team:'C팀',mk:'맹구',date:'2026-06-06',hour:18,status:'발송 완료',
+   reqAt:'2026-05-14 13:28'}),
+ mkReq({camp:'추석 스포츠 중계 혜택 안내',from:'2026-09-08',to:'2026-09-10',ch:['TV팝업','토스트팝업'],gnb:'홈',
+   cycle:'일회성',offer:'없음',qty:43,team:'B팀',mk:'훈이',date:'2026-09-08',hour:19,status:'확정',
    reqAt:'2026-07-28 16:45'}),
- mkReq({camp:'9월 다큐 특선 안내',from:'2026-09-09',to:'2026-09-13',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:172,team:'A팀',mk:'철수',date:'2026-09-09',hour:21,status:'확정',
-   reqAt:'2026-08-01 18:26'}),
- mkReq({camp:'가을 개편 프리미엄 채널 혜택 안내',from:'2026-09-09',to:'2026-09-11',ch:['토스트팝업'],gnb:'홈',
-   cycle:'일회성',offer:'없음',qty:130,team:'C팀',mk:'유리',date:'2026-09-09',hour:null,status:'신청',
-   reqAt:'2026-08-01 11:55'}),
- mkReq({camp:'9월 시니어 추천관 신규 가입 이벤트',from:'2026-09-10',to:'2026-09-10',ch:['토스트팝업'],gnb:'홈',
+ mkReq({camp:'6월 다큐 특선 안내',from:'2026-06-07',to:'2026-06-11',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:172,team:'A팀',mk:'철수',date:'2026-06-07',hour:22,status:'발송 완료',
+   reqAt:'2026-05-18 17:56'}),
+ mkReq({camp:'여름 개편 프리미엄 채널 혜택 안내',from:'2026-06-25',to:'2026-06-27',ch:['토스트팝업'],gnb:'홈',
+   cycle:'일회성',offer:'없음',qty:130,team:'C팀',mk:'유리',date:'2026-06-25',hour:19,status:'발송 완료',
+   reqAt:'2026-05-16 15:42'}),
+ mkReq({camp:'9월 시니어 추천관 신규 가입 이벤트',from:'2026-09-10',to:'2026-09-12',ch:['토스트팝업'],gnb:'홈',
    cycle:'일회성',offer:'없음',qty:40,team:'B팀',mk:'훈이',date:'2026-09-10',hour:19,status:'확정',
    reqAt:'2026-07-28 16:16'}),
- mkReq({camp:'9월 프리미엄 채널 체험 이벤트',from:'2026-09-10',to:'2026-09-19',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:53,team:'A팀',mk:'철수',date:'2026-09-10',hour:8,status:'확정',reqAt:'2026-07-28 12:13'}),
- mkReq({camp:'추석 월정액 패키지 체험 이벤트',from:'2026-09-10',to:'2026-09-10',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
-   offer:'쿠폰',qty:195,team:'C팀',mk:'유리',date:'2026-09-10',hour:null,status:'신청',
+ mkReq({camp:'6월 프리미엄 채널 체험 이벤트',from:'2026-06-02',to:'2026-06-11',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:53,team:'A팀',mk:'철수',date:'2026-06-02',hour:21,status:'발송 완료',reqAt:'2026-05-19 09:03'}),
+ mkReq({camp:'추석 월정액 패키지 체험 이벤트',from:'2026-09-12',to:'2026-09-14',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
+   offer:'쿠폰',qty:195,team:'C팀',mk:'유리',date:'2026-09-12',hour:19,status:'확정',
    reqAt:'2026-07-31 18:49'}),
- mkReq({camp:'9월 B tv 요금제 신규 가입 이벤트',from:'2026-09-11',to:'2026-09-11',ch:['배너'],gnb:'시리즈 홈',
+ mkReq({camp:'9월 B tv 요금제 신규 가입 이벤트',from:'2026-09-11',to:'2026-09-13',ch:['배너'],gnb:'시리즈 홈',
    cycle:'일회성',offer:'없음',qty:54,team:'B팀',mk:'훈이',date:'2026-09-11',hour:16,status:'확정',
    reqAt:'2026-07-28 16:16'}),
- mkReq({camp:'초가을 키즈 콘텐츠 기획전',from:'2026-09-11',to:'2026-09-17',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
-   offer:'쿠폰',qty:148,team:'C팀',mk:'맹구',date:'2026-09-11',hour:11,status:'확정',
-   reqAt:'2026-07-29 18:43'}),
+ mkReq({camp:'초여름 키즈 콘텐츠 기획전',from:'2026-06-12',to:'2026-06-18',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
+   offer:'쿠폰',qty:148,team:'C팀',mk:'맹구',date:'2026-06-12',hour:19,status:'발송 완료',
+   reqAt:'2026-05-20 10:10'}),
  mkReq({camp:'초가을 프리미엄 채널 체험 이벤트',from:'2026-09-11',to:'2026-09-15',ch:['토스트팝업'],gnb:'키즈 홈',
    cycle:'일회성',offer:'없음',qty:98,team:'C팀',mk:'맹구',date:'2026-09-11',hour:19,status:'확정',
    reqAt:'2026-07-28 13:39'}),
- mkReq({camp:'추석 신작 영화 추천 알림',from:'2026-09-11',to:'2026-09-20',ch:['배너'],gnb:'시리즈 홈',cycle:'주기성',
-   offer:'없음',qty:8,team:'A팀',mk:'짱아',date:'2026-09-11',hour:17,status:'확정',reqAt:'2026-08-02 15:23'}),
+ mkReq({camp:'여름 휴가 신작 영화 추천 알림',from:'2026-06-03',to:'2026-06-12',ch:['배너'],gnb:'시리즈 홈',cycle:'주기성',
+   offer:'없음',qty:8,team:'A팀',mk:'짱아',date:'2026-06-03',hour:17,status:'발송 완료',reqAt:'2026-05-21 11:17'}),
  mkReq({camp:'9월 B tv 요금제 혜택 안내',from:'2026-09-12',to:'2026-09-16',ch:['토스트팝업'],gnb:'홈',cycle:'일회성',
    offer:'쿠폰',qty:82,team:'B팀',mk:'짱구',date:'2026-09-12',hour:null,status:'취소',
    admNote:'마케터와 협의해 이번 분기에는 진행하지 않기로 했습니다',reqAt:'2026-08-01 13:00'}),
- mkReq({camp:'9월 해외 드라마 체험 이벤트',from:'2026-09-12',to:'2026-09-14',ch:['TV팝업','토스트팝업'],gnb:'홈',
-   cycle:'일회성',offer:'쿠폰',qty:37,team:'C팀',mk:'맹구',date:'2026-09-12',hour:10,status:'확정',
-   reqAt:'2026-07-30 14:47'}),
+ mkReq({camp:'6월 해외 드라마 체험 이벤트',from:'2026-06-15',to:'2026-06-17',ch:['TV팝업','토스트팝업'],gnb:'홈',
+   cycle:'일회성',offer:'쿠폰',qty:37,team:'C팀',mk:'맹구',date:'2026-06-15',hour:19,status:'발송 완료',
+   reqAt:'2026-05-22 12:24'}),
  mkReq({camp:'가을 개편 키즈 콘텐츠 안내',from:'2026-09-12',to:'2026-09-21',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
    offer:'없음',qty:54,team:'A팀',mk:'철수',date:'2026-09-12',hour:13,status:'확정',
    reqAt:'2026-07-30 15:27'}),
- mkReq({camp:'추석 스포츠 중계 런칭 알림',from:'2026-09-12',to:'2026-09-16',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
-   offer:'없음',qty:109,team:'C팀',mk:'맹구',date:'2026-09-12',hour:18,status:'확정',
-   reqAt:'2026-07-31 15:03'}),
+ mkReq({camp:'여름 휴가 스포츠 중계 런칭 알림',from:'2026-06-16',to:'2026-06-20',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
+   offer:'없음',qty:109,team:'C팀',mk:'맹구',date:'2026-06-16',hour:18,status:'발송 완료',
+   reqAt:'2026-05-23 13:31'}),
  mkReq({camp:'9월 예능 하이라이트 라인업 공개',from:'2026-09-13',to:'2026-09-26',ch:['배너'],gnb:'홈',cycle:'주기성',
    offer:'없음',qty:15,team:'A팀',mk:'짱아',date:'2026-09-13',hour:17,status:'확정',
    reqAt:'2026-07-31 15:26'}),
- mkReq({camp:'초가을 키즈 콘텐츠 혜택 안내',from:'2026-09-13',to:'2026-09-19',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:146,team:'C팀',mk:'유리',date:'2026-09-13',hour:null,status:'신청',
-   reqAt:'2026-07-30 15:20'}),
- mkReq({camp:'가을 개편 다큐 특선 쿠폰 이벤트',from:'2026-09-14',to:'2026-09-20',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:148,team:'A팀',mk:'철수',date:'2026-09-14',hour:15,status:'확정',
-   reqAt:'2026-07-29 10:53'}),
- mkReq({camp:'추석 애니메이션 쿠폰 이벤트',from:'2026-09-14',to:'2026-09-23',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:183,team:'B팀',mk:'짱구',date:'2026-09-14',hour:17,status:'확정',
+ mkReq({camp:'초여름 키즈 콘텐츠 혜택 안내',from:'2026-06-13',to:'2026-06-19',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:146,team:'C팀',mk:'유리',date:'2026-06-13',hour:19,status:'발송 완료',
+   reqAt:'2026-05-24 14:38'}),
+ mkReq({camp:'여름 개편 다큐 특선 쿠폰 이벤트',from:'2026-06-13',to:'2026-06-19',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:148,team:'A팀',mk:'철수',date:'2026-06-13',hour:18,status:'발송 완료',
+   reqAt:'2026-05-25 15:45'}),
+ mkReq({camp:'추석 애니메이션 쿠폰 이벤트',from:'2026-09-13',to:'2026-09-22',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:183,team:'B팀',mk:'짱구',date:'2026-09-13',hour:17,status:'확정',
    reqAt:'2026-07-30 16:02'}),
- mkReq({camp:'가을 개편 셋톱박스 교체 라인업 공개',from:'2026-09-15',to:'2026-09-17',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:104,team:'C팀',mk:'맹구',date:'2026-09-15',hour:14,status:'확정',
+ mkReq({camp:'가을 개편 셋톱박스 교체 라인업 공개',from:'2026-09-19',to:'2026-09-21',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:104,team:'C팀',mk:'맹구',date:'2026-09-19',hour:14,status:'확정',
    reqAt:'2026-07-29 17:22'}),
  mkReq({camp:'가을 개편 셋톱박스 교체 특가 안내',from:'2026-09-15',to:'2026-09-19',ch:['배너'],gnb:'스포츠 홈',
-   cycle:'일회성',offer:'없음',qty:141,team:'A팀',mk:'짱아',date:'2026-09-15',hour:null,status:'신청',
+   cycle:'일회성',offer:'없음',qty:141,team:'A팀',mk:'짱아',date:'2026-09-15',hour:22,status:'확정',
    reqAt:'2026-08-01 09:58'}),
- mkReq({camp:'9월 프리미엄 채널 런칭 알림',from:'2026-09-16',to:'2026-09-20',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
-   offer:'쿠폰',qty:131,team:'A팀',mk:'짱아',date:'2026-09-16',hour:20,status:'확정',
-   reqAt:'2026-07-28 16:11'}),
+ mkReq({camp:'6월 프리미엄 채널 런칭 알림',from:'2026-06-12',to:'2026-06-16',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
+   offer:'쿠폰',qty:131,team:'A팀',mk:'짱아',date:'2026-06-12',hour:22,status:'발송 완료',
+   reqAt:'2026-05-26 16:52'}),
  mkReq({camp:'추석 프리미엄 채널 사전 예약',from:'2026-09-16',to:'2026-09-22',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:107,team:'C팀',mk:'유리',date:'2026-09-16',hour:19,status:'확정',
    reqAt:'2026-08-02 17:45'}),
- mkReq({camp:'초가을 셋톱박스 교체 런칭 알림',from:'2026-09-17',to:'2026-09-30',ch:['TV팝업'],gnb:'홈',cycle:'주기성',
-   offer:'없음',qty:13,team:'B팀',mk:'훈이',date:'2026-09-17',hour:18,status:'확정',
-   reqAt:'2026-07-31 17:08'}),
- mkReq({camp:'초가을 시니어 추천관 쿠폰 이벤트',from:'2026-09-17',to:'2026-09-19',ch:['배너'],gnb:'스포츠 홈',
-   cycle:'일회성',offer:'쿠폰',qty:196,team:'C팀',mk:'유리',date:'2026-09-17',hour:18,status:'확정',
+ mkReq({camp:'초여름 셋톱박스 교체 런칭 알림',from:'2026-06-04',to:'2026-06-17',ch:['TV팝업'],gnb:'홈',cycle:'주기성',
+   offer:'없음',qty:13,team:'B팀',mk:'훈이',date:'2026-06-04',hour:19,status:'발송 완료',
+   reqAt:'2026-05-27 17:59'}),
+ mkReq({camp:'초가을 시니어 추천관 쿠폰 이벤트',from:'2026-09-18',to:'2026-09-20',ch:['배너'],gnb:'스포츠 홈',
+   cycle:'일회성',offer:'쿠폰',qty:196,team:'C팀',mk:'유리',date:'2026-09-18',hour:18,status:'확정',
    reqAt:'2026-07-31 15:32'}),
  mkReq({camp:'추석 셋톱박스 교체 안내',from:'2026-09-17',to:'2026-09-21',ch:['배너','TV팝업'],gnb:'키즈 홈',
    cycle:'주기성',offer:'쿠폰',qty:14,team:'B팀',mk:'짱구',date:'2026-09-17',hour:19,status:'확정',
    reqAt:'2026-08-02 11:49'}),
- mkReq({camp:'추석 인기 예능 런칭 알림',from:'2026-09-17',to:'2026-09-21',ch:['TV팝업'],gnb:'홈',cycle:'주기성',
-   offer:'없음',qty:12,team:'A팀',mk:'짱아',date:'2026-09-17',hour:18,status:'확정',
-   reqAt:'2026-08-02 18:15'}),
- mkReq({camp:'9월 프리미엄 채널 기획전',from:'2026-09-18',to:'2026-09-22',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:113,team:'C팀',mk:'맹구',date:'2026-09-18',hour:14,status:'확정',
-   reqAt:'2026-07-28 10:57'}),
- mkReq({camp:'초가을 스포츠 중계 추천 알림',from:'2026-09-19',to:'2026-09-28',ch:['배너'],gnb:'홈',cycle:'주기성',
-   offer:'없음',qty:9,team:'A팀',mk:'철수',date:'2026-09-19',hour:19,status:'확정',reqAt:'2026-08-01 17:25'}),
+ mkReq({camp:'여름 휴가 인기 예능 런칭 알림',from:'2026-06-08',to:'2026-06-12',ch:['TV팝업'],gnb:'홈',cycle:'주기성',
+   offer:'없음',qty:12,team:'A팀',mk:'짱아',date:'2026-06-08',hour:18,status:'발송 완료',
+   reqAt:'2026-05-10 09:06'}),
+ mkReq({camp:'6월 프리미엄 채널 기획전',from:'2026-06-14',to:'2026-06-18',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:113,team:'C팀',mk:'맹구',date:'2026-06-14',hour:19,status:'발송 완료',
+   reqAt:'2026-05-11 10:13'}),
+ mkReq({camp:'초여름 스포츠 중계 추천 알림',from:'2026-06-18',to:'2026-06-27',ch:['배너'],gnb:'홈',cycle:'주기성',
+   offer:'없음',qty:9,team:'A팀',mk:'철수',date:'2026-06-18',hour:18,status:'발송 완료',reqAt:'2026-05-12 11:20'}),
  mkReq({camp:'추석 애니메이션 추천 알림',from:'2026-09-19',to:'2026-09-25',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:94,team:'B팀',mk:'짱구',date:'2026-09-19',hour:19,status:'확정',
    reqAt:'2026-07-31 15:44'}),
  mkReq({camp:'가을 개편 프리미엄 채널 쿠폰 이벤트',from:'2026-09-20',to:'2026-09-22',ch:['배너'],gnb:'스포츠 홈',
    cycle:'일회성',offer:'없음',qty:123,team:'A팀',mk:'철수',date:'2026-09-20',hour:20,status:'확정',
    reqAt:'2026-08-02 17:19'}),
- mkReq({camp:'가을 개편 키즈 전용관 추천 알림',from:'2026-09-21',to:'2026-09-21',ch:['배너'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'가을 개편 키즈 전용관 추천 알림',from:'2026-09-21',to:'2026-09-23',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'쿠폰',qty:38,team:'A팀',mk:'짱아',date:'2026-09-21',hour:16,status:'확정',
    reqAt:'2026-07-31 09:27'}),
- mkReq({camp:'초가을 월정액 패키지 라인업 공개',from:'2026-09-21',to:'2026-09-30',ch:['배너'],gnb:'시리즈 홈',
-   cycle:'일회성',offer:'없음',qty:155,team:'A팀',mk:'철수',date:'2026-09-21',hour:11,status:'확정',
-   reqAt:'2026-08-01 15:27'}),
- mkReq({camp:'추석 해외 드라마 추천 알림',from:'2026-09-21',to:'2026-09-25',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:147,team:'A팀',mk:'짱아',date:'2026-09-21',hour:10,status:'확정',
-   reqAt:'2026-08-01 16:17'}),
+ mkReq({camp:'초여름 월정액 패키지 라인업 공개',from:'2026-06-14',to:'2026-06-23',ch:['배너'],gnb:'시리즈 홈',
+   cycle:'일회성',offer:'없음',qty:155,team:'A팀',mk:'철수',date:'2026-06-14',hour:22,status:'발송 완료',
+   reqAt:'2026-05-13 12:27'}),
+ mkReq({camp:'여름 휴가 해외 드라마 추천 알림',from:'2026-06-19',to:'2026-06-23',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:147,team:'A팀',mk:'짱아',date:'2026-06-19',hour:22,status:'발송 완료',
+   reqAt:'2026-05-15 14:41'}),
  mkReq({camp:'9월 오리지널 시리즈 사전 예약',from:'2026-09-22',to:'2026-09-28',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
    offer:'쿠폰',qty:96,team:'C팀',mk:'맹구',date:'2026-09-22',hour:20,status:'확정',
    reqAt:'2026-08-01 09:46'}),
- mkReq({camp:'가을 개편 애니메이션 사전 예약',from:'2026-09-22',to:'2026-09-28',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
-   offer:'없음',qty:74,team:'C팀',mk:'유리',date:'2026-09-22',hour:null,status:'조정 필요',adjBy:'mkt',
-   reason:'9/22(화) 배너 캐파 72만 초과',note:'연휴 직전 마지막 노출이라 날짜를 옮길 수 없습니다',reqAt:'2026-07-31 09:55'}),
- mkReq({camp:'가을 개편 인터넷 결합 사전 예약',from:'2026-09-22',to:'2026-09-22',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:152,team:'C팀',mk:'맹구',date:'2026-09-22',hour:17,status:'확정',
-   reqAt:'2026-07-28 10:12'}),
- mkReq({camp:'추석 오리지널 시리즈 라인업 공개',from:'2026-09-22',to:'2026-09-22',ch:['배너'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'가을 개편 애니메이션 사전 예약',from:'2026-08-22',to:'2026-08-29',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
+   offer:'없음',qty:74,team:'C팀',mk:'유리',date:'2026-08-22',hour:null,status:'조정 필요',adjBy:'mkt',
+   reason:'8/22(토) 배너 캐파 74만 초과',note:'연휴 직전 마지막 노출이라 날짜를 옮길 수 없습니다',reqAt:'2026-08-06 09:55'}),
+ mkReq({camp:'여름 개편 인터넷 결합 사전 예약',from:'2026-06-27',to:'2026-06-29',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:152,team:'C팀',mk:'맹구',date:'2026-06-27',hour:19,status:'발송 완료',
+   reqAt:'2026-05-16 15:48'}),
+ mkReq({camp:'추석 오리지널 시리즈 라인업 공개',from:'2026-09-22',to:'2026-09-24',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:30,team:'A팀',mk:'짱아',date:'2026-09-22',hour:15,status:'확정',
    reqAt:'2026-07-31 09:27'}),
- mkReq({camp:'추석 인터넷 결합 라인업 공개',from:'2026-09-22',to:'2026-09-30',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
-   offer:'쿠폰',qty:96,team:'B팀',mk:'훈이',date:'2026-09-22',hour:null,status:'신청',
-   reqAt:'2026-07-28 11:12'}),
- mkReq({camp:'초가을 셋톱박스 교체 체험 이벤트',from:'2026-09-23',to:'2026-09-23',ch:['배너'],gnb:'스포츠 홈',
-   cycle:'일회성',offer:'없음',qty:164,team:'C팀',mk:'유리',date:'2026-09-23',hour:13,status:'확정',
+ mkReq({camp:'여름 휴가 인터넷 결합 라인업 공개',from:'2026-06-17',to:'2026-06-25',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
+   offer:'쿠폰',qty:96,team:'B팀',mk:'훈이',date:'2026-06-17',hour:22,status:'발송 완료',
+   reqAt:'2026-05-17 16:55'}),
+ mkReq({camp:'초가을 셋톱박스 교체 체험 이벤트',from:'2026-09-25',to:'2026-09-27',ch:['배너'],gnb:'스포츠 홈',
+   cycle:'일회성',offer:'없음',qty:164,team:'C팀',mk:'유리',date:'2026-09-25',hour:13,status:'확정',
    reqAt:'2026-07-29 18:34'}),
- mkReq({camp:'초가을 키즈 전용관 기획전',from:'2026-09-23',to:'2026-09-23',ch:['배너'],gnb:'홈',cycle:'일회성',
+ mkReq({camp:'초가을 키즈 전용관 기획전',from:'2026-09-23',to:'2026-09-25',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'쿠폰',qty:68,team:'A팀',mk:'짱아',date:'2026-09-23',hour:21,status:'확정',
    reqAt:'2026-07-31 09:27'}),
- mkReq({camp:'추석 와이파이 공유기 체험 이벤트',from:'2026-09-23',to:'2026-09-29',ch:['배너'],gnb:'시리즈 홈',
-   cycle:'일회성',offer:'쿠폰',qty:46,team:'A팀',mk:'철수',date:'2026-09-23',hour:11,status:'확정',
-   reqAt:'2026-08-02 17:16'}),
+ mkReq({camp:'여름 휴가 와이파이 공유기 체험 이벤트',from:'2026-06-09',to:'2026-06-15',ch:['배너'],gnb:'시리즈 홈',
+   cycle:'일회성',offer:'쿠폰',qty:46,team:'A팀',mk:'철수',date:'2026-06-09',hour:21,status:'발송 완료',
+   reqAt:'2026-05-18 17:02'}),
  mkReq({camp:'9월 다큐 특선 기획전',from:'2026-09-24',to:'2026-09-30',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
    offer:'없음',qty:48,team:'A팀',mk:'짱아',date:'2026-09-24',hour:20,status:'확정',
    reqAt:'2026-07-30 13:54'}),
- mkReq({camp:'초가을 해외 드라마 사전 예약',from:'2026-09-24',to:'2026-09-28',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
-   offer:'쿠폰',qty:145,team:'B팀',mk:'짱구',date:'2026-09-24',hour:19,status:'확정',
-   reqAt:'2026-07-28 17:17'}),
- mkReq({camp:'추석 다큐 특선 안내',from:'2026-09-24',to:'2026-09-30',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
-   offer:'없음',qty:164,team:'A팀',mk:'철수',date:'2026-09-24',hour:15,status:'확정',
-   reqAt:'2026-08-02 12:45'}),
- mkReq({camp:'초가을 애니메이션 특가 안내',from:'2026-09-25',to:'2026-09-25',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
-   offer:'쿠폰',qty:67,team:'A팀',mk:'짱아',date:'2026-09-25',hour:14,status:'확정',
-   reqAt:'2026-07-31 09:27'}),
+ mkReq({camp:'초여름 해외 드라마 사전 예약',from:'2026-06-20',to:'2026-06-24',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
+   offer:'쿠폰',qty:145,team:'B팀',mk:'짱구',date:'2026-06-20',hour:22,status:'발송 완료',
+   reqAt:'2026-05-19 09:09'}),
+ mkReq({camp:'여름 휴가 다큐 특선 안내',from:'2026-06-19',to:'2026-06-25',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
+   offer:'없음',qty:164,team:'A팀',mk:'철수',date:'2026-06-19',hour:19,status:'발송 완료',
+   reqAt:'2026-05-14 13:34'}),
+ mkReq({camp:'초여름 애니메이션 특가 안내',from:'2026-06-22',to:'2026-06-24',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
+   offer:'쿠폰',qty:67,team:'A팀',mk:'짱아',date:'2026-06-22',hour:21,status:'발송 완료',
+   reqAt:'2026-05-20 10:16'}),
  mkReq({camp:'추석 신작 영화 할인 프로모션',from:'2026-09-25',to:'2026-09-30',ch:['배너'],gnb:'스포츠 홈',cycle:'일회성',
    offer:'없음',qty:138,team:'B팀',mk:'짱구',date:'2026-09-25',hour:13,status:'확정',
    reqAt:'2026-07-28 17:33'}),
- mkReq({camp:'9월 해외 드라마 라인업 공개',from:'2026-09-26',to:'2026-09-30',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'쿠폰',qty:140,team:'B팀',mk:'훈이',date:'2026-09-26',hour:12,status:'확정',
-   reqAt:'2026-07-29 12:48'}),
- mkReq({camp:'가을 개편 스포츠 중계 쿠폰 이벤트',from:'2026-09-27',to:'2026-09-30',ch:['배너'],gnb:'영화 홈',
-   cycle:'일회성',offer:'쿠폰',qty:195,team:'A팀',mk:'짱아',date:'2026-09-27',hour:11,status:'확정',
-   reqAt:'2026-07-30 18:24'}),
+ mkReq({camp:'6월 해외 드라마 라인업 공개',from:'2026-06-21',to:'2026-06-25',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'쿠폰',qty:140,team:'B팀',mk:'훈이',date:'2026-06-21',hour:19,status:'발송 완료',
+   reqAt:'2026-05-21 11:23'}),
+ mkReq({camp:'여름 개편 스포츠 중계 쿠폰 이벤트',from:'2026-06-21',to:'2026-06-24',ch:['배너'],gnb:'영화 홈',
+   cycle:'일회성',offer:'쿠폰',qty:195,team:'A팀',mk:'짱아',date:'2026-06-21',hour:22,status:'발송 완료',
+   reqAt:'2026-05-22 12:30'}),
  mkReq({camp:'가을 개편 키즈 전용관 라인업 공개',from:'2026-09-27',to:'2026-09-30',ch:['배너'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:75,team:'B팀',mk:'짱구',date:'2026-09-27',hour:17,status:'확정',
    reqAt:'2026-08-01 16:01'}),
  mkReq({camp:'9월 스포츠 중계 추천 알림',from:'2026-09-28',to:'2026-09-30',ch:['배너'],gnb:'시리즈 홈',cycle:'일회성',
    offer:'없음',qty:52,team:'B팀',mk:'훈이',date:'2026-09-28',hour:19,status:'확정',
    reqAt:'2026-07-28 13:15'}),
- mkReq({camp:'초가을 키즈 전용관 특가 안내',from:'2026-09-28',to:'2026-09-30',ch:['배너'],gnb:'홈',cycle:'일회성',
-   offer:'없음',qty:128,team:'A팀',mk:'철수',date:'2026-09-28',hour:11,status:'확정',
-   reqAt:'2026-07-29 09:33'}),
+ mkReq({camp:'초여름 키즈 전용관 특가 안내',from:'2026-06-26',to:'2026-06-28',ch:['배너'],gnb:'홈',cycle:'일회성',
+   offer:'없음',qty:128,team:'A팀',mk:'철수',date:'2026-06-26',hour:19,status:'발송 완료',
+   reqAt:'2026-05-24 14:44'}),
  mkReq({camp:'9월 해외 드라마 추천 알림',from:'2026-09-29',to:'2026-09-29',ch:['TV팝업'],gnb:'홈',cycle:'일회성',
    offer:'없음',qty:29,team:'B팀',mk:'훈이',date:'2026-09-29',hour:15,status:'확정',
    reqAt:'2026-07-28 11:17'}),
- mkReq({camp:'가을 개편 B tv 요금제 특가 안내',from:'2026-09-29',to:'2026-09-30',ch:['배너'],gnb:'스포츠 홈',
-   cycle:'일회성',offer:'없음',qty:76,team:'B팀',mk:'훈이',date:'2026-09-29',hour:13,status:'확정',
-   reqAt:'2026-07-29 12:27'}),
- mkReq({camp:'초가을 모바일 결합 신규 가입 이벤트',from:'2026-09-29',to:'2026-09-30',ch:['배너'],gnb:'스포츠 홈',
-   cycle:'일회성',offer:'없음',qty:169,team:'B팀',mk:'훈이',date:'2026-09-29',hour:11,status:'확정',
+ mkReq({camp:'여름 개편 B tv 요금제 특가 안내',from:'2026-06-28',to:'2026-06-30',ch:['배너'],gnb:'스포츠 홈',
+   cycle:'일회성',offer:'없음',qty:76,team:'B팀',mk:'훈이',date:'2026-06-28',hour:18,status:'발송 완료',
+   reqAt:'2026-05-25 15:51'}),
+ mkReq({camp:'초가을 모바일 결합 신규 가입 이벤트',from:'2026-09-26',to:'2026-09-28',ch:['배너'],gnb:'스포츠 홈',
+   cycle:'일회성',offer:'없음',qty:169,team:'B팀',mk:'훈이',date:'2026-09-26',hour:11,status:'확정',
    reqAt:'2026-07-29 15:57'}),
  mkReq({camp:'9월 와이파이 공유기 체험 이벤트',from:'2026-09-30',to:'2026-09-30',ch:['배너'],gnb:'키즈 홈',cycle:'일회성',
-   offer:'없음',qty:135,team:'C팀',mk:'맹구',date:'2026-09-30',hour:null,status:'신청',
+   offer:'없음',qty:135,team:'C팀',mk:'맹구',date:'2026-09-30',hour:19,status:'확정',
    reqAt:'2026-07-30 15:02'}),
- mkReq({camp:'가을 개편 키즈 콘텐츠 특가 안내',from:'2026-09-30',to:'2026-09-30',ch:['배너'],gnb:'시리즈 홈',
-   cycle:'일회성',offer:'쿠폰',qty:79,team:'C팀',mk:'유리',date:'2026-09-30',hour:null,status:'신청',
-   reqAt:'2026-07-28 16:06'}),
+ mkReq({camp:'여름 개편 키즈 콘텐츠 특가 안내',from:'2026-06-23',to:'2026-06-25',ch:['배너'],gnb:'시리즈 홈',
+   cycle:'일회성',offer:'쿠폰',qty:79,team:'C팀',mk:'유리',date:'2026-06-23',hour:21,status:'발송 완료',
+   reqAt:'2026-05-23 13:37'}),
 ];
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1462,6 +1657,10 @@ const bannerRem=d=>CAPA['배너'].limit-bannerUsed(d);
 const couponRem=d=>CAPA['쿠폰'].limit-couponUsed(d);
 /* 캘린더 요약용 — 캐파 판정과 달리 '마케터가 신청한 값'을 그대로 더한다.
    조정 필요 건도 포함해야 그 칸에 나열한 건들의 합과 숫자가 맞는다. */
+/* 캘린더(마케터)용 — 실제로 나가기로 '확정'된 것만 센다.
+   같은 날의 두 숫자가 다른 것은 쓰임이 달라서다 (DECISIONS D-03 과 같은 이유) */
+const confirmedOn=(d,pred)=>requests.filter(r=>['확정','발송 완료'].includes(r.status)
+  &&activeOn(d,r)&&pred(r)).reduce((s,r)=>s+r.qty,0);
 const appliedOn=(d,pred)=>requests.filter(r=>r.status!=='취소'&&r.no!==excNo()
   &&activeOn(d,r)&&pred(r)).reduce((s,r)=>s+r.qty,0);
 /* ── 시간대 겹침 규칙 ──
@@ -1530,18 +1729,43 @@ let role='mkt', tab='apply', calMonth='2026-08', kpiMonth=TODAY.slice(0,7), foun
    date       = 달력에서 고른 시작일 = 발송일. 종료일은 date + days - 1 */
 const EMPTY_DRAFT=()=>({qFrom:'',qTo:'',days:null,ch:[],gnb:'',cycle:'',offer:'',qty:null,
   date:null,hour:null,camp:'',dept:ME.team,mk:ME.mk,note:'',editNo:null});
-/* 좌측 조건은 form 에 담고, '잔여 일정 확인'을 눌러야 draft 로 옮겨진다.
+/* 좌측 조건은 form 에 담고, '잔여 일정 조회'를 눌러야 draft 로 옮겨진다.
    조건을 만지는 동안 결과가 따라 바뀌면 오해를 부르기 때문이다 (0801 피드백) */
 const COND=['qFrom','qTo','days','ch','gnb','cycle','offer','qty'];
 const EMPTY_FORM=()=>({qFrom:'',qTo:'',days:null,ch:[],gnb:'',cycle:'',offer:'',qty:null});
+
+/* ── 조회 기간 선택기 ──
+   네이티브 date 입력을 걷어냈다. 브라우저 로케일에 따라 mm/dd/yyyy 로 나와
+   한국어 화면에 미국식 표기가 섞였고, 시작·종료가 따로 놀아 '기간'으로 읽히지 않았다.
+   범위를 한 컨트롤에서 고르면 둘의 관계가 화면에 그대로 보인다. (2026-08-04) */
+const DMIN=ALL[0].d, DMAX=ALL[ALL.length-1].d;
+let rangeOpen=false, rangeMonth='2026-08',
+    rangeDraft={from:'',to:'',picking:'from'};
+/* 그 달의 마지막 날 — 문자열만 다루면 시간대에 휘둘리지 않는다 */
+const monthEnd=m=>{const [y,mo]=m.split('-').map(Number);
+  return iso(new Date(y,mo,0))};
+const clampD=d=>d<DMIN?DMIN:d>DMAX?DMAX:d;
 let form=EMPTY_FORM();
 let draft=EMPTY_DRAFT();
 let calFilter={mode:'all',ch:[],offer:''}, calDay=null, openPanel=null, listSt='all';
+/* 리스트는 기본 5줄만 — 40줄짜리 표가 캘린더를 화면 밖으로 밀어낸다 */
+const LIST_N=5; let listAll=false;
+/* 캘린더에서 '이 날짜로' 넘어온 경우 그 날짜 — 본문에 맥락을 남기기 위해서만 쓴다 */
+let calPick=null;
+/* 펼친 그 순간 '아직 안 본 것'이 무엇이었는지 찍어 둔다.
+   펼치자마자 seen 을 바꾸고 그리면, 그려질 때는 이미 본 것이 되어
+   무엇이 왜 맨 위에 있는지 마케터가 볼 기회가 사라진다 (2026-08-04) */
+let panelPins=new Set();
+/* 담당자 모달의 단일 날짜 선택기 — 조회 기간 선택기와 같은 조작이다.
+   네이티브 date 입력은 브라우저 로케일을 따라 mm/dd/yyyy 로 나오고 손댈 수 없다 */
+let dpOpen=null, dpMonth='2026-08';
+/* 담당자가 발송 기간을 바꿀 때 쓰는 임시 범위 — '적용'을 눌러야 반영된다 */
+let dpRange={from:'',to:'',picking:'from'};
 /* 담당자가 처리 중인 건 — 캐파·시간대 계산에서 자기 자신을 뺀다 */
 let admFix={no:null};
 /* 조정 요청 건에 자리를 내주려고 옮기는 확정 건 (0731 플로우) */
-let admSwap={no:null,from:null,hour:null};
-const noSwap=()=>{admSwap={no:null,from:null,hour:null}};
+let admSwap={no:null,from:null,to:null,hour:null};
+const noSwap=()=>{admSwap={no:null,from:null,to:null,hour:null}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
@@ -1559,12 +1783,16 @@ const TABS=[
 function renderTabs(){
   $('tabbar').innerHTML=TABS.filter(t=>t.roles.includes(role))
     .map(t=>`<a data-k="${t.k}" class="${tab===t.k?'on':''}">${t.n}</a>`).join('');
-  $('tabbar').querySelectorAll('a').forEach(a=>a.onclick=()=>{tab=a.dataset.k;render()});
+  $('tabbar').querySelectorAll('a').forEach(a=>a.onclick=()=>{
+    tab=a.dataset.k;
+    /* 캘린더는 늘 월간에서 시작한다 — 지난번에 열어 둔 일자가 남으면 어디인지 알 수 없다 */
+    if(tab==='cal') calDay=null;
+    render()});
 }
 
 /* ══════════════════════════════════════════════════════════════════════
    페이지 1 — 캠페인 신청 (마케터 화면)
-   좌: 잔여 일정 확인하기 / 우: 캠페인 신청하기 · 추천 · 캠페인 리스트
+   좌: 잔여 일정 조회 / 우: 캠페인 신청 · 추천 · 캠페인 리스트
    ══════════════════════════════════════════════════════════════════════ */
 function renderApply(){
   return `<div class="wrap wide">
@@ -1595,10 +1823,14 @@ function kpiRow(){
   const wait=cnt('신청'), adj=cnt('조정 필요'),
         conf=cnt('확정')+cnt('발송 완료'), canc=cnt('취소');
   const applied=wait+adj+conf+canc;
-  const box=(k,v,hero,key)=>`<div class="kpi${hero?' hero':''}${key?' clickable':''}${
+  /* 담당자가 바꿔 놓고 마케터가 아직 안 본 건 — 점은 '안 본 것'에만 붙는다.
+     본 뒤에는 점 자체가 사라진다. 흐려지는 게 아니라 없어져야 '처리됐다'로 읽힌다 */
+  const unseen=k=>mine.filter(r=>PANELS[k].st.includes(r.status)&&r.seen===false).length;
+  const box=(k,v,hero,key)=>{const u=key?unseen(key):0;
+    return `<div class="kpi${key?' clickable':''}${u?' unseen':''}${
       key&&openPanel===key?' open':''}" ${key?`data-panel="${key}"`:''}>
-    <div class="k">${k}</div>
-    <div class="v num">${v||'—'}</div></div>`;
+    <div class="k">${k}${u?`<i class="ndot" title="확인하지 않은 변경 ${u}건"></i>`:''}</div>
+    <div class="v num">${v||'—'}</div></div>`};
   const mi=MONTHS.indexOf(m);
   return `<div class="kpihd">
       <button class="arw" data-km="${MONTHS[mi-1]||''}" ${mi<=0?'disabled':''}>‹</button>
@@ -1610,7 +1842,7 @@ function kpiRow(){
     <div class="kpis">
       ${box('확정 대기',wait,false,'wait')}
       ${box('확정',conf,false,'conf')}
-      ${box('조정 필요',adj,adj>0,'adj')}
+      ${box('조정 필요',adj,false,'adj')}
       ${box('취소',canc,false,'canc')}
     </div>
     ${openPanel?statePanel(m,openPanel):''}`;
@@ -1620,16 +1852,24 @@ function kpiRow(){
    요약 네 칸을 모두 눌러 펼친다. 신청 최신순으로 보여준다 (0801 피드백).
    아래 캠페인 리스트는 발송일 기준이므로, 여기서는 '언제 넣었나'로 훑는다. */
 const PANELS={
-  wait:{st:['신청'],            ttl:'확정 대기', badge:'담당자 확정 대기', act:true},
-  adj :{st:['조정 필요'],        ttl:'조정 필요', badge:'담당자 조정 대기', act:true},
+  wait:{st:['신청'],            ttl:'확정 대기', badge:'', act:true},
+  adj :{st:['조정 필요'],        ttl:'조정 필요', badge:'', act:true},
   conf:{st:['확정','발송 완료'],  ttl:'확정',     badge:'',                act:false},
   canc:{st:['취소'],            ttl:'취소',     badge:'',                act:false},
 };
 function statePanel(m,key){
   const p=PANELS[key]; if(!p) return '';
+  /* 기본은 신청 최신순(0801 피드백).
+     다만 '신청과 다르게 확정된 건'은 마케터가 반드시 알아야 하므로 확인 전까지만 맨 위로 올린다.
+     한 번 펼쳐 보면 seen 이 true 가 되어 다음부터는 원래 순서로 돌아간다 —
+     빨간 점과 같은 신호를 쓰므로 규칙을 두 번 배우지 않아도 된다 (2026-08-04) */
+  const pin=r=>panelPins.has(r.no);
   const rows=requests.filter(r=>r.mk===ME.mk&&r.team===ME.team
       &&reqMonth(r)===m&&p.st.includes(r.status))
-    .sort((a,b)=>a.reqAt<b.reqAt?1:a.reqAt>b.reqAt?-1:0);
+    .sort((a,b)=>{
+      if(pin(a)!==pin(b)) return pin(a)?-1:1;
+      return a.reqAt<b.reqAt?1:a.reqAt>b.reqAt?-1:0;
+    });
   if(!rows.length) return `<div class="card"><div class="empty">이 달에 ${p.ttl} 건이 없습니다.</div></div>`;
   const chip=s=>s==='신청'?'applied':s==='조정 필요'?'needfix'
     :s==='취소'?'cancel':s==='발송 완료'?'sent':'confirmed';
@@ -1637,7 +1877,6 @@ function statePanel(m,key){
     <div class="card-hd"><div class="rule"></div>
       <div class="lbl"><span>${p.ttl} 내역</span><span>${m.replace('-','.')}</span></div>
       <h2><span>${rows.length}건</span>
-        ${p.badge?`<span class="badge">${p.badge}</span>`:''}
         <span class="badge">신청 최신순</span></h2></div>
     ${rows.map(r=>`<div class="adjitem">
       <div class="adjhd"><b>${esc(r.camp)}</b>
@@ -1654,30 +1893,79 @@ function statePanel(m,key){
         ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
         ${cfRow('신청 시각',fmtReq(r.reqAt))}
       </div>
-      ${r.moved?`<div class="adjwhy"><span>담당자 일정 조정</span>${
+      ${r.moved?`<div class="adjwhy"><span>담당자 일정 변경</span>${
         esc(r.moved.from)} → ${esc(r.moved.to)}</div>`:''}
       ${r.reason?`<div class="adjwhy"><span>사유</span>${esc(r.reason)}</div>`:''}
       ${r.note?`<div class="adjnote"><span>신청 시 작성한 사유</span>${esc(r.note)}</div>`:''}
       ${r.admNote?`<div class="adjnote"><span>담당자 사유</span>${esc(r.admNote)}</div>`:''}
       ${p.act?`<div class="adjbtns">
         ${/* 둘이 같은 흰 버튼이라 구분이 안 돼 취소를 잘못 누르기 쉬웠다.
-              주 동작인 수정하기에 색을 채운다 (0803) */''}
+              주 동작인 수정하기에 primary 를 채우고 취소는 회색으로 낮춘다 (0803) */''}
         <button class="pill primary sm" data-move="${r.no}">수정하기</button>
-        <button class="pill ghost sm" data-cancel="${r.no}">신청 취소</button>
+        <button class="pill neutral sm" data-cancel="${r.no}">신청 취소</button>
       </div>`:''}
     </div>`).join('')}
   </div>`;
 }
 
-/* ── 좌측 · 잔여 일정 확인하기 ── */
+/* 프리셋 — 자주 쓰는 기간을 한 번에 잡는다. 달력에서 직접 고르면 '직접 입력'으로 돌아간다 */
+const RANGE_PRESETS=[['custom','직접 입력'],['thismonth','이번 달'],
+  ['nextmonth','다음 달'],['d30','앞으로 30일']];
+function presetRange(k){
+  const m=TODAY.slice(0,7), [y,mo]=m.split('-').map(Number);
+  if(k==='thismonth')  return [clampD(TODAY), clampD(monthEnd(m))];
+  if(k==='nextmonth'){ const nm=iso(new Date(y,mo,1)).slice(0,7);
+                       return [clampD(nm+'-01'), clampD(monthEnd(nm))] }
+  if(k==='d30')        return [clampD(TODAY), clampD(addDays(TODAY,29))];
+  return null;
+}
+/* 범위 선택 팝오버 — 왼쪽에 시작·종료와 프리셋, 오른쪽에 달력.
+   고른 두 날 사이는 띠로 이어 붙여 '기간'임이 한눈에 보이게 한다. */
+function rangePop(){
+  const {from,to,picking}=rangeDraft;
+  const cells=monthDays(rangeMonth), mi=MONTHS.indexOf(rangeMonth);
+  const wks=[]; for(let i=0;i<cells.length;i+=7) wks.push(cells.slice(i,i+7));
+  const off=d=>d<DMIN||d>DMAX||d<TODAY;
+  const cls=d=>[from&&to&&d>from&&d<to?'inr':'', d===from?'edge f':'',
+                d===to?'edge t':'', off(d)?'off':''].filter(Boolean).join(' ');
+  return `<div class="rangepop" id="rangePop">
+    <div class="rpL">
+      <div class="rpt">조회 기간 선택</div>
+      <select class="rpsel" id="rangePre">${RANGE_PRESETS.map(([k,n])=>
+        `<option value="${k}">${n}</option>`).join('')}</select>
+      <button type="button" class="rpf${picking==='from'?' on':''}" data-pick="from">
+        <span class="rpk">시작</span><span class="rpv${from?'':' ph'}">${from?fmtD(from):'선택'}</span></button>
+      <button type="button" class="rpf${picking==='to'?' on':''}" data-pick="to">
+        <span class="rpk">종료</span><span class="rpv${to?'':' ph'}">${to?fmtD(to):'선택'}</span></button>
+      <button class="findbtn rpok" id="rangeOk"${from&&to?'':' disabled'}>적용</button>
+    </div>
+    <div class="rpR">
+      <div class="rpnav">
+        <button class="arw" data-rm="${MONTHS[mi-1]||''}" ${mi<=0?'disabled':''}>‹</button>
+        <span class="rpm num">${rangeMonth.replace('-','. ')}</span>
+        <button class="arw" data-rm="${MONTHS[mi+1]||''}" ${mi>=MONTHS.length-1?'disabled':''}>›</button>
+      </div>
+      <div class="rphd">${WD.map((w,i)=>`<span${i===0?' class="sun"':''}>${w}</span>`).join('')}</div>
+      ${wks.map(wk=>`<div class="rprow">${wk.map(c=>c.out
+        ? `<span class="rd out"></span>`
+        : `<button type="button" class="rd ${cls(c.d)}" data-rd="${c.d}"${
+            off(c.d)?' disabled':''}>${+c.d.slice(8)}</button>`).join('')}</div>`).join('')}
+    </div></div>`;
+}
+
+/* ── 좌측 · 잔여 일정 조회 ── */
 function sideCond(){
   return `<div class="card">
     <div class="card-hd"><div class="rule"></div>
-      <div class="lbl"><span>잔여 일정 확인하기</span></div></div>
-    <div class="fgroup"><div class="ftitle">조회 시작일<i class="i" data-tip="조회를 희망하는 기간의 시작일과 종료일입니다.&#10;검색 결과에서 캠페인 시작일을 설정할 수 있습니다."></i></div>
-      <input type="date" id="fFrom" value="${form.qFrom}" min="${TODAY}" max="2026-09-30"></div>
-    <div class="fgroup"><div class="ftitle">조회 종료일</div>
-      <input type="date" id="fTo" value="${form.qTo}" min="${form.qFrom||TODAY}" max="2026-09-30"></div>
+      <div class="lbl"><span>잔여 일정 조회</span></div></div>
+    <div class="fgroup rangewrap"><div class="ftitle">조회 기간<i class="i" data-tip="조회를 희망하는 기간의 시작일과 종료일입니다.&#10;검색 결과에서 캠페인 시작일을 설정할 수 있습니다."></i></div>
+      <button type="button" class="rangetrig${rangeOpen?' on':''}" id="rangeTrig">
+        <svg class="rti" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="2.5" width="12" height="10.5" rx="1.5"/><path d="M1 6h12M4.5 1v3M9.5 1v3"/></svg>
+        <span class="rtv${form.qFrom&&form.qTo?'':' ph'}">${
+          form.qFrom&&form.qTo?`${fmtD(form.qFrom)} ~ ${fmtD(form.qTo)}`:'기간을 선택하세요'}</span>
+        <span class="rtc">▾</span>
+      </button>
+      ${rangeOpen?rangePop():''}</div>
     <div class="fgroup"><div class="ftitle">채널<i class="i" data-tip="배너 일 400만 건&#10;TV팝업·토스트팝업 제한 없음"></i></div>
       ${CH_LIST.map(v=>`<label class="opt"><input type="checkbox" data-ch="${v}" ${form.ch.includes(v)?'checked':''}>${v}</label>`).join('')}
     </div>
@@ -1712,10 +2000,13 @@ function sideCond(){
    캐파로 막힌 날도 고를 수 있고, 그 경우 조정 요청으로 이어진다. */
 function cardApply(){
   const head=`<div class="card-hd"><div class="rule"></div>
-    <div class="lbl"><span>캠페인 신청하기</span></div>
+    <div class="lbl"><span>캠페인 신청</span></div>
     <h2><span>잔여 일정 확인</span></h2></div>`;
   if(!found) return `<div class="card">${head}
-    <div class="empty">좌측에서 조건을 입력하고 <b>잔여 일정 확인</b>을 눌러 주세요.</div></div>`;
+    <div class="empty">${calPick
+      ? `<b>${fmtD(calPick)}</b> 로 신청합니다. 조회 기간은 그 날 앞뒤로 열어 두었습니다.<br>
+         좌측에서 채널 · 노출 기간 · 타겟수를 채우고 <b>가능한 날 찾기</b>를 눌러 주세요.`
+      : `좌측에서 조건을 입력하고 <b>잔여 일정 조회</b>를 눌러 주세요.`}</div></div>`;
 
   const len=draft.days||1;
   /* 조회 시작일 하루 전도 함께 — 하루 당길 여지를 알 수 있게 (0801 피드백) */
@@ -1733,9 +2024,10 @@ function cardApply(){
       const rm=remOn(draft,d);
       return `<div class="dcell ${c.ok?'ok':'no'}${on?' on':''}${o.dow===0?' sun':''}"
           data-d="${d}"${c.ok?'':` data-tip="${esc(c.why)}"`}>
-        <span class="wk">${o.w}</span><span class="dd">${+d.slice(8)}</span>
+        ${/* 요일은 격자 머리에 이미 있다. 칸마다 또 적으면 잔여 숫자와 섞인다 */''}
+        <span class="dd">${+d.slice(8)}</span>
         ${rm.length?`<span class="drem">${rm.join(' · ')}</span>`:''}
-        ${!on&&best[0]===d?`<span class="pin">추천</span>`:''}</div>`})).join('');
+        </div>`})).join('');
 
   return `<div class="card">${head}
     <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
@@ -1776,7 +2068,11 @@ const chMax=name=>Math.max(1,...ALL.map(x=>usedOn(x.d,q=>q.ch.includes(name))));
 /* 배너·쿠폰이 섞이지 않으면 한도 자체가 없으므로 '캐파'가 아니라 '사용량'이다 */
 const capLabel=c=>(c.ch.includes('배너')||c.offer==='쿠폰')?'캐파':'사용량';
 
-function gaugeRow(d,c=draft,add=c.qty,lab='내 신청'){
+/* exc — 이미 그 날에 놓인 것으로 계산된 건을 빼고 센다.
+   빼지 않으면 더할 것이 없어 '이미 반영됨'이라는 다른 표현이 나오고,
+   같은 게이지가 화면마다 다르게 말하게 된다 (2026-08-04) */
+function gaugeRow(d,c=draft,add=c.qty,lab='내 신청',exc=null){
+  const sub=pred=>(exc&&activeOn(d,exc)&&pred(exc))?exc.qty:0;
   const g=(name,used,lim)=>{
     /* 한도가 없는 채널은 비교할 분모가 없다. 그 채널이 기간 중 가장 많이 나간 날을
        기준으로 채워 '이 날은 평소 대비 얼마나 나가나'를 보여준다. */
@@ -1800,10 +2096,10 @@ function gaugeRow(d,c=draft,add=c.qty,lab='내 신청'){
         <div style="color:var(--text-muted)">${add?`${lab} +${man(add)}만`:'이미 반영됨'}</div></div></div>`;
   };
   const rows=[];
-  if(c.ch.includes('배너')) rows.push(g('배너',bannerUsed(d),CAPA['배너'].limit));
-  if(c.offer==='쿠폰')      rows.push(g('쿠폰',couponUsed(d),CAPA['쿠폰'].limit));
+  if(c.ch.includes('배너')) rows.push(g('배너',bannerUsed(d)-sub(q=>q.ch.includes('배너')),CAPA['배너'].limit));
+  if(c.offer==='쿠폰')      rows.push(g('쿠폰',couponUsed(d)-sub(q=>q.offer==='쿠폰'),CAPA['쿠폰'].limit));
   c.ch.filter(x=>CAPA[x]&&CAPA[x].limit===null)
-      .forEach(x=>rows.push(g(x,usedOn(d,q=>q.ch.includes(x)),null)));
+      .forEach(x=>rows.push(g(x,usedOn(d,q=>q.ch.includes(x))-sub(q=>q.ch.includes(x)),null)));
   return `<div class="gauges">${rows.join('')}</div>`;
 }
 
@@ -1821,8 +2117,8 @@ function srcPeriod(){
 const whoFields=()=>`<div class="frow3">
       <div class="fld"><label>캠페인명</label>
         <input type="text" id="fCamp" value="${esc(draft.camp)}" placeholder="예: 8월 콘텐츠 추천 프로모션"></div>
-      <div class="fld"><label>부서</label><input type="text" id="fDept" value="${esc(draft.dept)}"></div>
-      <div class="fld"><label>마케터</label><input type="text" id="fMk" value="${esc(draft.mk)}"></div>
+      <div class="fld"><label>부서</label><div class="ro" id="fDept">${esc(ME.team)}</div></div>
+      <div class="fld"><label>마케터</label><div class="ro" id="fMk">${esc(ME.mk)}</div></div>
     </div>`;
 
 /* 최종 신청 — 시간대는 담당자가 확정하며 배정한다 */
@@ -1878,10 +2174,12 @@ function roomOn(c,d){
 /* 조회 기간 안에서 점수 높은 순 상위 n개.
    한도 대비로 정규화하면 한산한 구간에서 값이 같아져 순위가 안 갈렸다.
    그래서 후보군 안의 최소~최대로 상대 비교한다. */
-function recTop(n){
-  const days=rangeDays(draft.qFrom,draft.qTo).filter(d=>dayCheck(draft,d).ok);
+/* c 와 범위를 받는다 — 마케터는 자기 조회 기간, 담당자는 신청일 앞뒤 3일.
+   점수·가중치·정규화는 동일하다. 같은 규칙을 두 사람이 쓴다 (2026-08-04) */
+function recTop(n,c=draft,from=draft.qFrom,to=draft.qTo){
+  const days=rangeDays(from,to).filter(d=>dayCheck(c,d).ok);
   if(!days.length) return [];
-  const D=days.map(d=>denseOn(draft,d)), R=days.map(d=>roomOn(draft,d));
+  const D=days.map(d=>denseOn(c,d)), R=days.map(d=>roomOn(c,d));
   const dLo=Math.min(...D), dHi=Math.max(...D), rLo=Math.min(...R), rHi=Math.max(...R);
   const norm=(v,lo,hi)=>hi===lo?1:(v-lo)/(hi-lo);
   return days.map((d,i)=>{
@@ -1945,7 +2243,7 @@ function cardList(){
       <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
         <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th>
         <th>신청 시각</th><th>상태</th><th>사유</th></tr>
-      ${rows.map(r=>`<tr class="rw clk" data-open="${r.no}">
+      ${(listAll?rows:rows.slice(0,LIST_N)).map(r=>`<tr class="rw clk" data-open="${r.no}">
         <td class="nm">${esc(r.camp)}</td>
         <td>${fmtD(r.from)} ~ ${fmtD(r.to)}</td>
         <td${r.moved?` class="adjd" data-tip="신청 ${esc(r.moved.from)} → 확정 ${esc(r.moved.to)}"`:''}>${
@@ -1964,13 +2262,15 @@ function cardList(){
           /* 윗줄 = 이 사유가 누구 것인지, 아랫줄 = 사유 설명 */
           const cancByAdm=r.status==='취소'&&r.admNote;
           const adm=false;
-          const from=cancByAdm?'담당자 취소':r.moved?'담당자 일정 조정':adm?'담당자 사유':r.reason;
+          const from=cancByAdm?'담당자 취소':r.moved?'담당자 일정 변경':adm?'담당자 사유':r.reason;
           const txt =cancByAdm?r.admNote
                     :r.moved?`${r.moved.from} → ${r.moved.to}`
                     :adm?r.admNote:r.note;
           return from?`<span class="src">${esc(from)}</span>${txt?`<br>${esc(txt)}`:''}`:'—'})()}</td>
         </tr>`).join('')}
     </table></div>
+    ${rows.length>LIST_N?`<div class="listmore"><button class="pill ghost sm" id="listMore">${
+      listAll?'접기':`전체 보기 · 남은 ${rows.length-LIST_N}건`}</button></div>`:''}
     ${rows.length?'':'<div class="empty">해당하는 캠페인이 없습니다.</div>'}
   </div>`;
 }
@@ -1984,11 +2284,11 @@ function cardList(){
 
    ── 조정 필요 ──
    원하는 날의 일 캐파가 모자라는데도 그 날을 유지하고 싶어 마케터가 '조정 요청'한 건.
-     · 마케터  — 캠페인 신청하기 메인에 '조정 필요' 한 건 증가
+     · 마케터  — 캠페인 신청 메인에 '조정 필요' 한 건 증가
      · 담당자  — 캠페인 관리하기에 '조정 필요' 한 건 증가
    → 관계자들과 협의 (시스템 밖)
    → 담당자가 둘 중 하나로 처리
-       1) 일정 조정 — 발송일·시간대를 정해 확정
+       1) 일정 변경 — 발송일·시간대를 정해 확정
        2) 신청 취소 — 사유 필수
 
    ── 확정 ──
@@ -2064,12 +2364,12 @@ function cancelModal(no,ask){
       ${hrow('부서 · 마케터',`${r.team} ${r.mk}`)}
       ${hrow('신청 시각',fmtReq(r.reqAt))}
       ${r.status==='취소'&&r.admNote?hrow('취소 사유',r.admNote):''}
-      ${r.moved?hrow('일정 조정',`${r.moved.from} → ${r.moved.to}`):''}
+      ${r.moved?hrow('일정 변경',`${r.moved.from} → ${r.moved.to}`):''}
       ${r.reason?hrow('사유',r.reason+(r.note?` — ${r.note}`:'')):''}
     </div>
     <div class="m-act">
-      <button class="pill ghost" id="cNo">${ask?'돌아가기':'닫기'}</button>
-      ${ok&&!ask?`<button class="pill ghost" id="cEdit">수정하기</button>`:''}
+      <button class="pill quiet" id="cNo">${ask?'돌아가기':'닫기'}</button>
+      ${ok&&!ask?`<button class="pill neutral" id="cEdit">수정하기</button>`:''}
       ${ok?`<button class="pill danger" id="cYes">신청 취소</button>`:''}
     </div></div></div>`;
   if(ok) $('cYes').onclick=()=>{
@@ -2099,7 +2399,7 @@ function confirmModal(ask){
       :'발송 시간대는 확정 후 배정됩니다.'}</div>
     <div class="herocard">
       ${hrow('캠페인명',draft.camp)}
-      ${hrow('부서 · 마케터',`${draft.dept} · ${draft.mk}`)}
+      ${hrow('부서 · 마케터',`${ME.team} · ${ME.mk}`)}
       ${(()=>{const f=draft.date, n=draft.days||1;
         return hrow('발송일',rep0?`${fmtD(f)} ~ ${fmtD(addDays(f,n-1))} 매일`:fmtD(f))
              + hrow(rep0?'발송 기간':'노출 기간',`${fmtD(f)} ~ ${fmtD(addDays(f,n-1))} · ${n}일`)})()}
@@ -2111,7 +2411,7 @@ function confirmModal(ask){
       ${ask?hrow('조정 요청 사유',draft.note):''}
     </div>
     <div class="m-act">
-      <button class="pill ghost" id="mNo">수정하기</button>
+      <button class="pill neutral" id="mNo">수정하기</button>
       <button class="pill primary" id="mYes">${
         ask?'조정 요청하기':draft.editNo!=null?'수정 완료':'신청하기'}</button>
     </div></div></div>`;
@@ -2122,7 +2422,9 @@ function confirmModal(ask){
        노출 기간의 길이는 마케터가 입력한 그대로 유지하고, 기간을 통째로 옮긴다. */
     const from=draft.date, to=addDays(from,(draft.days||1)-1);
     const body={camp:draft.camp,from,to,ch:[...draft.ch],gnb:draft.gnb,
-      cycle:draft.cycle,offer:draft.offer,qty:draft.qty,team:draft.dept,mk:draft.mk,
+      /* 신청자는 로그인한 사람이다. 화면 입력에서 받지 않는다 —
+         받으면 신청 건이 남의 것이 되어 본인 화면에서 사라진다 (0802 UT) */
+      cycle:draft.cycle,offer:draft.offer,qty:draft.qty,team:ME.team,mk:ME.mk,
       date:from, hour:null,            /* 시간대는 담당자가 확정하며 배정한다 */
       status:ask?'조정 필요':'신청', adjBy:ask?'mkt':null,
       reason:ask?why:'', note:ask?draft.note.trim():'', admNote:'',
@@ -2135,18 +2437,51 @@ function confirmModal(ask){
              : ask ? `조정 요청되었습니다 — ${fmtD(from)}`
                    : `신청되었습니다 — ${fmtD(from)}`, !!ask);
     /* 제출 뒤에는 조회 상태를 접는다 — 그대로 켜져 있으면 안 된 걸로 오인된다 */
-    draft=EMPTY_DRAFT(); form=EMPTY_FORM(); found=false;
+    draft=EMPTY_DRAFT(); form=EMPTY_FORM(); found=false; calPick=null;
     scope='mine'; render();
   };
+}
+
+/* 팝오버 바깥 클릭 — 이름을 가진 함수라야 렌더마다 중복 등록되지 않고 떼어 낼 수 있다 */
+function closeRange(){
+  if(!rangeOpen) return;
+  rangeOpen=false;
+  if(role==='mkt'&&tab==='apply'){ $('page').innerHTML=renderApply(); bindApply() }
 }
 
 /* ── 캠페인 신청 탭 이벤트 바인딩 ── */
 function bindApply(){
   const re=()=>{$('page').innerHTML=renderApply();bindApply()};
-  $('fFrom').onchange=e=>{form.qFrom=e.target.value;
-    if(form.qTo<form.qFrom)form.qTo=form.qFrom; re()};
-  $('fTo').onchange=e=>{form.qTo=e.target.value;
-    if(form.qTo<form.qFrom)form.qFrom=form.qTo; re()};
+  /* 조회 기간 — 트리거를 누르면 팝오버가 열리고, '적용'을 눌러야 form 에 반영된다.
+     고르는 동안 결과가 따라 바뀌면 오해를 부르기 때문이다 (0801 피드백과 같은 이유) */
+  const rt=$('rangeTrig');
+  if(rt) rt.onclick=e=>{e.stopPropagation(); rangeOpen=!rangeOpen;
+    if(rangeOpen){ rangeDraft={from:form.qFrom,to:form.qTo,picking:'from'};
+                   rangeMonth=(form.qFrom||TODAY).slice(0,7) }
+    re()};
+  const rp=$('rangePop');
+  if(rp){
+    rp.onclick=e=>e.stopPropagation();
+    rp.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{
+      if(x.dataset.rm){rangeMonth=x.dataset.rm; re()}});
+    rp.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>{
+      rangeDraft.picking=x.dataset.pick; re()});
+    rp.querySelectorAll('[data-rd]').forEach(x=>x.onclick=()=>{
+      const d=x.dataset.rd, {from,picking}=rangeDraft;
+      /* 종료를 고르는 중이고 시작보다 뒤면 기간이 닫힌다. 그 밖에는 새 시작으로 본다 */
+      if(picking==='to'&&from&&d>=from){ rangeDraft.to=d; rangeDraft.picking='from' }
+      else { rangeDraft.from=d; rangeDraft.to=''; rangeDraft.picking='to' }
+      re()});
+    $('rangePre').onchange=e=>{
+      const r=presetRange(e.target.value);
+      if(r){ rangeDraft={from:r[0],to:r[1],picking:'from'}; rangeMonth=r[0].slice(0,7) }
+      re()};
+    $('rangeOk').onclick=()=>{
+      form.qFrom=rangeDraft.from; form.qTo=rangeDraft.to; rangeOpen=false; re()};
+  }
+  /* 바깥을 누르면 적용하지 않고 닫는다. 렌더마다 다시 붙으므로 먼저 떼어 낸다 */
+  document.removeEventListener('click',closeRange);
+  document.addEventListener('click',closeRange);
   $('fDays').oninput=e=>{form.days=Math.max(0,+e.target.value||0)};
   document.querySelectorAll('[data-ch]').forEach(x=>x.onchange=()=>{
     const v=x.dataset.ch, i=form.ch.indexOf(v);
@@ -2178,14 +2513,28 @@ function bindApply(){
   document.querySelectorAll('[data-rec]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.rec;draft.hour=null;re()});
 
   document.querySelectorAll('[data-sc]').forEach(x=>x.onclick=()=>{scope=x.dataset.sc;re()});
-  document.querySelectorAll('[data-ls]').forEach(x=>x.onclick=()=>{listSt=x.dataset.ls;render()});
+  document.querySelectorAll('[data-ls]').forEach(x=>x.onclick=()=>{listSt=x.dataset.ls;listAll=false;render()});
+  const lm=$('listMore'); if(lm) lm.onclick=()=>{listAll=!listAll;render()};
   document.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>cancelModal(+x.dataset.open,false));
   document.querySelectorAll('[data-cancel]').forEach(x=>x.onclick=e=>{
     e.stopPropagation(); cancelModal(+x.dataset.cancel,true)});
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
     if(x.dataset.km) {kpiMonth=x.dataset.km; re()}});
   document.querySelectorAll('[data-panel]').forEach(x=>x.onclick=()=>{
-    openPanel=openPanel===x.dataset.panel?null:x.dataset.panel; re()});
+    openPanel=openPanel===x.dataset.panel?null:x.dataset.panel;
+    panelPins=new Set();
+    if(openPanel){
+      const p=PANELS[openPanel];
+      if(p){
+        const mine=requests.filter(r=>r.mk===ME.mk&&r.team===ME.team
+          &&reqMonth(r)===kpiMonth&&p.st.includes(r.status));
+        /* ① 지금 무엇이 새것인지 찍어 두고  ② '봤다'로 바꾼다.
+           이번 화면에는 강조가 남고, 다음에 열면 원래 순서로 돌아간다 */
+        panelPins=new Set(mine.filter(r=>r.moved&&r.seen===false).map(r=>r.no));
+        mine.forEach(r=>r.seen=true);
+      }
+    }
+    re()});
   document.querySelectorAll('[data-move]').forEach(x=>x.onclick=()=>editReq(+x.dataset.move));
   const ce=$('cancelEdit'); if(ce) ce.onclick=()=>{
     draft.editNo=null; draft.camp=''; draft.note=''; draft.date=null; draft.hour=null;
@@ -2194,8 +2543,7 @@ function bindApply(){
   const cf=$('fCamp');
   if(cf){
     cf.oninput=e=>draft.camp=e.target.value;
-    $('fDept').oninput=e=>draft.dept=e.target.value;
-    $('fMk').oninput=e=>draft.mk=e.target.value;
+    /* 부서·마케터는 읽기 전용이라 입력 핸들러가 없다 — 값은 항상 ME 다 */
     const nt=$('fNote'); if(nt) nt.oninput=e=>draft.note=e.target.value;
     const sb=$('submitBtn');
     if(sb) sb.onclick=()=>{
@@ -2215,7 +2563,7 @@ function bindApply(){
 /* ══════════════════════════════════════════════════════════════════════
    페이지 2 — 캘린더
    ══════════════════════════════════════════════════════════════════════ */
-const MONTHS=['2026-07','2026-08','2026-09'];
+const MONTHS=['2026-06','2026-07','2026-08','2026-09'];
 const monthDayList=m=>ALL.filter(x=>x.d.slice(0,7)===m).map(x=>x.d);
 function monthDays(m){
   const [y,mm]=m.split('-').map(Number);
@@ -2280,7 +2628,6 @@ function renderCal(){
         <button class="arw" id="pm" ${mi<=0?'disabled':''}>‹</button>
         <span class="lab">${calMonth.replace('-','. ')}</span>
         <button class="arw" id="nm" ${mi>=MONTHS.length-1?'disabled':''}>›</button>
-        <button class="chip sm" id="todayBtn">오늘</button>
       </div>
       <div class="filters">
         <span class="fl">표시</span>
@@ -2325,6 +2672,14 @@ function calCell(c,idx,rows,lanes){
   return `<div class="ccell${c.out?' out':''}${o&&o.dow===0?' sun':''}${c.d===TODAY?' today':''}"
       ${c.out?'':`data-cd="${c.d}"`}>
     <div class="cd">${+c.d.slice(8)}</div>
+    ${c.out?'':(()=>{
+      /* 마케터가 묻는 것은 '여기 넣을 수 있나' 하나다. 그 답은 잔여다.
+         추천 카드·날짜 칸·일자 상세가 모두 잔여를 보여 주는데 월간 캘린더만 사용량이었다.
+         값은 시스템이 판정에 쓰는 그 값(bannerRem)을 그대로 쓴다 —
+         다른 숫자를 보이면 '잔여 100만'인 날에 80만이 막히는 일이 생긴다 (2026-08-04) */
+      return `<div class="ccapline"><div class="capk">잔여 캐파</div>
+        <div class="capv">배너 <b>${man(bannerRem(c.d))}</b>만, 쿠폰 <b>${man(couponRem(c.d))}</b>만</div>
+      </div>`})()}
     ${lanes?`<div class="lanegap" style="height:${lanes*22}px"></div>`:''}
     ${show.map(e=>`<div class="ev ${e.rep?'rep':e.t}${flip}">${
         e.rep?'↻ ':e.t==='end'?'▪ ':''}${esc(e.r.camp)}
@@ -2366,7 +2721,9 @@ function chartFor(rows){
     return {c,n:rs.length,q};
   });
   const maxQ=Math.max(1,...chStat.map(s=>s.q));
-  const color={'배너':'var(--ch-banner)','TV팝업':'var(--ch-tv)','토스트팝업':'var(--ch-toast)','쿠폰':'var(--ch-coupon)'};
+  /* 막대는 전부 같은 색이다. 이 그래프가 답하는 것은 '무슨 채널인가'가 아니라
+     '얼마나 나가는가'이고, 채널 이름은 왼쪽에 글자로 이미 적혀 있다.
+     길이만으로 비교되게 두면 색이 뜻을 흐리지 않는다 (2026-08-04) */
   const [y,mm]=calMonth.split('-').map(Number), lastD=new Date(y,mm,0).getDate();
   const perDay=[...Array(lastD)].map((_,i)=>{
     const d=iso(new Date(y,mm-1,i+1));
@@ -2376,8 +2733,8 @@ function chartFor(rows){
   return `<div class="chartbox">
     <div class="cbar">
       ${chStat.map(s=>`<div class="cbrow">
-        <div class="cl"><i class="sw" style="background:${color[s.c]}"></i>${s.c}</div>
-        <div class="cbtrack"><b style="width:${s.q/maxQ*100}%;background:${color[s.c]}"></b></div>
+        <div class="cl">${s.c}</div>
+        <div class="cbtrack"><b style="width:${s.q/maxQ*100}%"></b></div>
         <div class="cn">${s.n}건 · ${man(s.q)}만</div></div>`).join('')}
     </div>
     <div class="sparkwrap">
@@ -2402,7 +2759,7 @@ function renderDay(d){
       <div class="card-hd"><div class="rule"></div>
         <div class="lbl"><span>일자 상세</span><span>${calMonth.replace('-','.')}</span></div>
         <h2><span>${fmtD(d)}</span>
-          <span class="badge">${past?'지난 날짜':`빈 시간대 ${22-taken.size}개`}</span></h2></div>
+          ${past?'<span class="badge">지난 날짜</span>':''}</h2></div>
       <div class="calnav">
         <button class="chip sm" id="backCal">‹ 월간 보기</button>
         <button class="chip sm" id="prevD">이전 날</button>
@@ -2414,13 +2771,7 @@ function renderDay(d){
         <div><div class="sv">배너 잔여</div><div class="sd">${man(bannerRem(d))}만 건</div></div>
         <div><div class="sv">쿠폰 잔여</div><div class="sd">${man(couponRem(d))}만 건</div></div>
       </div>
-      <div class="segnote">시간대별 배치 현황</div>
-      <div class="hgrid">${HOURS.map(h=>{
-        const r=onDay.find(x=>x.hour===h);
-        return `<div class="hslot ro ${r?'taken':''}">
-          <span class="hh">${h}시</span>
-          <span class="hs">${r?esc(r.camp.slice(0,6)):'비어 있음'}</span></div>`}).join('')}</div>
-      <div class="segnote" style="margin:18px 0 8px">이 날짜의 캠페인</div>
+      <div class="segnote" style="margin:4px 0 8px">이 날짜의 발송 확정 캠페인</div>
       ${onDay.length?`<div class="daylist">${onDay.map(r=>`<div class="dayrow">
           <span class="dh2 num">${hh(r.hour)}</span>
           <span class="dnm">${r.cycle==='주기성'?'↻ ':''}${esc(r.camp)}</span>
@@ -2428,11 +2779,10 @@ function renderDay(d){
             ? `주기성 · ${fmtD(r.from)}~${fmtD(r.to)}` : (r.ch.join('·')||'—')+' / '+r.offer}</span>
           <span class="dq num">${man(r.qty)}만</span>
           <span class="dw">${r.team} ${r.mk}</span>
-          <span class="st ${r.status==='신청'?'applied':r.status==='발송 완료'?'sent':'confirmed'}">${r.status}</span>
         </div>`).join('')}</div>`
         :`<div class="empty">이 날짜에 배치된 캠페인이 없습니다.</div>`}
       ${past?'':`<div class="actions">
-        <button class="pill primary" id="applyHere">이 날짜로 캠페인 신청</button></div>`}
+        <button class="pill primary" id="applyHere">이 날짜로 신청하기</button></div>`}
     </div>
   </div>`;
 }
@@ -2443,19 +2793,113 @@ function renderDay(d){
    · 조정 요청 들어온 건의 일정을 조정해서 확정
    ══════════════════════════════════════════════════════════════════════ */
 
+/* ── 오늘 처리할 일 ──
+   알림을 메일로 보내면 담당자 받은편지함에 일이 하나 더 쌓인다.
+   이미 보고 있는 화면 안에서 푼다 — 외부 연동 없이 데이터만으로 된다.
+   (기술회의 2026-08-03 · T-02)
+
+   급한 순서는 '발송일이 얼마나 가까운가'다. 상태가 아니라 시간이 기준이다.
+   지난 날짜 건은 원래 없어야 하지만(MAINTENANCE §3), 생기면 가장 먼저 보여
+   데이터가 어긋났다는 것을 담당자와 우리가 동시에 알게 한다. */
+function admAlerts(){
+  const pend=r=>['신청','조정 필요'].includes(r.status);
+  const D1=addDays(TODAY,1);
+  const rows=[
+    ['hot','지난 날짜 미처리',requests.filter(r=>pend(r)&&r.from<TODAY)],
+    ['hot','오늘 발송 · 미확정',requests.filter(r=>pend(r)&&r.from===TODAY)],
+    ['warn','내일 발송 · 미확정',requests.filter(r=>pend(r)&&r.from===D1)],
+    ['calm','조정 필요',requests.filter(r=>r.status==='조정 필요'&&r.from>D1)],
+  ].filter(([,,list])=>list.length);
+
+  if(!rows.length) return `<div class="card">
+    <div class="card-hd"><div class="rule"></div><div class="lbl"><span>오늘 처리할 일</span></div></div>
+    <div class="alnone">지금 처리할 건이 없습니다.</div></div>`;
+
+  /* 건이 많으면 이름을 다 늘어놓지 않는다 — 3개까지만 보이고 나머지는 숫자로 남긴다.
+     알림이 목록이 되면 그 자체가 또 하나의 처리 대상이 된다. */
+  const chips=list=>list.slice(0,3).map(r=>
+      `<button class="alitem" data-am="${r.no}">${esc(r.camp)} · ${fmtD(r.from)}</button>`).join('')
+    +(list.length>3?`<span class="almore">외 ${list.length-3}건</span>`:'');
+
+  return `<div class="card">
+    <div class="card-hd"><div class="rule"></div>
+      <div class="lbl"><span>오늘 처리할 일</span><span>${fmtD(TODAY)} 기준</span></div></div>
+    <div class="alerts">
+      ${rows.map(([tone,label,list])=>`<div class="alrow">
+        <span class="aldot ${tone}"></span>
+        <span class="allbl">${label}</span>
+        <span class="alcnt num">${list.length}건</span>
+        <span class="alitems">${chips(list)}</span>
+      </div>`).join('')}
+    </div></div>`;
+}
+
+/* ── 담당자 요약 네 칸의 내역 ──
+   마케터 화면과 같은 방식으로 펼친다. 다만 축이 다르다 —
+   마케터는 '내가 이 달에 넣은 것'(신청일 기준), 담당자는 '이 달에 나가는 것'(발송 시작일 기준).
+   숫자가 서로 달라 보이는 이유가 이것이다 (DECISIONS D-03 과 같은 결). */
+const ADM_PANELS={
+  wait:{st:['신청'],           ttl:'확정 대기', badge:'', act:'확정하기'},
+  adj :{st:['조정 필요'],       ttl:'조정 필요', badge:'', act:'조정하기'},
+  conf:{st:['확정','발송 완료'], ttl:'확정',     badge:'',                 act:'상세 보기'},
+  canc:{st:['취소'],           ttl:'취소',     badge:'',                 act:''},
+};
+function admStatePanel(key){
+  const p=ADM_PANELS[key]; if(!p) return '';
+  const rows=requests.filter(r=>r.from.slice(0,7)===kpiMonth&&p.st.includes(r.status))
+    .sort((a,b)=>a.reqAt<b.reqAt?1:a.reqAt>b.reqAt?-1:0);
+  if(!rows.length) return `<div class="card"><div class="empty">이 달에 ${p.ttl} 건이 없습니다.</div></div>`;
+  const chip=st=>st==='신청'?'applied':st==='조정 필요'?'needfix'
+    :st==='취소'?'cancel':st==='발송 완료'?'sent':'confirmed';
+  return `<div class="card adjcard">
+    <div class="card-hd"><div class="rule"></div>
+      <div class="lbl"><span>${p.ttl} 내역</span><span>${kpiMonth.replace('-','.')} 발송 시작</span></div>
+      <h2><span>${rows.length}건</span>
+        ${p.badge?`<span class="badge">${p.badge}</span>`:''}
+        <span class="badge">신청 최신순</span></h2></div>
+    ${rows.map(r=>`<div class="adjitem">
+      <div class="adjhd"><b>${esc(r.camp)}</b>
+        <span class="st ${chip(r.status)}">${r.status==='신청'?'확정 대기':r.status}</span>
+        <span class="adjwhen">${r.cycle==='주기성'
+          ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${hh(r.hour)}`
+          : `${fmtD(r.date)} ${hh(r.hour)}`}</span></div>
+      <div class="cfgrid">
+        ${cfRow('부서 · 마케터',`${r.team} ${r.mk}`)}
+        ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
+        ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
+        ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
+        ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+        ${cfRow('신청 시각',fmtReq(r.reqAt))}
+      </div>
+      ${r.reason?`<div class="adjwhy"><span>사유</span>${esc(r.reason)}</div>`:''}
+      ${r.note?`<div class="adjnote"><span>마케터 사유</span>${esc(r.note)}</div>`:''}
+      ${r.admNote?`<div class="adjnote"><span>담당자 사유</span>${esc(r.admNote)}</div>`:''}
+      ${p.act?`<div class="adjbtns">
+        <button class="pill primary sm" data-am="${r.no}">${p.act}</button>
+      </div>`:''}
+    </div>`).join('')}</div>`;
+}
+
 function renderManage(){
   /* 담당자 화면은 캘린더가 주인공이므로 요약도 같은 축을 쓴다 — 발송 시작일 기준.
      (마케터 화면은 '내가 이 달에 넣은 것'이라 신청일 기준으로 다르다) */
   const ofMonth=r=>r.from.slice(0,7)===kpiMonth;
   const wait=requests.filter(r=>r.status==='신청'&&ofMonth(r));
   const adj =requests.filter(r=>r.status==='조정 필요'&&ofMonth(r));
-  const conf=requests.filter(r=>r.status==='확정'&&ofMonth(r));
+  /* 발송 완료는 확정을 거쳐 나간 건이다. 따로 세면 어느 칸에도 안 들어가
+     요약과 캘린더의 숫자가 어긋난다 (7월: 요약 4건 vs 캘린더 41건) */
+  const conf=requests.filter(r=>['확정','발송 완료'].includes(r.status)&&ofMonth(r));
   const canc=requests.filter(r=>r.status==='취소'&&ofMonth(r));
   /* 지난달에 시작하는데 아직 확정 못 한 건 — 월을 넘겨 놓치지 않도록 알린다 */
   const carry=requests.filter(r=>['신청','조정 필요'].includes(r.status)&&r.from.slice(0,7)<kpiMonth);
   const mi=MONTHS.indexOf(kpiMonth);
-  const box=(k,v,hero)=>`<div class="kpi${hero?' hero':''}">
-    <div class="k">${k}</div><div class="v num">${v||'—'}</div></div>`;
+  /* 내일 나가는데 아직 확정 안 된 건 — 오늘 손대지 않으면 놓친다 (DECISIONS D-07).
+     제약이 아니라 알림으로 푼다는 원칙을 요약 칸에서 지킨다 */
+  const waitD1=wait.filter(r=>r.from===addDays(TODAY,1)).length;
+  const box=(k,v,hero,key,dot)=>`<div class="kpi${key?' clickable':''}${dot?' unseen':''}${
+      key&&openPanel===key?' open':''}" ${key?`data-panel="${key}"`:''}>
+    <div class="k">${k}${dot?`<i class="ndot" title="내일 발송 · 미확정 ${dot}건"></i>`:''}</div>
+    <div class="v num">${v||'—'}</div></div>`;
   return `<div class="wrap wide">
     <div class="kpihd">
       <button class="arw" data-km="${MONTHS[mi-1]||''}" ${mi<=0?'disabled':''}>‹</button>
@@ -2467,14 +2911,16 @@ function renderManage(){
     <div class="kpis">
       ${/* 순서는 마케터 화면과 같게 — 같은 것을 다르게 배열하면 안 된다.
             진행 흐름(대기 → 확정)을 따른다 (0802 UT) */''}
-      ${box('확정 대기',wait.length,wait.length>0)}
-      ${box('확정',conf.length)}
-      ${box('조정 필요',adj.length,adj.length>0)}
-      ${box('취소',canc.length)}
+      ${/* 네 칸은 같은 무게다. 손이 필요한 것은 알림의 빨간 점과 숫자가 말한다 */''}
+      ${box('확정 대기',wait.length,false,'wait',waitD1)}
+      ${box('확정',conf.length,false,'conf')}
+      ${box('조정 필요',adj.length,false,'adj')}
+      ${box('취소',canc.length,false,'canc')}
     </div>
+    ${openPanel?admStatePanel(openPanel):''}
     <div class="card">
       <div class="card-hd"><div class="rule"></div>
-        <div class="lbl"><span>캠페인 관리</span><span>${kpiMonth.replace('-','.')} 발송 시작</span></div></div>
+        <div class="lbl"><span>캠페인 관리</span></div></div>
       ${admCal()}
     </div>
   </div>`;
@@ -2502,18 +2948,25 @@ function admCal(){
          캐파 판정(live)에서는 조정 필요를 빼지만, 이 요약에서는 더해서 보여준다. */
       const bu=appliedOn(d,q=>q.ch.includes('배너'));
       const cu=appliedOn(d,q=>q.offer==='쿠폰');
-      /* 빨강은 '이 날 조정이 필요한 건이 있다'는 신호다 */
-      const adj=requests.filter(q=>q.status==='조정 필요'&&activeOn(d,q));
-      const bOver=adj.some(q=>q.ch.includes('배너'));
-      const cOver=adj.some(q=>q.offer==='쿠폰');
-      return `<div class="ccell${d===TODAY?' today':''}${o&&o.dow===0?' sun':''}">
+      /* 빨강은 '이 채널이 실제로 한도를 넘었다'는 신호다.
+         예전에는 '조정 필요 건이 이 채널을 쓴다'로 판정해, 배너만 넘친 날에
+         멀쩡한 쿠폰까지 빨갛게 보였다 (2026-08-04) */
+      const bOver=bu>CAPA['배너'].limit;
+      const cOver=CAPA['쿠폰'].limit!=null&&cu>CAPA['쿠폰'].limit;
+      return `<div class="ccell${d===TODAY?' today':''}${o&&o.dow===0?' sun':''}"
+          ${isPast(d)?'':`data-drop="${d}"`}>
         <div class="cd num">${+d.slice(8)}</div>
         <div class="ccap">
-          <span class="${bOver?'over':''}">배너 <b>${man(bu)}</b>/${man(CAPA['배너'].limit)}만</span>
-          <span class="${cOver?'over':''}">쿠폰 <b>${man(cu)}</b>/${man(CAPA['쿠폰'].limit)}만</span>
+          ${/* 캐파는 그 날 아무것도 안 나가도 적는다 — '0/400만'은 빈 칸이 아니라
+                '400만이 통째로 남아 있다'는 정보다. 담당자가 자리를 찾을 때 보는 첫 숫자다.
+                분수는 '남은 양'으로 읽히기 쉬워 맨 앞에 무엇을 센 값인지 적는다 (2026-08-04) */''}
+          <div class="capk">신청 캐파</div>
+          <div class="capv"><span class="${bOver?'over':''}">배너 <b>${
+            man(bu)}</b>/${man(CAPA['배너'].limit)}</span>, <span class="${
+            cOver?'over':''}">쿠폰 <b>${man(cu)}</b>/${man(CAPA['쿠폰'].limit)}만</span></div>
         </div>
         ${(()=>{const on=requests.filter(r=>live(r)&&activeOn(d,r)&&r.from!==d).length;
-          return on?`<div class="cgo">진행 중 ${on}건</div>`:''})()}
+          return on?`<div class="cgo">↻ 주기성 발송 중 ${on}건</div>`:''})()}
         ${done.map(r=>`<div class="crow ${dot(r.status)}" data-am="${r.no}"
             title="${esc(r.camp)} · ${r.status}">
           <i></i><span class="cn">${esc(r.camp)}</span>
@@ -2551,6 +3004,7 @@ function shortOf(r,span){
 /* 그 날 캐파를 쓰고 있는 다른 건들 — 하나를 옮기면 자리가 난다 */
 function moversOn(r,span,byHour){
   return requests.filter(q=>q.no!==r.no&&live(q)&&q.status!=='조정 필요'
+
       /* 옮기는 중인 건은 이미 그 날·그 시간에서 빠졌어도 목록에 남겨 둔다 */
       &&(q.no===admSwap.no||span.some(d=>activeOn(d,q)))
       &&(byHour
@@ -2559,32 +3013,105 @@ function moversOn(r,span,byHour){
     .sort((a,b)=>byHour?(swapView(a).hour-swapView(b).hour):(b.qty-a.qty));
 }
 
-function moverList(r,span,byHour){
+/* ── 빠른 일정 조정 (담당자) ──
+   조정 필요 건은 그 날 캐파가 모자란 건이다. 담당자가 날짜를 하나씩 넣어보며
+   되는 날을 찾아야 했고, 캐파가 찬 달에는 누르는 족족 막혔다.
+
+   마케터 화면의 추천을 방향만 돌려 쓴다 — recTop 은 그대로다.
+   범위는 신청일 앞뒤 3일. 마케터가 그 날을 원한 이유가 있으므로 멀리 가지 않는다.
+   바닥은 '내일' — 당일 발송은 불가능하고 D-1 이 마지노선이다 (DECISIONS D-07).
+
+   가중치에 '근접도'를 넣지 않았다. 대신 며칠 밀리는지를 화면에 적어 담당자가 고른다.
+   규칙을 하나 더 넣으면 설명할 것과 검증할 것이 같이 늘어난다. */
+function fixSuggest(r){
+  const [lo,hi]=nearWin(r.from);
+  if(clampD(lo)>clampD(hi)) return '';
+  const top=recTop(3,r,clampD(lo),clampD(hi)).filter(x=>x.d!==r.from);
+  const gap=d=>{
+    const n=rangeDays(d<r.from?d:r.from, d<r.from?r.from:d).length-1;
+    return d>r.from?`${n}일 뒤`:`${n}일 앞`;
+  };
+  return `<div class="fixrow"><span>빠른 일정 조정</span>
+    <div class="sugwrap">
+      ${top.length?`<div class="sugs">${top.map(x=>{
+        const rm=remOn(r,x.d);
+        return `<button type="button" class="sug" data-sug="${x.d}">
+          <b>${fmtD(x.d)}</b>
+          <span>${gap(x.d)}</span>
+          ${rm.length?`<span>잔여 ${rm.join(' · ')}</span>`:''}
+        </button>`}).join('')}</div>`
+      :`<div class="sugnone">신청일 앞뒤 3일 안에는 옮길 수 있는 날이 없습니다.
+          아래에서 다른 건을 옮겨 자리를 만들거나, 신청을 취소해야 합니다.</div>`}
+    </div></div>`;
+}
+
+/* 조정 요청을 '그 날 그대로' 수락하는 경로.
+   마케터가 날짜를 못 옮긴다고 한 건(대외 공지된 세일 오픈일 같은)은 이쪽이 유일한 답이다.
+
+   담당자가 머리로 하던 계산 셋을 화면이 대신한다 —
+     ① 얼마를 비워야 하나        ② 어느 걸 옮기면 충분한가      ③ 비켜 준 건은 어디로 가나
+   ①②는 여기서, ③은 swapPanel 에서 같은 recTop 으로 답한다. */
+/* 비켜 주는 건이 갈 수 있는 날.
+   범위를 데이터 끝까지 열어 뒀더니 한산한 다음 달이 점수에서 이겨,
+   8월에 400만이 비는 날을 두고 9월을 먼저 내밀었다. 점수는 '얼마나 멀리 가는가'를 보지 않는다.
+
+   확정된 건을 한 달 밖으로 밀어내는 것은 자리를 만드는 게 아니라 다른 문제를 만드는 것이다.
+   캠페인은 대개 그 달 안에서 도는 일이라 달을 넘기면 기획 자체가 어긋난다.
+   그래서 같은 달을 먼저 보고, 없을 때만 넓힌다. 가중치는 건드리지 않는다. (2026-08-04) */
+/* 날짜 추천의 창은 하나뿐이다 — 기준일 앞뒤 3일, 바닥은 '내일'.
+   조정 필요 건을 옮길 때도, 비켜 주는 확정 건이 갈 곳을 찾을 때도 같은 규칙을 쓴다.
+   화면마다 규칙이 다르면 담당자가 두 번 배워야 한다.
+
+   바닥이 오늘이 아니라 내일인 이유 — 당일 발송은 불가능하고 D-1 이 마지노선이다 (D-07).
+   창을 넓게 열면 한산한 다음 달이 점수에서 이겨, 8월에 400만이 비는데도 9월을 내민다.
+   점수는 '얼마나 멀리 가는가'를 보지 않기 때문이다. 그래서 범위로 막는다. (2026-08-04) */
+const nearWin=base=>[[addDays(TODAY,1), addDays(base,-3)].sort().pop(), addDays(base,3)];
+const swapDest=(hd,n=3)=>{
+  const [lo,hi]=nearWin(hd.from);
+  if(clampD(lo)>clampD(hi)) return [];
+  return recTop(n,hd,clampD(lo),clampD(hi)).filter(x=>x.d!==hd.from);
+};
+const dayGap=(base,d)=>{
+  const n=rangeDays(d<base?d:base, d<base?base:d).length-1;
+  return n===0?'같은 날':(d>base?`${n}일 뒤`:`${n}일 앞`);
+};
+
+function moverList(r,span,byHour,rSel){
   const ms=moversOn(r,span,byHour);
   if(!ms.length) return '';
+  /* 어느 건을 옮길지는 시스템이 판정하지 않는다.
+     실무에서는 조정 필요 건이 나오면 당사자들과 이야기한 뒤 담당자가 결정한다.
+     화면은 후보와 수량만 늘어놓고, 판단은 사람이 한다 (2026-08-04) */
+  const sorted=ms;
   return `<div class="movers">
     <div class="mvhd">확정 건 일정 변경</div>
-    ${ms.map(q=>`<div class="mv${admSwap.no===q.no?' on':''}">
+    ${sorted.map(q=>`<div class="mv${admSwap.no===q.no?' on':''}">
       <span class="mvn">${esc(q.camp)}</span>
+      <span class="mvcy${q.cycle==='주기성'?' rep':''}">${q.cycle}</span>
       <span class="mvq num">${man(q.qty)}만</span>
       <span class="mvt num">${hh(swapView(q).hour)}</span>
-      <button class="pill ghost sm" data-swapon="${q.no}">일정 조정</button>
-    </div>${admSwap.no===q.no?swapPanel(r,q,span):''}`).join('')}</div>`;
+      ${/* 이미 고른 건은 다시 누를 일이 없다 — 테두리형으로 두면 아직 고를 수 있어 보인다.
+            되돌리는 자리는 아래 패널의 '되돌리기'다 */''}
+      <button class="pill ${admSwap.no===q.no?'picked':'ghost'} sm"
+        ${admSwap.no===q.no?'disabled':`data-swapon="${q.no}"`}>일정 변경</button>
+    </div>${admSwap.no===q.no?swapPanel(r,q,span,rSel):''}`).join('')}</div>`;
 }
 
 /* 비켜 줄 건의 새 자리 — 여기서 고르면 캐파 계산이 바로 옮긴 결과로 바뀐다 */
-function swapPanel(r,hd,rSpan){
+function swapPanel(r,hd,rSpan,rSel){
   const rep=hd.cycle==='주기성', hours=rep?REC_HOURS:HOURS;
   const n=rangeDays(hd.from,hd.to).length||1;
   const to=admSwap.from||hd.from;
-  const hSpan=rangeDays(to,addDays(to,n-1));
+  const swTo=admSwap.to||addDays(to,n-1);
+  const swLen=rangeDays(to,swTo).length||1;
+  const hSpan=rangeDays(to,swTo);
   const sel=admSwap.hour!=null?admSwap.hour:(hd.hour??hours[0]);
   /* 옮길 자리의 시간대 현황 — 자기 자신과 조정 요청 건은 빼고 센다 */
   const hAt={};
   hours.forEach(h=>hAt[h]=hSpan.reduce((n,d)=>n+requests.filter(q=>
     inScope(q)&&q.no!==hd.no&&activeOn(d,q)&&swapView(q).hour===h&&slotClash(hd,q)).length,0));
   /* 날짜를 옮겨도, 시간만 옮겨도 자리가 난다 — 17~19시가 다 찬 경우는 시간만 바꾸면 된다 */
-  const moved=to!==hd.from, movedH=admSwap.hour!=null&&admSwap.hour!==hd.hour;
+  const moved=to!==hd.from||swTo!==hd.to, movedH=admSwap.hour!=null&&admSwap.hour!==hd.hour;
   const changed=moved||movedH;
   /* 옮길 자리가 이 건을 받아낼 수 있나 (swapView 가 이미 옮긴 것으로 세고 있다) */
   const badTo=hSpan.some(d=>(hd.ch.includes('배너')&&bannerRem(d)<0)
@@ -2592,14 +3119,23 @@ function swapPanel(r,hd,rSpan){
   /* 옮기고 나면 조정 요청 건이 들어가나 */
   const fits=!rSpan.some(d=>(r.ch.includes('배너')&&bannerRem(d)<r.qty)
                           ||(r.offer==='쿠폰'&&couponRem(d)<r.qty));
+  /* 비켜 주는 건이 갈 곳도 같은 규칙으로 고른다. 범위는 지금 자리 앞뒤 7일 —
+     조정 요청 건보다 넉넉히 잡는다. 이 건은 '원해서' 그 날인 게 아니기 때문이다 */
+  const sTop=swapDest(hd).filter(x=>x.d!==to);
   return `<div class="swap">
-    <div class="fixrow"><span>옮길 기간</span>
+    ${sTop.length?`<div class="fixrow"><span>빠른 일정 조정</span>
+      <div class="sugwrap"><div class="sugs">${sTop.map(x=>`
+        <button type="button" class="sug sm" data-swapto="${x.d}">
+          <b>${fmtD(x.d)}</b><span>${dayGap(hd.from,x.d)}</span>
+          <span>잔여 ${remOn(hd,x.d).join(' · ')||'여유 있음'}</span>
+        </button>`).join('')}</div></div></div>`:''}
+    <div class="fixrow"><span>발송 일정 변경</span>
       <div class="fdates">
-        <input type="date" id="swFrom" value="${to}" min="${TODAY}" max="2026-09-30">
-        <span class="tl">~ <b>${fmtD(addDays(to,n-1))}</b> · ${n}일${rep?' 매일 발송':''}</span>
-        ${moved?`<span class="tl moved">지금은 ${fmtD(hd.from)} ~ ${fmtD(hd.to)}</span>`:''}
+        ${rangeField('sw',to,swTo,swLen)}
+        ${rep?`<span class="tl">매일 발송</span>`:''}
+        ${moved?`<span class="tl moved">기존 일정 ${fmtD(hd.from)} ~ ${fmtD(hd.to)}</span>`:''}
       </div></div>
-    <div class="fixrow"><span>${capLabel(hd)}</span>${gaugeRow(hSpan[0],hd,0,'')}</div>
+    <div class="fixrow"><span>${capLabel(hd)}</span>${gaugeRow(hSpan[0],hd,hd.qty,'선택건',hd)}</div>
     <div class="fixrow"><span>시간대</span>
       <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
         `<div class="hslot ${hAt[h]?'busy':''}${h===sel?' on':''}" data-swh="${h}">
@@ -2608,11 +3144,14 @@ function swapPanel(r,hd,rSpan){
     ${badTo?`<div class="blockbox"><b>옮길 날짜도 캐파를 넘습니다</b>
       <div>다른 날짜를 골라 주세요.</div></div>`:''}
     <div class="adjbtns">
+      ${/* 조정 요청 건의 시간대까지 정해져야 확정할 수 있다 —
+            안 고르고 확정하면 첫 칸(새벽 1시)으로 들어간다 (2026-08-04) */''}
       <button class="pill primary sm" data-swapok="${hd.no}"
-        ${changed&&!badTo&&fits?'':'disabled'}>두 건 함께 확정</button>
+        ${changed&&!badTo&&fits&&rSel!=null?'':'disabled'}>두 건 함께 확정</button>
       <button class="pill ghost sm" data-swapno="1">되돌리기</button>
       ${!changed?`<span class="note">옮길 날짜나 시간을 골라 주세요.</span>`
-        :fits?'':`<span class="note">아직 자리가 모자랍니다.</span>`}
+        :!fits?`<span class="note">아직 자리가 모자랍니다.</span>`
+        :rSel==null?`<span class="note">${esc(r.camp)}의 시간대를 골라 주세요.</span>`:''}
     </div></div>`;
 }
 
@@ -2621,21 +3160,64 @@ function swapPanel(r,hd,rSpan){
      확정 대기 · 조정 필요 → 발송일·시간대를 정해 확정 (필요하면 신청 취소)
      확정                  → 일정만 다시 조정
    신청한 날과 달라지면 moved 에 남겨 마케터가 바뀐 것을 알 수 있게 한다. */
+/* 발송 기간 변경 — 시작과 끝을 한 컨트롤에서 고른다.
+   위 카드에 신청 기간·신청 발송일이 이미 있으므로, 여기는 '바꾸는 자리'다 */
+function rangePopAdm(key){
+  const {from,to,picking}=dpRange;
+  const cells=monthDays(dpMonth), mi=MONTHS.indexOf(dpMonth);
+  const wks=[]; for(let i=0;i<cells.length;i+=7) wks.push(cells.slice(i,i+7));
+  const off=d=>d<DMIN||d>DMAX||d<TODAY;
+  const cls=d=>[from&&to&&d>from&&d<to?'inr':'', d===from?'edge f':'',
+                d===to?'edge t':'', off(d)?'off':''].filter(Boolean).join(' ');
+  return `<div class="dpop wide" data-arpanel="${key}">
+    <div class="rpnav">
+      <button type="button" class="arw" data-arm="${MONTHS[mi-1]||''}" ${mi<=0?'disabled':''}>\u2039</button>
+      <span class="rpm num">${dpMonth.replace('-','. ')}</span>
+      <button type="button" class="arw" data-arm="${MONTHS[mi+1]||''}" ${mi>=MONTHS.length-1?'disabled':''}>\u203a</button>
+    </div>
+    <div class="rphd">${WD.map((w,i)=>`<span${i===0?' class="sun"':''}>${w}</span>`).join('')}</div>
+    ${wks.map(wk=>`<div class="rprow">${wk.map(c=>c.out
+      ? `<span class="rd out"></span>`
+      : `<button type="button" class="rd ${cls(c.d)}" data-arr="${c.d}"${
+          off(c.d)?' disabled':''}>${+c.d.slice(8)}</button>`).join('')}</div>`).join('')}
+    <div class="arfoot">
+      <button type="button" class="rpf${picking==='from'?' on':''}" data-apick="from">
+        <span class="rpk">시작</span><span class="rpv${from?'':' ph'}">${from?fmtD(from):'선택'}</span></button>
+      <button type="button" class="rpf${picking==='to'?' on':''}" data-apick="to">
+        <span class="rpk">종료</span><span class="rpv${to?'':' ph'}">${to?fmtD(to):'선택'}</span></button>
+      <button type="button" class="pill primary sm" id="arOk"${from&&to?'':' disabled'}>적용</button>
+    </div></div>`;
+}
+const rangeField=(key,a,b,n)=>`<span class="dpwrap">
+  <button type="button" class="rangetrig dpt${dpOpen===key?' on':''}" data-dptrig="${key}">
+    <svg class="rti" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="2.5" width="12" height="10.5" rx="1.5"/><path d="M1 6h12M4.5 1v3M9.5 1v3"/></svg>
+    <span class="rtv">${fmtD(a)} ~ ${fmtD(b)} · ${n}일</span><span class="rtc">\u25be</span>
+  </button>
+  ${dpOpen===key?rangePopAdm(key):''}</span>`;
+
 function admModal(no,st){
+
+
   const r=requests.find(q=>q.no===no); if(!r) return;
   if(r.status==='취소'||r.status==='발송 완료') return cancelModal(no,false);
   admFix.no=no;                       /* 이 건은 잔여 계산에서 뺀다 */
   const rep=r.cycle==='주기성', hours=rep?REC_HOURS:HOURS;
   const len=rangeDays(r.from,r.to).length||1;
   const s=st||{from:r.from,hour:r.hour,ask:false,why:''};
-  const span=rep?rangeDays(s.from,addDays(s.from,len-1)):[s.from];
+  /* 담당자가 바꾸는 중인 값 — 기록된 값(len)과 구분한다 */
+  const wTo=s.to||addDays(s.from,len-1);
+  const wLen=rangeDays(s.from,wTo).length||1;
+  const span=rep?rangeDays(s.from,wTo):[s.from];
   /* 같은 시각에 같은 채널로 이미 배정된 건수 — 잠그지 않고 참고로만 보여준다.
      시스템이 막는 제약은 일 캐파 하나뿐이다 (0730 담당자 확인) */
   const at={};
   hours.forEach(h=>at[h]=span.reduce((n,d)=>n+requests.filter(q=>
     inScope(q)&&activeOn(d,q)&&swapView(q).hour===h&&slotClash(r,q)).length,0));
-  const sel=s.hour!=null?s.hour:(r.hour??hours[0]);
-  const moved=s.from!==r.from;
+  /* 시간대는 기본값을 두지 않는다. 첫 칸(1시)이 미리 잡혀 있으면
+     담당자가 고르지 않아도 새벽 1시로 확정돼, '퇴근 후 저녁' 기준과 어긋난다 (D-07).
+     고르기 전에는 확정 버튼도 눌리지 않는다 (2026-08-04) */
+  const sel=s.hour!=null?s.hour:(r.hour??null);
+  const moved=s.from!==r.from||wTo!==r.to;
   /* 자기 자신을 뺀 잔여로 본다 — 이 건을 그 날에 넣을 수 있나 */
   const overCap=span.some(d=>(r.ch.includes('배너')&&bannerRem(d)<r.qty)
                            ||(r.offer==='쿠폰'&&couponRem(d)<r.qty));
@@ -2643,6 +3225,10 @@ function admModal(no,st){
   /* 확정 건은 요약만 보여준다. 이미 자리를 잡은 건이라 캐파·시간대를 늘어놓을 이유가 없고,
      여는 이유는 대개 조정 요청 건에 자리를 내주려는 것이다 — 그때 '수정하기'로 펼친다. */
   const edit=!done||!!s.edit;
+  /* 확정 대기는 캐파를 통과해 들어온 건이라 날짜를 바꿀 이유가 없다.
+     담당자가 할 일은 시간대 배정과 확정뿐이고, 날짜를 바꾸는 것은 '일정 변경'이라
+     성격이 다르다 (D-05). 조정 필요 건과 이미 확정된 건만 날짜를 연다. (2026-08-04) */
+  const canMove=r.status!=='신청';
   /* 자리를 비켜 줄 건을 고르는 중이면 목록을 열어 두고, 단독 확정은 막는다 */
   const swapOn=admSwap.no!=null&&requests.some(q=>q.no===admSwap.no);
   /* 주기성은 17~19시에서만 배정한다. 세 칸이 다 차 있으면 담당자가 한 건을 옮길 수 있게 한다.
@@ -2664,10 +3250,12 @@ function admModal(no,st){
           placeholder="예: 마케터와 협의해 이번 건은 진행하지 않기로 했습니다">${esc(s.why)}</textarea>
       </div>
       <div class="m-act">
-        <button class="pill ghost" id="amBack">돌아가기</button>
+        <button class="pill quiet" id="amBack">돌아가기</button>
         <button class="pill danger" id="amCancelOk">신청 취소</button>
       </div></div></div>`, bindAm(no,s);
 
+  /* 다시 그리기 전에 스크롤 위치를 챙겨 뒀다가 되돌린다 */
+  const _sc=(()=>{const b=document.querySelector('#modalSlot .box'); return b?b.scrollTop:0})();
   $('modalSlot').innerHTML=`<div class="modal"><div class="box wide">
     <h3>${esc(r.camp)}</h3>
     <div class="m-sub">${r.team} ${r.mk} · 신청 ${fmtReq(r.reqAt)}
@@ -2684,84 +3272,136 @@ function admModal(no,st){
       ${r.reason?hrow('조정 요청',r.reason):''}
     </div>
     ${edit?`
-    <div class="fixrow" style="margin-top:14px"><span>발송 기간</span>
+    ${/* 날짜를 바꿀 수 없는 건(확정 대기)은 이 줄을 적지 않는다 —
+          위 「신청 기간」·「신청 발송일」과 같은 값을 세 번째로 반복할 뿐이다 (2026-08-04) */''}
+    ${canMove?`<div class="fixrow" style="margin-top:14px"><span>발송 일정 변경</span>
       <div class="fdates">
-        <input type="date" id="amFrom" value="${s.from}" min="${TODAY}" max="2026-09-30">
-        <span class="tl">~ <b>${fmtD(addDays(s.from,len-1))}</b> · ${len}일${
-          rep?' 매일 발송':''}</span>
-        ${moved?`<span class="tl moved">신청은 ${fmtD(r.from)} ~ ${fmtD(r.to)}</span>`:''}
-      </div></div>
-    <div class="fixrow"><span>${capLabel(r)}</span>${gaugeRow(span[0],r,r.qty,'이 건')}</div>
-    ${overCap?shortOf(r,span).map(g=>
-      `<div class="capover">${g.ch} 캐파 ${man(g.amt)}만 초과${
-        span.length>1?` · ${fmtD(g.d)}`:''}</div>`).join(''):''}
+        ${rangeField('am',s.from,wTo,wLen)}
+        ${rep?`<span class="tl">매일 발송</span>`:''}
+      </div></div>`:''}
+    ${/* 초과 사유는 '캐파' 라벨 바로 아래에 붙인다 — 무엇에 대한 이야기인지가
+          라벨로 이미 정해져 있어 따로 블록을 세울 필요가 없다.
+          라벨이 '캐파'라 사유에서 그 단어를 다시 적지 않는다 (2026-08-04) */''}
+    <div class="fixrow"><span>${capLabel(r)}${overCap?shortOf(r,span).map(g=>
+      `<em class="capnote">${g.ch} ${man(g.amt)}만 초과${
+        span.length>1?`<br>${fmtD(g.d)}`:''}</em>`).join(''):''}</span>${
+      gaugeRow(span[0],r,r.qty,'신청건')}</div>
+    ${overCap?fixSuggest(r):''}
+    ${/* 캐파를 넘긴 상태에서는 시간대를 고를 수 없다 — 골라도 확정이 안 된다.
+          눌러도 아무 일이 안 일어나는 컨트롤은 고장으로 읽힌다.
+          자리가 나면(날짜를 옮기거나 다른 건을 비켜 주면) 바로 살아난다 (2026-08-04) */''}
     <div class="fixrow"><span>시간대</span>
-      <div class="hgrid ${rep?'rec3':'adm'}">${hours.map(h=>
-        `<div class="hslot ${at[h]?'busy':''}${h===sel?' on':''}" data-amh="${h}">
+      <div class="hgrid ${rep?'rec3':'adm'}${overCap?' locked':''}">${hours.map(h=>
+        `<div class="hslot ${overCap?'ro ':''}${at[h]?'busy':''}${h===sel?' on':''}"${
+          overCap?'':` data-amh="${h}"`}>
           <span class="hh">${h}시</span>
-          <span class="hs">${h===sel?`선택`:at[h]?`${at[h]}건`:`가능`}</span></div>`).join('')}</div>
+          <span class="hs">${overCap?(at[h]?`${at[h]}건`:'—'):(h===sel?`선택`:at[h]?`${at[h]}건`:`가능`)}</span></div>`).join('')}</div>
     </div>
     ${rep?`<div class="segnote">주기성은 17~19시 중에서 배정합니다.</div>`:''}
     ${hourJam?`<div class="segnote">17~19시가 모두 차 있습니다.</div>`:''}
-    ${overCap||hourJam||swapOn?moverList(r,span,hourJam):''}`:''}
+    ${overCap||hourJam||swapOn?moverList(r,span,hourJam,sel):''}`:''}
     <div class="m-act">
-      <button class="pill ghost" id="amNo">닫기</button>
+      <button class="pill quiet" id="amNo">닫기</button>
       ${/* 확정 전(확정 대기·조정 필요)은 바로, 확정 건은 '수정하기'를 거친 뒤에만 —
             이미 마케터에게 확정을 알린 건이라 한 단계를 더 둔다 */
         ['신청','조정 필요'].includes(r.status)||(done&&edit)
         ?`<button class="pill danger" id="amCancel">신청 취소</button>`:''}
       ${done&&!edit
         ?`<button class="pill primary" id="amEdit">수정하기</button>`
-        :`<button class="pill primary" id="amOk" ${overCap||swapOn?'disabled':''}>${
-            done?'일정 조정':moved?'일정을 조정해 확정':'확정'}</button>`}
+        :`<button class="pill primary" id="amOk" ${overCap||swapOn||sel==null?'disabled':''}>${
+            done?'일정 변경':'확정'}</button>`}
     </div></div></div>`;
+  (()=>{const b=document.querySelector('#modalSlot .box'); if(b&&_sc) b.scrollTop=_sc})();
   bindAm(no,s);
 }
 
 function bindAm(no,s){
   const r=requests.find(q=>q.no===no);
   const rep=r.cycle==='주기성', len=rangeDays(r.from,r.to).length||1;
-  const close=()=>{admFix.no=null; noSwap(); $('modalSlot').innerHTML=''};
+  const close=()=>{dpOpen=null;admFix.no=null; noSwap(); $('modalSlot').innerHTML=''};
   /* 옮기던 중에 바깥으로 나가면 그 선택도 함께 버린다 (close 가 noSwap 을 한다) */
   bindOverlay(close);
 
-  /* ── 선점 건 일정 조정 (0731 플로우) ── */
+  /* ── 선점 건 일정 변경 (0731 플로우) ── */
   document.querySelectorAll('[data-swapon]').forEach(x=>x.onclick=()=>{
     const hd=requests.find(q=>q.no===+x.dataset.swapon); if(!hd) return;
-    admSwap={no:hd.no,from:hd.from,hour:hd.hour}; admModal(no,s)});
+    admSwap={no:hd.no,from:hd.from,to:hd.to,hour:hd.hour}; admModal(no,s)});
   document.querySelectorAll('[data-swh]').forEach(x=>x.onclick=()=>{
     admSwap.hour=+x.dataset.swh; admModal(no,s)});
   document.querySelectorAll('[data-swapno]').forEach(x=>x.onclick=()=>{
     noSwap(); admModal(no,s)});
-  const sf=$('swFrom'); if(sf) sf.onchange=e=>{
-    admSwap.from=e.target.value<TODAY?TODAY:e.target.value; admModal(no,s)};
 
   /* 두 건 함께 — 비켜 준 건은 확정을 유지한 채 옮기고, 조정 요청 건은 그 자리에 확정 */
   document.querySelectorAll('[data-swapok]').forEach(x=>x.onclick=()=>{
     const hd=DB.find(+x.dataset.swapok); if(!hd) return;
     const hn=rangeDays(hd.from,hd.to).length||1, hWas=`${fmtD(hd.from)} ~ ${fmtD(hd.to)}`;
-    const hf=admSwap.from, ht=addDays(admSwap.from,hn-1);
+    const hf=admSwap.from, ht=admSwap.to||addDays(admSwap.from,hn-1);
     const hp={from:hf,to:ht,date:hf,
       moved:{from:hWas,to:`${fmtD(hf)} ~ ${fmtD(ht)}`,by:'adm',peer:r.camp}};
     if(admSwap.hour!=null) hp.hour=admSwap.hour;
 
     const rWas=`${fmtD(r.from)} ~ ${fmtD(r.to)}`;
-    const rp={hour:s.hour!=null?s.hour:(r.hour??(rep?REC_HOURS[0]:HOURS[0])),
+    const rp={hour:s.hour!=null?s.hour:r.hour,
       status:'확정',reason:'',note:'',adjBy:null};
     if(s.from!==r.from){const nf=s.from, nt=addDays(s.from,len-1);
       Object.assign(rp,{from:nf,to:nt,date:nf,
         moved:{from:rWas,to:`${fmtD(nf)} ~ ${fmtD(nt)}`,by:'adm'}})}
     /* 두 건은 한 번에 반영한다 — 하나만 들어가면 그 날 캐파가 잠깐 어긋난다 */
-    DB.setMany([[hd,hp],[r,rp]]);
+    DB.setMany([[hd,{...hp,seen:false}],[r,{...rp,seen:false}]]);
     close(); toast(`두 건을 확정했습니다 — ${r.camp} · ${hd.camp} ${fmtD(hd.from)}`); render()});
   const wy=$('amWhy'); if(wy) wy.oninput=e=>s.why=e.target.value;
   const bk=$('amBack'); if(bk) bk.onclick=()=>admModal(no,{...s,ask:false});
   const ck=$('amCancelOk'); if(ck) ck.onclick=()=>{
     if(!s.why.trim()){toast('취소 사유를 입력해 주세요.',true); wy&&wy.focus(); return}
-    DB.set(r,{status:'취소',admNote:s.why.trim(),reason:'',adjBy:null});
+    DB.set(r,{status:'취소',admNote:s.why.trim(),reason:'',adjBy:null,seen:false});
     close(); toast(`신청을 취소했습니다 — ${r.camp}`,true); render()};
-  const nf=$('amFrom'); if(nf) nf.onchange=e=>
-    admModal(no,{...s,from:e.target.value<TODAY?TODAY:e.target.value});
+  /* 날짜 선택기 — 열기·달 이동·고르기. 상태를 바꾸는 경로는 기존과 같다 */
+  document.querySelectorAll('[data-dptrig]').forEach(x=>x.onclick=e=>{
+    e.stopPropagation();
+    const k=x.dataset.dptrig;
+    dpOpen=dpOpen===k?null:k;
+    if(dpOpen){
+      dpMonth=(k==='am'?s.from:(admSwap.from||r.from)).slice(0,7);
+      if(k==='am') dpRange={from:s.from,to:s.to||addDays(s.from,
+        (rangeDays(r.from,r.to).length||1)-1),picking:'from'};
+      else {
+        const hd=DB.find(admSwap.no);
+        const hf=admSwap.from||(hd&&hd.from);
+        dpRange={from:hf,to:admSwap.to||(hd?addDays(hf,(rangeDays(hd.from,hd.to).length||1)-1):hf),
+                 picking:'from'};
+      }
+    }
+    admModal(no,s)});
+  /* 범위 고르기 — 종료를 고르는 중이고 시작보다 뒤면 기간이 닫힌다 */
+  document.querySelectorAll('[data-arr]').forEach(x=>x.onclick=e=>{
+    e.stopPropagation();
+    const d=x.dataset.arr, {from,picking}=dpRange;
+    if(picking==='to'&&from&&d>=from){ dpRange.to=d; dpRange.picking='from' }
+    else { dpRange.from=d; dpRange.to=''; dpRange.picking='to' }
+    admModal(no,s)});
+  document.querySelectorAll('[data-apick]').forEach(x=>x.onclick=e=>{
+    e.stopPropagation(); dpRange.picking=x.dataset.apick; admModal(no,s)});
+  document.querySelectorAll('[data-arm]').forEach(x=>x.onclick=e=>{
+    e.stopPropagation(); if(x.dataset.arm){dpMonth=x.dataset.arm; admModal(no,s)}});
+  const _ar=$('arOk');
+  if(_ar) _ar.onclick=e=>{ e.stopPropagation();
+    const {from,to}=dpRange, where=dpOpen; dpOpen=null;
+    const f=from<TODAY?TODAY:from;
+    if(where==='sw'){ admSwap.from=f; admSwap.to=to; admModal(no,s) }
+    else admModal(no,{...s,from:f,to}) };
+  document.querySelectorAll('.dpop').forEach(x=>x.onclick=e=>e.stopPropagation());
+  document.querySelectorAll('[data-dpm]').forEach(x=>x.onclick=e=>{
+    e.stopPropagation(); if(x.dataset.dpm){dpMonth=x.dataset.dpm; admModal(no,s)}});
+  /* 팝오버 바깥을 누르면 닫는다 */
+  const _box=document.querySelector('#modalSlot .box');
+  if(_box) _box.addEventListener('click',()=>{ if(dpOpen){dpOpen=null; admModal(no,s)} });
+  /* 추천 날짜도 날짜 입력과 같은 경로를 탄다 — 상태가 한 곳에서만 바뀐다 */
+  document.querySelectorAll('[data-sug]').forEach(x=>x.onclick=()=>
+    admModal(no,{...s,from:x.dataset.sug}));
+  document.querySelectorAll('[data-swapto]').forEach(x=>x.onclick=()=>{
+    const hd=DB.find(admSwap.no), n=hd?(rangeDays(hd.from,hd.to).length||1):1;
+    admSwap.from=x.dataset.swapto; admSwap.to=addDays(x.dataset.swapto,n-1);
+    admModal(no,s)});
   document.querySelectorAll('[data-amh]').forEach(x=>x.onclick=()=>
     admModal(no,{...s,hour:+x.dataset.amh}));
   const cn=$('amCancel'); if(cn) cn.onclick=()=>admModal(no,{...s,ask:true});
@@ -2773,12 +3413,12 @@ function bindAm(no,s){
     if(sel==null){toast('시간대를 골라 주세요.',true); return}
     const was=`${fmtD(r.from)}${rep?` ~ ${fmtD(r.to)}`:''}`;
     const patch={hour:sel,status:'확정',reason:'',note:'',adjBy:null};
-    if(s.from!==r.from){
-      const nf=s.from, nt=addDays(s.from,len-1);
+    if(s.from!==r.from||wTo!==r.to){
+      const nf=s.from, nt=wTo;
       Object.assign(patch,{from:nf,to:nt,date:nf,
         moved:{from:was,to:`${fmtD(nf)}${rep?` ~ ${fmtD(nt)}`:''}`,by:'adm'}});
     }
-    DB.set(r,patch);
+    DB.set(r,{...patch,seen:false});
     close(); toast(`${fmtD(r.from)} ${hh(sel)} 로 확정했습니다 — ${r.camp}`); render()};
 }
 
@@ -2786,6 +3426,40 @@ function bindManage(){
   document.querySelectorAll('[data-km]').forEach(x=>x.onclick=()=>{
     if(x.dataset.km){kpiMonth=x.dataset.km; render()}});
   document.querySelectorAll('[data-am]').forEach(x=>x.onclick=()=>admModal(+x.dataset.am));
+  document.querySelectorAll('[data-panel]').forEach(x=>x.onclick=()=>{
+    openPanel=openPanel===x.dataset.panel?null:x.dataset.panel; render()});
+
+  /* ── 드래그로 날짜 옮기기 ──
+     클릭 경로는 그대로 둔다. 드래그는 그 위에 얹는 것이라 키보드로도 쓸 수 있다.
+     드롭이 곧 확정은 아니다 — 기존 확정 모달을 열어 캐파와 시간대를 다시 보이고,
+     담당자가 '확정'을 눌러야 반영된다. 실수로 끌었을 때 되돌릴 자리가 필요하다. */
+  document.querySelectorAll('.crow[data-am]').forEach(el=>{
+    /* 이미 나갔거나 취소된 건은 옮길 수 없다 */
+    if(el.classList.contains('sent')||el.classList.contains('canc')) return;
+    el.draggable=true;
+    el.ondragstart=e=>{
+      e.dataTransfer.setData('text/plain',el.dataset.am);
+      e.dataTransfer.effectAllowed='move';
+      el.classList.add('dragging');
+      document.body.classList.add('dnd');
+    };
+    el.ondragend=()=>{el.classList.remove('dragging'); document.body.classList.remove('dnd');
+      document.querySelectorAll('.dropon').forEach(c=>c.classList.remove('dropon'))};
+  });
+  document.querySelectorAll('[data-drop]').forEach(cell=>{
+    cell.ondragover=e=>{e.preventDefault(); e.dataTransfer.dropEffect='move';
+      cell.classList.add('dropon')};
+    cell.ondragleave=()=>cell.classList.remove('dropon');
+    cell.ondrop=e=>{
+      e.preventDefault(); cell.classList.remove('dropon');
+      document.body.classList.remove('dnd');
+      const no=+e.dataTransfer.getData('text/plain'), to=cell.dataset.drop;
+      const r=DB.find(no);
+      if(!r) return;
+      if(to===r.from){toast('같은 날짜입니다.'); return}
+      admModal(no,{from:to,edit:true});
+    };
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2803,12 +3477,14 @@ function render(){
     $('nextD').onclick=()=>{calDay=addDays(calDay,1);calMonth=calDay.slice(0,7);render()};
     const ah=$('applyHere');
     if(ah) ah.onclick=()=>{
-      draft.date=calDay; draft.hour=null;
-      if(!draft.qFrom||draft.qFrom>calDay) draft.qFrom=calDay;
-      if(!draft.qTo||draft.qTo<calDay) draft.qTo=calDay;
-      if(!draft.days) draft.days=1;
-      COND.forEach(k=>form[k]=Array.isArray(draft[k])?[...draft[k]]:draft[k]);
-      calDay=null; tab='apply'; found=true; render();
+      /* 날짜만 물려주고 조건 입력 상태로 보낸다.
+         조회 기간을 하루로 잠그면 비교할 후보가 없어 추천이 성립하지 않는다.
+         다른 화면과 같은 창(앞뒤 3일·바닥은 내일)을 열어 준다 (2026-08-04) */
+      const [lo,hi]=nearWin(calDay);
+      form=EMPTY_FORM(); draft=EMPTY_DRAFT();
+      form.qFrom=clampD(lo); form.qTo=clampD(hi);
+      calPick=calDay;
+      calDay=null; tab='apply'; found=false; render();
     };
   }
   else if(tab==='cal'){
@@ -2816,7 +3492,6 @@ function render(){
     const mi=MONTHS.indexOf(calMonth);
     $('pm').onclick=()=>{calMonth=MONTHS[mi-1];render()};
     $('nm').onclick=()=>{calMonth=MONTHS[mi+1];render()};
-    $('todayBtn').onclick=()=>{calMonth=TODAY.slice(0,7);render()};
     document.querySelectorAll('[data-cd]').forEach(x=>x.onclick=()=>{calDay=x.dataset.cd;render()});
     document.querySelectorAll('[data-m]').forEach(x=>x.onclick=()=>{calFilter.mode=x.dataset.m;render()});
     document.querySelectorAll('[data-f]').forEach(x=>x.onclick=()=>{
@@ -2830,9 +3505,9 @@ function render(){
   }
   else { $('page').innerHTML=renderManage(); bindManage(); }
 }
-$('roleMkt').onclick=()=>{role='mkt';$('roleMkt').classList.add('on');$('roleAdm').classList.remove('on');
+$('roleMkt').onclick=()=>{role='mkt';openPanel=null;$('roleMkt').classList.add('on');$('roleAdm').classList.remove('on');
   if(tab==='manage') tab='apply'; render()};
-$('roleAdm').onclick=()=>{role='adm';$('roleAdm').classList.add('on');$('roleMkt').classList.remove('on');
+$('roleAdm').onclick=()=>{role='adm';openPanel=null;$('roleAdm').classList.add('on');$('roleMkt').classList.remove('on');
   tab='manage'; render()};
 
 /* 먼저 더미로 한 번 그려서 화면이 비지 않게 하고, 서버가 있으면 받아서 다시 그린다.
