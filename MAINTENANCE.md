@@ -97,7 +97,7 @@ requests.filter(r => r.status === '조정 필요' &&
 `npm run parity` 는 `/tmp/reference.json` 과 `/tmp/campaigns.json` 을 씁니다.
 임시 폴더라 재부팅하면 사라집니다. 다시 뜨는 법:
 
-1. `prototype0802_code.html` 을 복사해 `</body>` 앞에 스크립트를 넣고
+1. 최신 스냅샷(`prototype0804_code.html`)을 복사해 `</body>` 앞에 스크립트를 넣고
    `requests` 와 날짜별 계산 결과를 `document.title` 로 내보냅니다
 2. 헤드리스 Chrome `--dump-dom` 으로 읽어 JSON 으로 저장합니다
 
@@ -118,10 +118,13 @@ requests.filter(r => r.status === '조정 필요' &&
 푸시 후 반영까지 시간이 걸립니다. 브라우저 캐시도 있으니 이렇게 확인하세요.
 
 ```bash
+# 스냅샷을 새로 뜨면 이 줄만 고칩니다 — 아래 둘이 갈라지지 않게
+F=prototype0804_code.html
+
 # 로컬과 서버 파일이 같은지
-shasum -a 256 prototype0802_code.html | cut -c1-12
+shasum -a 256 "$F" | cut -c1-12
 curl -s -H 'Cache-Control: no-cache' \
-  "https://kellyb1024.github.io/mySUNIC_team12/prototype0802_code.html?v=$RANDOM" \
+  "https://kellyb1024.github.io/mySUNIC_team12/$F?v=$RANDOM" \
   | shasum -a 256 | cut -c1-12
 ```
 
