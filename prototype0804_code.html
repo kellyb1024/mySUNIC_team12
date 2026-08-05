@@ -732,6 +732,14 @@ table.list td.adjd{color:var(--sk-orange-text);font-weight:500;position:relative
 .rec-card button:hover{background:var(--sk-orange-t10)}
 
 /* ── 리스트 ── */
+/* 내보내기는 상태 필터 줄의 오른쪽 끝에 선다 — 칩과 높이·모양을 맞춘다.
+   margin-left:auto 로 밀어 두면 칩이 몇 개든 항상 오른쪽에 붙는다 */
+.xls{display:inline-flex;align-items:center;gap:5px;margin-left:auto;
+  padding:5px 12px;font-size:11.5px;white-space:nowrap;
+  color:var(--text-muted);border:1px solid var(--border);border-radius:999px;background:#fff}
+.xls::before{content:'↓';font-family:Roboto;font-size:11px}
+.xls:hover:not(:disabled){color:var(--sk-orange-text);border-color:var(--sk-orange)}
+.xls:disabled{opacity:.4;cursor:default}
 .tabs{display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;width:max-content}
 .tabs button{padding:6px 15px;font-size:12px;color:var(--text-muted);white-space:nowrap}
 .tabs button.on{background:var(--sk-orange);color:#1F1F1F}
@@ -1542,10 +1550,16 @@ let requests=[
    지금 구현은 메모리 하나뿐이다. 로그인·실시간 연동을 붙일 때 같은 자리에
    서버 구현을 끼우면 화면 코드는 손대지 않아도 된다.
    ══════════════════════════════════════════════════════════════════════ */
-/* 서버를 쓸지 — config.js 가 없거나 비어 있으면 위 배열만으로 돈다
-   (UT·스냅샷은 항상 이 길). ?db=local 을 붙이면 값을 채워 둔 채로도 로컬로 돈다. */
+/* 서버를 쓸지 — 기본은 '안 쓴다'. ?db=remote 를 붙였을 때만 연결한다 (2026-08-05 결정).
+
+   DB 는 구축해 두되 평소에는 붙이지 않는 형태다. 이유가 둘 있다.
+     · 시연·심사에서 누가 링크를 눌러도 실제 데이터에 쌓이지 않는다.
+       지우기 정책을 만들지 않았기 때문에 한 번 들어간 건 앱에서 지울 수 없다.
+     · 사용자는 DB 를 열어 볼 일이 없다. 목록이 필요하면 내보내기로 받는다.
+
+   구축물(스키마·시드·캐파 제약)은 supabase/ 에 그대로 있다. 붙이는 순간 동작한다. */
 const SUPA=Object.assign({url:'',key:''}, window.SUPA_CONFIG||{});
-const USE_REMOTE = !!(SUPA.url && SUPA.key) && !/[?&]db=local\b/.test(location.search);
+const USE_REMOTE = !!(SUPA.url && SUPA.key) && /[?&]db=remote\b/.test(location.search);
 
 const DB=(()=>{
   const subs=[];
@@ -1793,6 +1807,238 @@ const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 
 function toast(msg,warn){const t=document.createElement('div');t.className='toast'+(warn?' warn':'');
   t.textContent=msg;$('toasts').appendChild(t);setTimeout(()=>t.remove(),3400)}
+
+/* ══════════════════════════════════════════════════════════════════════
+   엑셀 내보내기
+
+   DB 는 배관이라 사람이 열어 볼 일이 없다. 대신 지금 보고 있는 목록을
+   언제든 시트로 뽑을 수 있게 한다 — 원장은 DB, 시트는 내보내기 결과물이다.
+
+   라이브러리를 쓰지 않는다. xlsx 는 XML 몇 장을 담은 zip 이라 직접 조립한다.
+   CDN 을 하나 더 부르면 '외부 호출 0' 이 깨지고, 사내망에서 막히면 기능이 죽는다.
+   압축은 하지 않는다(stored) — 데이터가 작아서 이득이 없고 코드만 길어진다.
+   ══════════════════════════════════════════════════════════════════════ */
+const XLSX=(()=>{
+  const enc=new TextEncoder();
+  const CRC=(()=>{const t=new Uint32Array(256);
+    for(let i=0;i<256;i++){let c=i;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[i]=c>>>0}
+    return b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=t[(c^b[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0}})();
+
+  /* 압축 없는 zip. 로컬 헤더 → 파일들 → 중앙 디렉터리 → 끝 기록 */
+  function zip(files){
+    const parts=[],dir=[]; let off=0;
+    files.forEach(({name,data})=>{
+      const n=enc.encode(name), crc=CRC(data);
+      const lh=new DataView(new ArrayBuffer(30));
+      lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true);
+      lh.setUint32(14,crc,true); lh.setUint32(18,data.length,true); lh.setUint32(22,data.length,true);
+      lh.setUint16(26,n.length,true);
+      parts.push(new Uint8Array(lh.buffer),n,data);
+      const ch=new DataView(new ArrayBuffer(46));
+      ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true);
+      ch.setUint16(8,0x0800,true);
+      ch.setUint32(16,crc,true); ch.setUint32(20,data.length,true); ch.setUint32(24,data.length,true);
+      ch.setUint16(28,n.length,true); ch.setUint32(42,off,true);
+      dir.push(new Uint8Array(ch.buffer),n);
+      off+=30+n.length+data.length;
+    });
+    const dirLen=dir.reduce((s,x)=>s+x.length,0);
+    const end=new DataView(new ArrayBuffer(22));
+    end.setUint32(0,0x06054b50,true);
+    end.setUint16(8,files.length,true); end.setUint16(10,files.length,true);
+    end.setUint32(12,dirLen,true); end.setUint32(16,off,true);
+    const all=[...parts,...dir,new Uint8Array(end.buffer)];
+    const out=new Uint8Array(all.reduce((s,x)=>s+x.length,0));
+    let p=0; all.forEach(x=>{out.set(x,p); p+=x.length});
+    return out;
+  }
+
+  const X=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  const col=i=>{let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=(i-m-1)/26}return s};
+  /* 숫자로 보이는 값만 숫자 칸으로 넣는다. 나머지는 inlineStr —
+     공유 문자열 표를 만들면 코드가 배로 길어지는데 얻는 게 없다 */
+  const cell=(v,ref)=>{
+    if(v===null||v===undefined||v==='') return '';
+    if(typeof v==='number'||(/^-?\d+(\.\d+)?$/.test(v)&&String(v).length<15))
+      return `<c r="${ref}"><v>${v}</v></c>`;
+    return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${X(v)}</t></is></c>`;
+  };
+  /* 요소 순서가 정해져 있다 — sheetViews → cols → sheetData → autoFilter.
+     뒤집으면 엑셀이 '복구가 필요한 파일'이라고 뜬다. */
+  const sheetXml=(rows,widths,filter)=>{
+    /* 머리 행을 얼려 둔다. 200줄을 내려도 열 이름이 붙어 있다 */
+    const views=filter?`<sheetViews><sheetView workbookViewId="0">`
+      +`<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>`
+      +`<selection pane="bottomLeft" activeCell="A2" sqref="A2"/></sheetView></sheetViews>`:'';
+    const cols=widths?`<cols>${widths.map((w,i)=>
+      `<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols>`:'';
+    const body=rows.map((r,ri)=>`<row r="${ri+1}">${
+      r.map((v,ci)=>cell(v,col(ci)+(ri+1))).join('')}</row>`).join('');
+    const nCol=Math.max(...rows.map(r=>r.length));
+    /* 머리 행에 정렬·필터 화살표를 단다 */
+    const af=filter?`<autoFilter ref="A1:${col(nCol-1)}${rows.length}"/>`:'';
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${views}${cols}<sheetData>${body}</sheetData>${af}</worksheet>`;
+  };
+  const fltRange=s=>{
+    const n=Math.max(...s.rows.map(r=>r.length));
+    return `'${s.name.replace(/'/g,"''")}'!$A$1:$${col(n-1)}$${s.rows.length}`;
+  };
+
+  /* sheets = [{name, rows:[[...]], widths?:[..]}] */
+  return function build(sheets){
+    const R='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const files=[
+      {name:'[Content_Types].xml', data:enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}
+</Types>`)},
+      {name:'_rels/.rels', data:enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`)},
+      {name:'xl/workbook.xml', data:enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="${R}"><sheets>${
+  sheets.map((s,i)=>`<sheet name="${X(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')
+}</sheets>${(()=>{
+  /* 자동 필터가 걸린 시트는 여기에도 등록해야 엑셀이 '필터 범위'로 알아본다.
+     autoFilter 태그만 있으면 화살표는 뜨지만 정렬이 범위를 못 잡는 경우가 있다 */
+  const d=sheets.map((s,i)=>s.filter
+    ?`<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">${X(fltRange(s))}</definedName>`:'').join('');
+  return d?`<definedNames>${d}</definedNames>`:'';
+})()}</workbook>`)},
+      {name:'xl/_rels/workbook.xml.rels', data:enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${
+  sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${R}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')
+}<Relationship Id="rId${sheets.length+1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`)},
+      {name:'xl/styles.xml', data:enc.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="1"><font><sz val="11"/><name val="맑은 고딕"/></font></fonts>
+<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
+<borders count="1"><border/></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>
+</styleSheet>`)},
+    ];
+    sheets.forEach((s,i)=>files.push({name:`xl/worksheets/sheet${i+1}.xml`,
+                                      data:enc.encode(sheetXml(s.rows,s.widths,s.filter))}));
+    return new Blob([zip(files)],
+      {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  };
+})();
+
+/* 지금 화면에 걸린 필터 그대로 뽑는다. rows 는 cardList 가 이미 거른 목록이다. */
+function exportList(rows,what){
+  const pad=n=>String(n).padStart(2,'0');
+  const now=new Date();
+  const stamp=`${String(now.getFullYear()).slice(2)}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
+  const nowStr=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} `
+             + `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+  const 읽어보기=[
+    ['문서','캠페인 스케줄 관리 대시보드 — 캠페인 데이터'],
+    ['내보낸 시각',nowStr],
+    ['내보낸 범위',what],
+    ['건수',`${rows.length}건`],
+    ['기준 시각',`TODAY = ${TODAY} (앱 상수)`],
+    [],
+    ['중요','이 파일은 내려받은 시점의 사본입니다. 원본은 대시보드에 있습니다.'],
+    ['','이 파일을 고쳐도 대시보드에는 반영되지 않습니다.'],
+    [],
+    ['시트 안내',''],
+    ['  데이터 스키마','필드 20개의 타입·필수 여부·허용값·설명'],
+    ['  캠페인 데이터','내보낸 시점의 캠페인 목록'],
+    ['  상태 정의','상태 5개의 뜻과 들어오고 나가는 경로'],
+    ['  기준값','캐파·시간대·채널·오퍼·주기 등 판정 기준'],
+  ];
+
+  const 스키마=[
+    ['필드','타입','필수','허용값 / 형식','설명'],
+    ['no','정수','O','1,2,3…','캠페인 고유 번호. 저장 순서대로 부여'],
+    ['camp','문자열','O','','캠페인명'],
+    ['team','문자열','O','A팀 / B팀 / C팀','신청 부서'],
+    ['mk','문자열','O','','신청 마케터'],
+    ['reqAt','일시','O','YYYY-MM-DD HH:MM','신청 시각. 요약 4칸의 집계 기준'],
+    ['from','날짜','O','YYYY-MM-DD','캠페인 시작일. 일회성은 이 날 1회 발송'],
+    ['to','날짜','O','YYYY-MM-DD','캠페인 종료일. 일회성은 고객 노출 종료일'],
+    ['date','날짜','O','YYYY-MM-DD','발송일. 항상 from 과 같다'],
+    ['hour','정수','','1~22','발송 시각(시). 확정 전에는 비어 있다. 주기성은 17~19시만'],
+    ['cycle','문자열','O','일회성 / 주기성','일회성=시작일 1회, 주기성=기간 내내 매일'],
+    ['ch','배열','O','배너 / TV팝업 / 토스트팝업','발송 채널. 복수 선택 가능'],
+    ['gnb','문자열','','홈 / 영화 홈 …','노출 지면. 시간대 충돌 판정에는 쓰지 않는다'],
+    ['offer','문자열','O','쿠폰 / 없음','오퍼 종류. 쿠폰은 별도 일 캐파를 소진'],
+    ['qty','정수','O','단위: 만 건','일회성=전체 타겟수 / 주기성=1일 타겟수'],
+    ['status','문자열','O','신청 / 조정 필요 / 확정 / 취소 / 발송 완료',"화면에서 '신청'은 '확정 대기'로 표시"],
+    ['adjBy','문자열','','mkt / adm','조정 필요 진입 경로. mkt=마케터 요청, adm=담당자가 넘김'],
+    ['reason','문자열','','','조정 사유. 화면에서는 볼 때마다 다시 계산한다'],
+    ['note','문자열','','','마케터가 적은 사유'],
+    ['admNote','문자열','','','담당자 취소 사유'],
+    ['memo','문자열','','','메모'],
+  ];
+
+  const HEAD=['no','camp','team','mk','reqAt','from','to','date','hour','cycle','ch','gnb',
+              'offer','qty','status','adjBy','reason','note','admNote','memo'];
+  const 데이터=[HEAD,...rows.map(r=>[
+    r.no, r.camp, r.team, r.mk, r.reqAt, r.from, r.to, r.date,
+    (r.hour===null||r.hour===undefined)?'':r.hour,
+    r.cycle, (r.ch||[]).join(', '), r.gnb||'', r.offer, r.qty, r.status,
+    r.adjBy||'', liveReason(r), r.note||'', r.admNote||'', r.memo||''])];
+
+  const 상태=[
+    ['상태','화면 표기','뜻','들어오는 경로','나가는 경로'],
+    ['신청','확정 대기','캐파 안에서 신청된 캠페인. 담당자의 확정을 기다린다. 자리를 차지한다.',
+     '마케터 신청 (캐파 여유 있음)','담당자 확정 → 확정 / 담당자가 조정 필요로 넘김 / 마케터 취소'],
+    ['조정 필요','조정 필요','캐파가 모자라거나 협의가 필요한 상태. 캐파를 넘길 수 있는 유일한 상태다.',
+     '① 마케터가 캐파 초과에도 조정 요청 (adjBy=mkt) ② 담당자가 확정 대기 건을 넘김 (adjBy=adm)',
+     '담당자 일정 조정 → 확정 / 다른 건을 옮기고 수락 → 확정 / 담당자 취소 / 마케터 수정·취소'],
+    ['확정','확정','담당자가 확정한 캠페인. 캐파와 시간대를 점유한다.',
+     '담당자 확정 / 담당자 일정 조정','없음. 단 남의 조정 요청으로 일정만 바뀔 수 있다 (상태는 확정 유지)'],
+    ['취소','취소','종결. 되돌릴 수 없고 다시 하려면 새로 신청한다.',
+     '마케터가 확정 이전 본인 건을 철회 / 담당자가 조정 필요 건을 논의 후 취소 (사유 필수)','없음'],
+    ['발송 완료','발송 완료','실제 발송이 끝난 상태. 발송 시스템이 찍으며 이 대시보드는 전이를 만들지 않는다.',
+     '발송 시스템 (프로토타입에서는 더미로만 존재)','없음'],
+  ];
+
+  const 기준값=[
+    ['구분','항목','값','비고'],
+    ...CH_LIST.concat(['쿠폰']).map(k=>['캐파',k,
+      CAPA[k]&&CAPA[k].limit!=null?`일 ${CAPA[k].limit}만 건`:'제한 없음',
+      CAPA[k]&&CAPA[k].limit!=null?'초과하면 그 날짜는 신청 불가':'사용량만 표시']),
+    ['시간대','발송 가능','1시 ~ 22시','0시·23시 제외'],
+    ['시간대','주기성',REC_HOURS.map(h=>h+'시').join(', '),'저녁 반응률이 가장 높음 (0728 미팅)'],
+    ['채널','목록',CH_LIST.join(', '),'복수 선택 가능'],
+    ['오퍼','목록','쿠폰, 없음',''],
+    ['주기','일회성','시작일 1회 발송','캐파·시간대 모두 시작일에만. 기간은 고객 노출 기간'],
+    ['주기','주기성','기간 내내 매일 발송',`캐파도 매일 1일치씩. ${REC_HOURS.join('~')}시 중 한 칸`],
+    ['충돌','시간대 겹침','같은 채널 + 같은 시각','GNB 무관 (0730 담당자 확인). 조정 요청 대상'],
+    ['충돌','캐파 초과','신청 불가','시스템이 발송 자체를 못 하므로 조정 대상 아님'],
+    ['추천','가중치',`한산함 ${REC_W.quiet} · 금토일 ${REC_W.weekend} · 캐파 여유 ${REC_W.room}`,
+     '고정 계산식. 같은 조건에 항상 같은 답'],
+    ['집계','요약 4칸','신청일(reqAt) 기준','마케터·담당자 화면 공통'],
+    ['집계','캠페인 리스트','발송일(from) 기준',"'언제 나가나'를 보는 표"],
+    ['기간','데이터 범위',MONTHS.join(', '),''],
+    ['기준','오늘',TODAY,'앱 상수 TODAY'],
+  ];
+
+  const blob=XLSX([
+    {name:'읽어보기',      rows:읽어보기, widths:[14,64]},
+    {name:'데이터 스키마', rows:스키마,   widths:[11,8,6,34,52]},
+    {name:'캠페인 데이터', rows:데이터, filter:true,
+     widths:[5,38,7,8,17,12,12,12,6,8,20,12,7,7,10,7,32,26,26,16]},
+    {name:'상태 정의',     rows:상태,     widths:[11,11,46,44,54]},
+    {name:'기준값',        rows:기준값,   widths:[8,14,26,46]},
+  ]);
+
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`캠페인_데이터_${stamp}.xlsx`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast(`${rows.length}건을 내보냈습니다`);
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    탭
@@ -2247,6 +2493,9 @@ function cardRec(){
 
 
 /* ── 우측 하단 · 캠페인 리스트 ── */
+let listRows=[], listWhat='';
+const exportNow=()=>exportList(listRows,listWhat);
+
 function cardList(){
   const sc=role==='adm'?'all':scope;
   /* 리스트는 '언제 나가나'를 보는 표 — 발송일(시작일) 기준.
@@ -2258,6 +2507,12 @@ function cardList(){
             ['확정','확정'],['발송 완료','발송 완료'],['취소','취소']];
   const rows=base.filter(r=>listSt==='all'||r.status===listSt)
                  .sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:a.hour-b.hour);
+  /* 내보내기는 '지금 보고 있는 것'을 뽑는다 — 접혀서 안 보이는 뒷줄까지 포함.
+     화면에 그린 목록을 그대로 넘겨야 필터와 결과가 갈리지 않는다. */
+  listRows=rows;
+  listWhat=`${kpiMonth.replace('-','.')} · `
+    + (role==='adm'?'전체':{mine:'내 신청',team:'우리 팀',all:'전체'}[sc])
+    + ` · ${listSt==='all'?'모든 상태':listSt==='신청'?'확정 대기':listSt}`;
   return `<div class="card">
     <div class="card-hd"><div class="rule"></div>
       <div class="lbl"><span>캠페인 리스트 (발송 시작일 기준)</span></div>
@@ -2272,7 +2527,8 @@ function cardList(){
       <div class="stfil">${ST.map(([k,n])=>{
         const c=k==='all'?base.length:base.filter(r=>r.status===k).length;
         return `<button class="chip sm ${listSt===k?'on':''}" data-ls="${k}" ${c?'':'disabled'}>
-          ${n}<span class="num">${c}</span></button>`}).join('')}</div></div>
+          ${n}<span class="num">${c}</span></button>`}).join('')}
+        <button class="xls" data-xls ${rows.length?'':'disabled'}>내보내기</button></div></div>
     <div class="tblwrap"><table class="list">
       <tr><th>캠페인명</th><th>기간</th><th>발송 일시</th><th>채널</th><th>GNB</th>
         <th>주기</th><th>오퍼</th><th class="r">타겟수</th><th>부서 · 마케터</th>
@@ -2548,6 +2804,7 @@ function bindApply(){
 
   document.querySelectorAll('[data-sc]').forEach(x=>x.onclick=()=>{scope=x.dataset.sc;re()});
   document.querySelectorAll('[data-ls]').forEach(x=>x.onclick=()=>{listSt=x.dataset.ls;listAll=false;render()});
+  document.querySelectorAll('[data-xls]').forEach(x=>x.onclick=()=>exportNow());
   const lm=$('listMore'); if(lm) lm.onclick=()=>{listAll=!listAll;render()};
   document.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>cancelModal(+x.dataset.open,false));
   document.querySelectorAll('[data-cancel]').forEach(x=>x.onclick=e=>{
@@ -3543,6 +3800,17 @@ $('roleMkt').onclick=()=>{role='mkt';openPanel=null;$('roleMkt').classList.add('
   if(tab==='manage') tab='apply'; render()};
 $('roleAdm').onclick=()=>{role='adm';openPanel=null;$('roleAdm').classList.add('on');$('roleMkt').classList.remove('on');
   tab='manage'; render()};
+
+/* 촬영 모드 — ?view=mkt / ?view=adm 를 붙이면 그 역할로 고정하고 전환 토글을 감춘다.
+   시연 영상에서 두 화면이 각각 다른 사람이 쓰는 것으로 보이게 하려는 것이다.
+   파라미터가 없으면 지금까지와 똑같다 — 토글이 보이고 마케터로 시작한다. */
+(()=>{
+  const v=(location.search.match(/[?&]view=(mkt|adm)\b/)||[])[1];
+  if(!v) return;
+  role=v; tab = v==='adm' ? 'manage' : 'apply';
+  document.querySelector('.seg').style.display='none';
+  document.querySelector('.demo-cap').style.display='none';
+})();
 
 /* 먼저 더미로 한 번 그려서 화면이 비지 않게 하고, 서버가 있으면 받아서 다시 그린다.
    실시간 변경도 같은 자리로 들어온다 (DB.onChange → render). */

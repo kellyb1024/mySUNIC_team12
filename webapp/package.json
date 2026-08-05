@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "parity": "node --experimental-strip-types lib/domain.parity.ts",
+    "weights": "node ../verify/rec-weights.mjs",
     "db:check": "node --env-file=.env.local --experimental-strip-types lib/db.check.ts"
   },
   "dependencies": {

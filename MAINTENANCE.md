@@ -40,7 +40,7 @@ npm run build     # 빌드
 | 오늘 날짜 · 데이터 범위 | `webapp/lib/config.ts` | 코드 수정 필요 |
 | 발송 가능 시각 (1~22시) | `webapp/lib/domain.ts` `HOURS` | 코드 수정 필요 |
 | 주기성 배정 시각 (17~19시) | `webapp/lib/domain.ts` `REC_HOURS` | 코드 수정 필요 |
-| 추천 가중치 | `webapp/lib/domain.ts` `REC_W` | 코드 수정 필요 |
+| 추천 가중치 | `webapp/lib/domain.ts` `REC_W` **← 정본** | 코드 수정 필요 · 고친 뒤 `npm run weights -- --sync` 로 HTML 을 맞춥니다 |
 
 > **캐파는 이미 표로 빼 두었습니다.** 현업에서 가장 자주 바뀔 값이라 그렇게 했습니다.
 > 나머지도 필요해지면 같은 방식으로 표로 옮기면 됩니다 — `fetchCapa()` 를 흉내 내세요.
