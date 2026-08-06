@@ -16,14 +16,22 @@
 :root{
   /* Primary(Orange) 램프 — 500 이 기준색이고 나머지는 여기서 파생된다.
      100 선택 배경 · 300 테두리/보조 면 · 500 액션 · 700 틴트 위 텍스트
-       500 #FF890C  흰글자 2.38:1 · 진한글자 7.08:1  ← 진한 글자라야 기준을 넘는다
-       700 #B35700  흰바탕 4.91:1 (램프 계산값 #B35E05 보다 대비가 나아 기존 값을 유지) */
-  --o100:#FFEEDD; --o300:#FFC292; --o500:#FF890C; --o700:#B34000;
-  --sk-orange:var(--o500); --sk-orange-text:var(--o700); --sk-orange-dk:#E67A05;
+
+     500 은 SK CI 의 SK Orange(Pantone 158C · RGB 255 122 0)를 그대로 쓴다 (2026-08-06).
+     CI 페이지에 HEX 는 #F47725 로 적혀 있으나 같은 페이지의 RGB 표기와 맞지 않아,
+     Pantone 158C 의 통용 변환값이자 기존 색(#FF890C)에 가까운 RGB 쪽을 택했다.
+
+     100·300·700 은 500 에서 OKLCH 로 다시 뽑았다. 밝기(L)는 기존 램프 값을 유지하고
+     색상각만 새 500 에 맞췄다 — HSL 로 어둡게 하면 채도 높은 주황이 갈색으로 죽는다.
+       500 #FF7A00  흰글자 2.61:1 · 진한글자 6.31:1  ← 진한 글자라야 기준을 넘는다
+       700 #B34200  흰바탕 5.68:1 */
+  --o100:#FFECDF; --o300:#FFBE95; --o500:#FF7A00; --o700:#B34200;
+  --sk-orange:var(--o500); --sk-orange-text:var(--o700); --sk-orange-dk:#E56C00;
   --sk-orange-t25:var(--o300); --sk-orange-t10:var(--o100);
 
-  /* Danger(Red) — 브랜드 빨강 #E0002A 가 500. 금지·초과·취소에만 쓴다 */
-  --r100:#FFE0DC; --r300:#FA928C; --r500:#E0002A; --r700:#A20000;
+  /* Danger(Red) — SK CI 의 SK Red(#EA002C)가 500. 금지·초과·취소에만 쓴다.
+     300 은 테두리 전용이라 글자 대비 기준을 적용하지 않는다 */
+  --r100:#FFE0DD; --r300:#FC918A; --r500:#EA002C; --r700:#A40016;
   --sk-red:var(--r500);
 
   /* Info(Blue) — 주황의 반대편(H 260°). 액션이 아닌 '알림'에만.
@@ -166,15 +174,26 @@ input,select,textarea{font-family:inherit;font-size:13px}
 /* 추천 1순위 표시 */
 .dcell .pin{position:absolute;bottom:3px;left:0;right:0;text-align:center;
   font-size:9px;color:var(--sk-orange-text);font-weight:500}
-.rec-card.on{border-color:var(--o500);background:var(--sk-orange-t10)}
+/* 고른 카드는 면을 물들이지 않고 테두리로만 말한다 — .rangetrig.on · .hslot.rec 과 같은 방식.
+   면까지 칠하면 카드 배경·테두리·버튼이 같은 말을 세 번 한다 (2026-08-06) */
+.rec-card.on{border-color:var(--o500)}
+/* 누른 것은 버튼이니 버튼이 반응한다. 면은 100 까지만 올린다 —
+   300 이나 500 은 이 크기의 카드에서 눈이 금방 피로해진다 (2026-08-06).
+   호버도 100 이라 색만으로는 같지만, 고른 카드는 테두리가 o500 이라 구분된다.
+   글자색은 건드리지 않는다. 주황 글씨가 늘면 화면 전체가 시끄러워진다 */
+.rec-card.on button{background:var(--sk-orange-t10)}
 /* 고른 기간을 한눈에 */
 .periodline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
   padding:11px 14px;margin-bottom:12px;border-radius:8px;
   background:var(--sk-orange-t10);border:1px solid var(--sk-orange-t25)}
 .periodline b{font-size:16px;font-weight:500;color:var(--text-strong)}
 .periodline span{font-size:11.5px;color:var(--text-muted)}
+/* 잔여는 날짜 바로 옆에 붙인다 — 오른쪽 끝으로 밀어 두면 날짜와 눈이 두 번 움직인다 */
 .periodline .remain{font-family:Roboto;font-variant-numeric:tabular-nums;
-  font-size:12px;font-weight:500;color:var(--text-muted);margin-left:auto}
+  font-size:12px;font-weight:500;color:var(--text-muted)}
+/* 큰 글씨는 두 주기 모두 기간이고, 갈리는 것은 옆의 작은 글씨다.
+   일회성은 기간만 보면 5일 내내 나가는 것처럼 읽혀서 발송일을 따로 적는다 (2026-08-06) */
+.periodline i{font-style:normal;font-size:11.5px;color:var(--text-muted)}
 .periodline .src2{flex-basis:100%;font-size:11px;color:var(--text-muted);
   padding-top:5px;margin-top:2px;border-top:1px dashed var(--sk-orange-t25)}
 .periodline.warn .src2{border-top-color:var(--border)}
@@ -511,6 +530,74 @@ input,select,textarea{font-family:inherit;font-size:13px}
 /* ── 카드 안에서 펼쳐지는 단계 ── */
 .drill{border-top:1px solid var(--border);margin-top:18px;padding-top:16px}
 .drill.final{border-top:1px dashed var(--sk-orange-text)}
+.drill.rec{margin-top:16px;padding-top:14px}
+
+/* ── 최종 신청 상자 (2026-08-07 시안) ──────────────────────────────
+   네 칸: 무엇을 하는 자리 / 고른 일정 / 채울 것 / 누르는 곳.
+   첫 칸만 색을 깔아 「여기부터 확인 단계」임을 표시하고 나머지는 흰 바탕이다. */
+/* 첫 칸 폭은 글에 맞춘다. 186px 일 때는 가장 긴 줄이 105px 라 오른쪽에 41px 가 남아
+   패딩이 좌 20 / 우 61 처럼 보였다. 145px 이면 20 + 104.9 + 20.1 로 좌우가 맞는다.
+   144px 부터는 세 줄로 깨지므로 두 줄을 지키는 최소폭이기도 하다 (2026-08-07 실측) */
+/* 칸 폭은 글에 맞춘다.
+   1칸 145px — 가장 긴 글줄 104.9px + 좌우 20px. 144px 부터 세 줄로 깨진다.
+   2칸 0.95fr — 이보다 좁히면 「3일 노출」 칩이 날짜 아래로 떨어진다. 칩을 옆에 두는 한계폭이다.
+     칸을 더 줄이는 대신 3칸 내용만 왼쪽으로 당겨 사이를 좁힌다 (2026-08-07 실측) */
+.finalbox{display:grid;grid-template-columns:145px minmax(190px,0.95fr) minmax(280px,1.15fr) 224px;
+  border:1px solid var(--o300);border-radius:8px;background:var(--surface);overflow:hidden}
+.finalbox>*{padding:17px 20px}
+.fb-lead{background:var(--sk-orange-t10);display:flex;flex-direction:column;gap:7px}
+.fb-lead b{font-size:14.5px;font-weight:500;color:var(--text-strong)}
+/* 줄을 직접 끊지 않고 균형을 맞춘다 — 「확인해 주세요.」만 남은 짧은 둘째 줄이
+   오른쪽 여백을 더 크게 보이게 했다. 좌우 패딩은 원래 20px 로 같았다.
+   keep-all 이 없으면 균형을 맞추다 「정보」를 「정 / 보」로 끊는다 (2026-08-07) */
+.fb-lead span{font-size:11.5px;color:var(--text-muted);line-height:1.65;
+  text-wrap:balance;word-break:keep-all}
+
+.fb-lbl{font-size:11.5px;font-weight:500;color:var(--text);margin-bottom:9px}
+.fb-lbl s{text-decoration:none;color:var(--sk-red)}
+.fb-lbl2{margin-top:14px}
+/* 칸 폭을 줄이면 칩이 날짜 아래로 떨어진다. 그래서 폭은 두고 내용만 30px 당긴다 —
+   2칸 글이 칸 오른쪽 끝까지 차지 않아 겹칠 자리가 없다 (2026-08-07) */
+.fb-form{margin-left:-30px}
+
+/* 아이콘은 바탕 없이 primary 색만 쓴다. 세로로는 날짜 줄 한가운데에 맞춘다 —
+   블록 전체 가운데에 두면 잔여 캐파 쪽으로 내려가 날짜와 어긋나 보인다 (2026-08-07) */
+.fb-when{display:flex;gap:9px;align-items:flex-start}
+.fb-ico{flex:0 0 auto;color:var(--o500);display:grid;place-items:center;height:23px}
+.fb-when-t{min-width:0}
+.fb-date{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.fb-date b{font-size:17px;font-weight:500;color:var(--text-strong);letter-spacing:-.01em}
+.fb-date i{font-style:normal;font-size:11px;color:var(--text-muted);
+  background:var(--n100);border-radius:999px;padding:2px 8px;white-space:nowrap}
+/* 잔여는 「잔여 캐파」라는 이름을 한 번만 달고 값을 나열한다.
+   값마다 「잔여」를 붙이면 같은 말이 두 번 나온다 */
+.fb-rem{margin-top:11px;font-size:12px}
+.fb-rem span{display:block;color:var(--text-muted);margin-bottom:4px}
+.fb-rem-v{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.fb-rem b{font-family:Roboto;font-variant-numeric:tabular-nums;font-weight:500;
+  color:var(--sk-orange-text)}
+.fb-rem em{width:1px;height:11px;background:var(--n300);display:inline-block}
+.fb-src{margin-top:8px;font-size:11px;color:var(--text-muted)}
+
+.fb-input{position:relative}
+.fb-input input{width:100%;padding:9px 56px 9px 12px;font-size:12.5px;
+  border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-strong)}
+.fb-input input:focus{outline:none;border-color:var(--o500)}
+.fb-cnt{position:absolute;right:11px;top:50%;transform:translateY(-50%);
+  font-family:Roboto;font-variant-numeric:tabular-nums;font-size:11px;color:var(--text-muted)}
+/* 부서·마케터는 로그인한 사람 값이라 고칠 수 없다. 다만 값 자체는 검정으로 둔다 —
+   흐리게 하면 「아직 안 정해진 값」처럼 읽힌다. 정해져 있고 못 고칠 뿐이다 (2026-08-07) */
+.fb-who{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px}
+.fb-who span{color:var(--text-muted)}
+.fb-who b{font-weight:500;color:var(--text-strong);background:var(--n100);
+  border-radius:999px;padding:6px 13px;cursor:default;user-select:none}
+
+.fb-act{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+  border-left:1px dashed var(--o300);text-align:center}
+.fb-badge{color:var(--o500);display:grid;place-items:center}
+.fb-cap{font-size:11px;color:var(--text-muted);line-height:1.6}
+.fb-act .pill{width:100%}
+
 .drill-hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px}
 .drill-hd b{font-size:14.5px;font-weight:500;color:var(--text-strong)}
 .drill-hd span{font-size:11.5px;color:var(--text-muted)}
@@ -675,7 +762,10 @@ table.list td.adjd{color:var(--sk-orange-text);font-weight:500;position:relative
 .adjitem:last-child{margin-bottom:0}
 .adjhd{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px}
 .adjhd b{font-size:13.5px;font-weight:500;color:var(--text-strong)}
-.adjhd .adjwhen{margin-left:auto;font-size:11.5px;color:var(--text-muted);font-family:Roboto}
+/* 오른쪽 위는 라벨을 못 다는 자리다. 그래서 덜 중요한 값이 온다 —
+   신청 시각. 정작 봐야 하는 발송 일시는 라벨이 붙는 표 안으로 옮겼다 (2026-08-06) */
+.adjhd .adjwhen{margin-left:auto;font-size:11.5px;color:var(--text-muted);
+  font-family:Roboto;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cfgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 22px}
 .cfg{display:flex;gap:10px;font-size:12px;min-width:0}
 .cfg span{color:var(--text-muted);flex:0 0 82px}
@@ -723,9 +813,11 @@ table.list td.adjd{color:var(--sk-orange-text);font-weight:500;position:relative
 .rec-card{border:1px solid var(--border);border-radius:8px;padding:12px 13px}
 .rec-card .rt{font-size:13.5px;font-weight:500;color:var(--text-strong);margin-bottom:5px;
   display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
-/* 잔여량이 다른 정보에 묻혀 안 보인다는 UT 피드백 — 날짜 옆으로 빼서 세운다 */
-.rec-card .rq{font-family:Roboto;font-variant-numeric:tabular-nums;font-size:14.5px;
-  font-weight:500;color:var(--sk-orange-text);white-space:nowrap}
+/* 잔여는 날짜 오른쪽에 둔다 — 성격이 다른 정보라 갈라 놓아야 읽힌다.
+   다만 고르는 대상은 날짜지 잔여가 아니다. 14.5px 주황 굵게였을 때는 잔여가 날짜(13.5px)보다
+   커서 세 카드에서 눈이 오른쪽만 훑었다. 크기·색만 낮춰 위계를 되돌린다 (2026-08-06) */
+.rec-card .rq{font-family:Roboto;font-variant-numeric:tabular-nums;font-size:12px;
+  font-weight:400;color:var(--text-muted);white-space:nowrap}
 .rec-card .rl{font-size:11.5px;color:var(--text-muted);line-height:1.6}
 .rec-card button{width:100%;margin-top:9px;padding:7px;border-radius:999px;border:1px solid var(--o500);
   color:var(--n900);font-size:11.5px;font-weight:500;background:#fff}
@@ -2073,7 +2165,6 @@ function renderApply(){
       <div class="main">
         ${role==='mkt'?kpiRow():''}
         ${cardApply()}
-        ${found?cardRec():''}
         ${cardList()}
       </div>
     </div>
@@ -2151,14 +2242,16 @@ function statePanel(m,key){
         <span class="st ${chip(r.status)}${r.status==='확정'&&r.moved?' diff':''}"${
           r.status==='확정'&&r.moved?` title="신청 ${esc(r.moved.from)} → 확정 ${esc(r.moved.to)}"`:''
           }>${r.status==='신청'?'확정 대기':r.status}</span>
-        <span class="adjwhen">${r.cycle==='주기성'
-          ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${hh(r.hour)}`
-          : `${fmtD(r.date)} ${hh(r.hour)}`}</span></div>
+        </div>
+      ${/* 발송 일시는 신청 시각 오른쪽 빈 칸에 넣는다 — 두 열 × 세 줄이 딱 맞는다 (2026-08-06) */''}
       <div class="cfgrid">
         ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
         ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
         ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
         ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
+        ${cfRow('발송 일시',r.cycle==='주기성'
+          ? `${fmtD(r.from)} ~ ${fmtD(r.to)} · 매일 ${hh(r.hour)}`
+          : `${fmtD(r.date)} ${hh(r.hour)}`)}
         ${cfRow('신청 시각',fmtReq(r.reqAt))}
       </div>
       ${r.moved?`<div class="adjwhy"><span>담당자 일정 변경</span>${
@@ -2313,6 +2406,7 @@ function cardApply(){
   return `<div class="card">${head}
     <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
     ${ok.length?'':`<div class="empty">이 기간에는 시작할 수 있는 날이 없습니다.<br>조회 기간을 넓히거나 타겟수·일수를 줄여 보세요.</div>`}
+    ${found?cardRec():''}
     ${draft.date?(dayCheck(draft,draft.date).ok?secFinal():blockedBody(dayCheck(draft,draft.date),draft.date,len)):''}
   </div>`;
 }
@@ -2413,20 +2507,63 @@ function remOn(c,d){
   if(c.offer==='쿠폰')      o.push(`쿠폰 ${man(couponRem(d))}만`);
   return o;
 }
+/* 최종 신청 — 네 칸으로 나눈다 (2026-08-07 시안).
+   ① 여기가 무엇을 하는 자리인지  ② 무엇을 고랐는지  ③ 무엇을 채워야 하는지  ④ 누르는 곳.
+   한 줄로 늘어놓으면 「고른 것」과 「채울 것」이 섞여 어디를 봐야 할지 모른다. */
+const ICON_CAL=`<svg viewBox="0 0 24 24" width="19" height="19" fill="none"
+  stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`;
+const ICON_OK=`<svg viewBox="0 0 24 24" width="26" height="26" fill="none"
+  stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/>
+  <path d="M16 6h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2"/>
+  <path d="M9 13.5l2 2 4-4.5"/></svg>`;
+
 function secFinal(){
   const rep=draft.cycle==='주기성';
   const from=draft.date, len=draft.days||1;
+  const rm=remOn(draft,from);
+  const edit=draft.editNo!=null;
   return `<div class="drill final">
-    <div class="drill-hd"><b>최종 신청</b></div>
-    <div class="periodline"><b>${fmtD(from)} ~ ${fmtD(addDays(from,len-1))}</b>
-      <span>${rep?`${len}일간 매일 발송`:`시작일 1회 발송 · ${len}일 노출`}</span>
-      ${(()=>{const rm=remOn(draft,from);
-        return rm.length?`<span class="remain">잔여 ${rm.join(' · ')}</span>`:''})()}
-      ${srcPeriod()}</div>
-    ${whoFields()}
-    <div class="actions">
-      <button class="pill primary" id="submitBtn">${
-        draft.editNo!=null?'수정하기':'신청하기'}</button>
+    <div class="finalbox">
+      <div class="fb-lead">
+        <b>${edit?'수정 확인':'최종 신청'}</b>
+        <span>선택한 일정과 캠페인 정보를 확인해 주세요.</span>
+      </div>
+
+      <div class="fb-col">
+        <div class="fb-lbl">선택한 일정</div>
+        <div class="fb-when">
+          <span class="fb-ico">${ICON_CAL}</span>
+          <div class="fb-when-t">
+            <div class="fb-date"><b>${fmtD(from)} ~ ${fmtD(addDays(from,len-1))}</b>
+              <i>${len}일 ${rep?'발송':'노출'}</i></div>
+            ${rm.length?`<div class="fb-rem"><span>잔여 캐파</span>
+              <div class="fb-rem-v">${rm.map(x=>`<b>${x}</b>`).join('<em></em>')}</div></div>`:''}
+            ${edit?`<div class="fb-src">${srcPeriod()}</div>`:''}
+          </div>
+        </div>
+      </div>
+
+      <div class="fb-col fb-form">
+        <div class="fb-lbl">캠페인명 <s>*</s></div>
+        <div class="fb-input">
+          <input type="text" id="fCamp" maxlength="50" value="${esc(draft.camp)}"
+            placeholder="예: 8월 콘텐츠 추천 프로모션">
+          <span class="fb-cnt" id="fCnt">${draft.camp.length}/50</span>
+        </div>
+        <div class="fb-lbl fb-lbl2">신청자 정보</div>
+        <div class="fb-who">
+          <span>부서</span><b id="fDept">${esc(ME.team)}</b>
+          <span>마케터</span><b id="fMk">${esc(ME.mk)}</b>
+        </div>
+      </div>
+
+      <div class="fb-act">
+        <span class="fb-badge">${ICON_OK}</span>
+        <span class="fb-cap">선택한 일정으로<br>캠페인을 ${edit?'수정':'신청'}합니다.</span>
+        <button class="pill primary" id="submitBtn">${edit?'수정하기':'캠페인 신청하기'}</button>
+      </div>
     </div>
   </div>`;
 }
@@ -2473,14 +2610,14 @@ function recTop(n,c=draft,from=draft.qFrom,to=draft.qTo){
             quiet, room, wknd, dense:D[i], rem:R[i]};
   }).sort((a,b)=>b.score-a.score||(a.d<b.d?-1:1)).slice(0,n);
 }
+/* 추천은 조회 결과의 일부다 — 별도 카드로 띄우면 「조회했는데 창이 하나 더 떴다」가 된다.
+   그래서 카드 껍데기 없이 달력 바로 아래 구획으로 들어간다 (2026-08-06) */
 function cardRec(){
-  const head=`<div class="card-hd"><div class="rule"></div>
-    <div class="lbl"><span>추천</span></div></div>`;
   const top=recTop(3);
-  if(!top.length) return `<div class="card">${head}
-    <div class="empty">조회 기간에 시작할 수 있는 날이 없습니다.</div></div>`;
+  if(!top.length) return '';
   const len=draft.days||1;
-  return `<div class="card">${head}
+  return `<div class="drill rec">
+    <div class="drill-hd"><b>추천</b></div>
     <div class="recs">${top.map((x,i)=>{
       /* 기간에서 가장 빠듯한 날의 잔여를 세운다 — 주기성은 매일 캐파를 쓴다 */
       const span=spanOf(draft,x.d), rem=[];
@@ -2490,7 +2627,7 @@ function cardRec(){
         <div class="rt"><span>${fmtD(x.d)}${i===0?' <em>추천</em>':''}</span>
           ${rem.length?`<b class="rq">잔여 ${rem.join(' · ')}</b>`:''}</div>
         <div class="rl">${fmtD(x.d)} ~ ${fmtD(addDays(x.d,len-1))}</div>
-        <button data-d="${x.d}">이 날짜 선택하기</button></div>`}).join('')}</div>
+        <button data-d="${x.d}">선택</button></div>`}).join('')}</div>
   </div>`;
 }
 
@@ -2699,8 +2836,6 @@ function confirmModal(ask){
       ${hrow('채널 / GNB',`${draft.ch.join(' · ')} / ${draft.gnb||'—'}`)}
       ${hrow('주기 / 오퍼',`${draft.cycle} · ${draft.offer}`)}
       ${hrow(rep0?'1일 타겟수':'전체 타겟수',`${man(draft.qty)}만 건`)}
-      ${(()=>{const rm=remOn(draft,from0);
-        return rm.length?hrow('이 날 잔여',rm.join(' · ')):''})()}
       ${ask?hrow('조정 요청 사유',draft.note):''}
     </div>
     <div class="m-act">
@@ -2800,7 +2935,10 @@ function bindApply(){
     const n=draft.editNo; draft=EMPTY_DRAFT(); draft.editNo=n;
     form=EMPTY_FORM(); found=false; re()};
 
-  document.querySelectorAll('[data-d]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.d;draft.hour=null;re()});
+  /* 같은 날을 다시 누르면 선택이 풀린다 — 잘못 골랐을 때 무르려고 엉뚱한 날을 한 번 더
+     고를 필요가 없다. 캘린더 칸과 추천 카드의 「선택」이 같은 핸들러라 둘 다 적용된다 */
+  document.querySelectorAll('[data-d]').forEach(x=>x.onclick=()=>{
+    draft.date = draft.date===x.dataset.d ? null : x.dataset.d; draft.hour=null; re()});
   document.querySelectorAll('[data-h]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.h;re()});
   document.querySelectorAll('[data-pick]').forEach(x=>x.onclick=()=>{draft.hour=+x.dataset.pick;re()});
   document.querySelectorAll('[data-rec]').forEach(x=>x.onclick=()=>{draft.date=x.dataset.rec;draft.hour=null;re()});
@@ -2836,7 +2974,8 @@ function bindApply(){
 
   const cf=$('fCamp');
   if(cf){
-    cf.oninput=e=>draft.camp=e.target.value;
+    cf.oninput=e=>{draft.camp=e.target.value;
+      const c=$('fCnt'); if(c) c.textContent=`${e.target.value.length}/50`};
     /* 부서·마케터는 읽기 전용이라 입력 핸들러가 없다 — 값은 항상 ME 다 */
     const nt=$('fNote'); if(nt) nt.oninput=e=>draft.note=e.target.value;
     const sb=$('submitBtn');
@@ -3154,16 +3293,16 @@ function admStatePanel(key){
     ${rows.map(r=>`<div class="adjitem">
       <div class="adjhd"><b>${esc(r.camp)}</b>
         <span class="st ${chip(r.status)}">${r.status==='신청'?'확정 대기':r.status}</span>
-        <span class="adjwhen">${r.cycle==='주기성'
-          ? `${fmtD(r.from)}~${fmtD(r.to)} · 매일 ${hh(r.hour)}`
-          : `${fmtD(r.date)} ${hh(r.hour)}`}</span></div>
+        <span class="adjwhen">${fmtReq(r.reqAt)} 신청</span></div>
       <div class="cfgrid">
         ${cfRow('부서 · 마케터',`${r.team} ${r.mk}`)}
         ${cfRow('기간',`${fmtD(r.from)} ~ ${fmtD(r.to)}`)}
         ${cfRow('채널 / GNB',`${r.ch.join('·')||'—'} / ${esc(r.gnb)||'—'}`)}
         ${cfRow('주기 / 오퍼',`${r.cycle} · ${r.offer}`)}
         ${cfRow(r.cycle==='주기성'?'1일 타겟수':'전체 타겟수',`${man(r.qty)}만 건`)}
-        ${cfRow('신청 시각',fmtReq(r.reqAt))}
+        ${cfRow('발송 일시',r.cycle==='주기성'
+          ? `${fmtD(r.from)} ~ ${fmtD(r.to)} · 매일 ${hh(r.hour)}`
+          : `${fmtD(r.date)} ${hh(r.hour)}`)}
       </div>
       ${(()=>{const w=liveReason(r); return w?`<div class="adjwhy"><span>사유</span>${esc(w)}</div>`:''})()}
       ${r.note?`<div class="adjnote"><span>마케터 사유</span>${esc(r.note)}</div>`:''}
@@ -3441,7 +3580,7 @@ function swapPanel(r,hd,rSpan,rSel){
       ${/* 조정 요청 건의 시간대까지 정해져야 확정할 수 있다 —
             안 고르고 확정하면 첫 칸(새벽 1시)으로 들어간다 (2026-08-04) */''}
       <button class="pill primary sm" data-swapok="${hd.no}"
-        ${changed&&!badTo&&fits&&rSel!=null?'':'disabled'}>두 건 함께 확정</button>
+        ${changed&&!badTo&&fits&&rSel!=null?'':'disabled'}>두 건 함께 확정하기</button>
       <button class="pill ghost sm" data-swapno="1">되돌리기</button>
       ${!changed?`<span class="note">옮길 날짜나 시간을 골라 주세요.</span>`
         :!fits?`<span class="note">아직 자리가 모자랍니다.</span>`
@@ -3603,7 +3742,7 @@ function admModal(no,st){
       ${done&&!edit
         ?`<button class="pill primary" id="amEdit">수정하기</button>`
         :`<button class="pill primary" id="amOk" ${overCap||swapOn||sel==null?'disabled':''}>${
-            done?'일정 변경':'확정'}</button>`}
+            done?'일정 변경':'확정하기'}</button>`}
     </div></div></div>`;
   (()=>{const b=document.querySelector('#modalSlot .box'); if(b&&_sc) b.scrollTop=_sc})();
   bindAm(no,s);
