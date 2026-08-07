@@ -181,8 +181,14 @@ input,select,textarea{font-family:inherit;font-size:13px}
    이 화면에서 주황은 줄곧 '가능·선택됨'이었는데 차단일에만 주황이 되니,
    막힌 날이 옆의 막힌 날보다 오히려 고를 수 있어 보였다.
    차단 회색은 그대로 두고 테두리만 굵혀 '이 칸을 골랐다'만 말한다 (2026-08-07) */
-.dcell.no.on{border-color:var(--text-strong);padding:7px 5px;background:var(--surface)}
-.dcell.no.on .dd{color:var(--text);font-weight:500}
+/* 고른 조정 요청일은 주황으로 돌려놓는다. 처음부터 그랬고 그게 맞았다 —
+   '골랐다'를 말하는 수단은 이 화면에서 주황 하나뿐이라, 테두리색만 진하게
+   바꾸는 정도로는 골랐다는 게 안 보였다.
+   가능한 날과 헷갈릴 걱정은 점선이 이미 막고 있다 — 실선 주황은 '고를 수 있고
+   골랐다', 점선 주황은 '골랐지만 협의가 필요하다'. 면이 아니라 획이 가른다.
+   당일은 애초에 클릭이 안 되므로 이 상태 자체가 없다 (2026-08-07) */
+.dcell.no.on{border-color:var(--o500);background:var(--sk-orange-t10);padding:7px 5px}
+.dcell.no.on .dd{color:var(--sk-orange-text);font-weight:500}
 /* 당일 — 캐파로 막힌 날과 같은 회색이면 안 된다. 캐파는 담당자에게 조정을
    요청할 길이라도 있지만 당일은 아무 길이 없다. 같은 색으로 두면 눌러 보고서야
    알게 된다. 사선으로 긋고 data-d 를 빼 클릭 자체를 막는다 (2026-08-07) */
@@ -272,7 +278,7 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dcell.no .drem{color:var(--text-muted)}
 .dcell.on .drem{color:var(--sk-orange-text);font-weight:500}
 /* 잔여 숫자도 같이 — 칸은 회색인데 숫자만 주황이면 반쯤 가능해 보인다 */
-.dcell.no.on .drem{color:var(--text);font-weight:500}
+.dcell.no.on .drem{color:var(--sk-orange-text);font-weight:500}
 /* 잔여가 한 줄 늘어난 만큼 칸을 키운다 */
 .dcell{min-height:64px}
 /* 추천 핀과 잔여가 겹치지 않게 */
