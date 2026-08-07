@@ -240,22 +240,35 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .movers{margin-bottom:12px}
 .movers{display:flex;flex-direction:column;gap:6px}
 .movers .mvhd{font-size:11.5px;color:var(--text-muted);margin-bottom:0}
-.mv{display:flex;align-items:center;gap:9px;padding:7px 10px;border:1px solid var(--border);
-  border-radius:4px;font-size:12px;margin-bottom:5px;background:#fff}
+/* 줄높이를 16px 하나로 묶는다 — 열마다 line-height:1 이면 줄상자 높이가 곧 글자
+   크기라, 12px 열과 11px 열의 베이스라인이 상자 중심에서 서로 다른 거리에 놓인다.
+   align-items:center 는 상자를 맞출 뿐이라 글자는 0.69px 어긋난 채로 남았다.
+   상자 높이를 같게 하면 베이스라인이 0.00px 로 맞는다.
+   align-items:baseline 은 쓸 수 없다 — mvn·mvw 가 말줄임 때문에 overflow:hidden 이라
+   그 경우 베이스라인이 상자 아래끝이 되어 8px 가 어긋난다 (2026-08-07) */
+.mv{display:flex;align-items:center;gap:12px;padding:8px 11px;border:1px solid var(--border);
+  border-radius:4px;font-size:12px;line-height:16px;margin-bottom:5px;background:#fff}
 /* 행끼리 열이 맞아야 읽힌다 — 내용 길이에 따라 폭이 달라지면 눈이 훑지 못한다.
    한글과 Roboto 는 줄높이가 달라 line-height 를 1 로 맞추고 flex 로 가운데 정렬한다 */
 .mv .mvn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  color:var(--text-strong);line-height:1}
-.mv .mvcy{flex:0 0 40px;font-size:10.5px;color:var(--text-muted);white-space:nowrap;
-  line-height:1;text-align:left}
+  color:var(--text-strong)}
+/* 글씨는 두 단계뿐이다 — 12px 진한 색은 '무엇을 얼마나'(캠페인명·모수),
+   11px 연한 색은 딸린 정보(주기·발송 시각·신청 정보). 세 가지 크기를 쓰면
+   위계가 아니라 잡음이 된다. 강조는 모수 하나에만 준다 (w500).
+
+   열 폭은 글자에 맞춰 좁힌다. 우측 정렬 열의 폭이 글자보다 넓으면 그 여백이
+   gap 에 더해져, 선언한 간격은 같은데 눈에 보이는 간격이 제각각이 된다
+   (고치기 전 34 / 56 / 30 / 45px) (2026-08-07) */
+.mv .mvcy{flex:0 0 32px;font-size:11px;color:var(--text-muted);white-space:nowrap;
+  text-align:left}
 .mv .mvcy.rep{color:var(--waiting-text)}
-.mv .mvq{flex:0 0 62px;text-align:right;font-variant-numeric:tabular-nums;
-  font-weight:500;color:var(--text-strong);line-height:1}
-.mv .mvt{flex:0 0 50px;text-align:right;font-variant-numeric:tabular-nums;
-  color:var(--text-muted);line-height:1}
-/* 신청 정보 — 담당자 화면 다른 목록(admCal 의 .dw)과 같은 자리·같은 무게로 둔다 */
-.mv .mvw{flex:0 0 74px;text-align:right;font-size:11px;color:var(--text-muted);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1}
+.mv .mvq{flex:0 0 36px;text-align:right;font-variant-numeric:tabular-nums;
+  font-weight:500;color:var(--text-strong)}
+.mv .mvt{flex:0 0 32px;text-align:right;font-variant-numeric:tabular-nums;
+  font-size:11px;color:var(--text-muted)}
+/* 신청 정보 — 담당자 화면 다른 목록(admCal 의 .dw)과 같은 무게로 둔다 */
+.mv .mvw{flex:0 0 44px;text-align:right;font-size:11px;color:var(--text-muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mv button{flex:0 0 auto;margin-left:2px}
 .mv.on{border-color:var(--o500);background:var(--sk-orange-t10)}
 /* 주기 — 주기성은 기간 전체가 움직이고 매일 캐파를 쓴다. 고르기 전에 보여야 한다 */
