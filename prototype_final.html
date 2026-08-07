@@ -168,8 +168,13 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dcell.no{background:var(--motif);border-style:dashed;border-color:var(--border)}
 .dcell.no .dd{color:var(--locked-text);font-weight:400} .dcell.no .dm{color:var(--locked-text)}
 .dcell.no:hover{transform:translateY(-1px);border-color:var(--locked-text)}
-.dcell.no.on{border-color:var(--o500);background:var(--sk-orange-t10)}
-.dcell.no.on .dd{color:var(--sk-orange-text);font-weight:500}
+/* 막힌 날을 골랐을 때 — 색이 뜻을 뒤집으면 안 된다.
+   이 화면에서 주황은 줄곧 '가능·선택됨'이었는데 차단일에만 주황이 되니,
+   막힌 날이 옆의 막힌 날보다 오히려 고를 수 있어 보였다.
+   차단 회색은 그대로 두고 테두리만 굵혀 '이 칸을 골랐다'만 말한다 (2026-08-07) */
+.dcell.no.on{border-color:var(--locked-text);border-width:2px;padding:7px 5px;
+  background:var(--motif)}
+.dcell.no.on .dd{color:var(--locked-text);font-weight:500}
 .dcell.blank{border:none;background:none;cursor:default;min-height:0}
 /* 추천 1순위 표시 */
 .dcell .pin{position:absolute;bottom:3px;left:0;right:0;text-align:center;
@@ -249,6 +254,8 @@ input,select,textarea{font-family:inherit;font-size:13px}
 .dcell.ok .drem{color:var(--sk-orange-text)}
 .dcell.no .drem{color:var(--locked-text)}
 .dcell.on .drem{color:var(--sk-orange-text);font-weight:500}
+/* 잔여 숫자도 같이 — 칸은 회색인데 숫자만 주황이면 반쯤 가능해 보인다 */
+.dcell.no.on .drem{color:var(--locked-text);font-weight:500}
 /* 잔여가 한 줄 늘어난 만큼 칸을 키운다 */
 .dcell{min-height:64px}
 /* 추천 핀과 잔여가 겹치지 않게 */
@@ -1844,6 +1851,20 @@ function dayCheck(c,d){
   }
   return {ok:true};
 }
+/* 신청 경로 전용 관문 — 캐파와 별개로 '언제부터 받는가'를 본다.
+   당일은 받지 않는다. 발송 준비가 하루는 있어야 하고 D-1 이 마지노선이다 (D-07).
+   담당자 쪽 nearWin 의 바닥이 '내일'인 것과 같은 규칙이다. 한쪽만 막으면
+   마케터는 오늘로 신청할 수 있는데 담당자는 오늘로 옮겨 줄 수 없는 상태가 된다.
+
+   dayCheck 안에 넣지 않은 이유 — liveReason 이 이미 신청된 조정 필요 건의 사유를
+   볼 때마다 다시 계산하는데 같은 dayCheck 를 쓴다. 거기 이 규칙이 섞이면 오늘
+   발송 예정인 건의 사유가 캐파 초과 대신 '당일 신청 불가'로 바뀐다. 관문을 나눈다.
+   (2026-08-07) */
+function applyCheck(c,d){
+  if(d===TODAY) return {ok:false,sameDay:true,
+    why:'당일 신청 불가 — 발송일 하루 전까지 신청할 수 있습니다'};
+  return dayCheck(c,d);
+}
 const rangeDays=(from,to)=>ALL.filter(x=>x.d>=from&&x.d<=to).map(x=>x.d);
 
 
@@ -2385,12 +2406,12 @@ function cardApply(){
   /* 조회 시작일 하루 전도 함께 — 하루 당길 여지를 알 수 있게 (0801 피드백) */
   const lo=(()=>{const a=addDays(draft.qFrom,-1); return a<TODAY?TODAY:a})();
   const days=rangeDays(lo,draft.qTo);
-  const ok=days.filter(d=>dayCheck(draft,d).ok);
+  const ok=days.filter(d=>applyCheck(draft,d).ok);
   const lead=dayOf(days[0])?.dow??0;
   const best=ok.length?recTop(3).map(x=>x.d):[];
   const grid=[...Array(lead)].map(()=>`<div class="dcell blank"></div>`).concat(
     days.map(d=>{
-      const c=dayCheck(draft,d);
+      const c=applyCheck(draft,d);
       const on=draft.date===d;
       /* 칸마다 잔여를 적는다 — 추천 3개 말고는 여유를 알 수 없어 비교가 안 됐다 (0802 UT).
          그 날 하루의 잔여다. 캘린더 탭과 같은 값이어야 한다.
@@ -2407,12 +2428,23 @@ function cardApply(){
     <div class="dgrid">${WD.map((w,i)=>`<div class="dh${i===0?' sun':''}">${w}</div>`).join('')}${grid}</div>
     ${ok.length?'':`<div class="empty">이 기간에는 시작할 수 있는 날이 없습니다.<br>조회 기간을 넓히거나 타겟수·일수를 줄여 보세요.</div>`}
     ${found?cardRec():''}
-    ${draft.date?(dayCheck(draft,draft.date).ok?secFinal():blockedBody(dayCheck(draft,draft.date),draft.date,len)):''}
+    ${draft.date?(applyCheck(draft,draft.date).ok?secFinal():blockedBody(applyCheck(draft,draft.date),draft.date,len)):''}
   </div>`;
 }
 
 /* 고른 날이 캐파로 막혔을 때 — 사유를 보이고 조정 요청으로 잇는다 */
 function blockedBody(chk,pick,len){
+  /* 캐파가 막은 게 아니라 당일이라 막힌 것은 조정 요청으로 잇지 않는다.
+     담당자가 캐파를 조율해도 오늘은 여전히 오늘이라, 요청을 받아도 답이 없다.
+     사유만 보이고 다른 날을 고르게 한다 (2026-08-07) */
+  if(chk.sameDay) return `<div class="drill final warn">
+    <div class="drill-hd"><b>신청할 수 없는 날</b></div>
+    <div class="periodline warn"><b>${fmtD(pick)} ~ ${fmtD(addDays(pick,len-1))}</b>
+      <span>${draft.cycle==='주기성'?`${len}일간 매일 발송`:`시작일 1회 발송 · ${len}일 노출`}</span>
+      ${srcPeriod()}</div>
+    <div class="blockbox"><b>${chk.why}</b>
+      <div class="bm">내일 이후의 날짜를 선택해 주세요.</div></div>
+  </div>`;
   return `<div class="drill final warn">
     <div class="drill-hd"><b>조정 요청</b></div>
     <div class="periodline warn"><b>${fmtD(pick)} ~ ${fmtD(addDays(pick,len-1))}</b>
@@ -2597,7 +2629,7 @@ function roomOn(c,d){
 /* c 와 범위를 받는다 — 마케터는 자기 조회 기간, 담당자는 신청일 앞뒤 3일.
    점수·가중치·정규화는 동일하다. 같은 규칙을 두 사람이 쓴다 (2026-08-04) */
 function recTop(n,c=draft,from=draft.qFrom,to=draft.qTo){
-  const days=rangeDays(from,to).filter(d=>dayCheck(c,d).ok);
+  const days=rangeDays(from,to).filter(d=>applyCheck(c,d).ok);
   if(!days.length) return [];
   const D=days.map(d=>denseOn(c,d)), R=days.map(d=>roomOn(c,d));
   const dLo=Math.min(...D), dHi=Math.max(...D), rLo=Math.min(...R), rHi=Math.max(...R);
@@ -2820,7 +2852,7 @@ const cfRow=(k,v)=>`<div class="cfg"><span>${k}</span><b>${v}</b></div>`;
 function confirmModal(ask){
   const rep0=draft.cycle==='주기성';
   const from0=draft.date;
-  const why=ask?dayCheck(draft,from0).why:'';
+  const why=ask?applyCheck(draft,from0).why:'';
   $('modalSlot').innerHTML=`<div class="modal"><div class="box">
     <h3>${ask?'이 날짜로 조정 요청할까요?'
         :draft.editNo!=null?'수정 내용을 확인해 주세요':'신청 내용을 확인해 주세요'}</h3>
