@@ -1025,8 +1025,17 @@ let seq=0; const ME={team:'A팀',mk:'철수'};
 const mkReq=o=>{
   /* seen — 마케터가 이 건의 '변화'를 확인했는가.
    담당자가 손대면 false 가 되고, 마케터가 해당 요약 칸을 펼치면 true 로 돌아온다.
-   시드는 전부 true — 지금까지의 것은 이미 본 것으로 본다 (2026-08-04) */
-  const r=Object.assign({no:++seq,gnb:'홈',cycle:'일회성',memo:'',status:'확정',adjBy:null,seen:true},o);
+   시드는 전부 true — 지금까지의 것은 이미 본 것으로 본다 (2026-08-04)
+
+   admSeen — 그 반대 방향. 담당자가 이 건을 확인했는가.
+   마케터가 신청하거나 고치면 false 가 되고, 담당자가 '확정 대기' 칸을 펼치면
+   true 로 돌아온다. 두 사람이 서로의 손댐을 놓치지 않게 하는 같은 장치를
+   방향만 바꿔 둔 것이다. 시드는 전부 true (2026-08-07)
+
+   둘 다 화면용이라 서버에 싣지 않는다 — toRec 이 읽지 않으므로 새로고침하면
+   초기화된다. seen 이 원래 그랬고 admSeen 도 같게 둔다. */
+  const r=Object.assign({no:++seq,gnb:'홈',cycle:'일회성',memo:'',status:'확정',
+    adjBy:null,seen:true,admSeen:true},o);
   /* 확정 전에는 시간대가 없다 — 담당자가 확정하며 배정한다 (0731 피드백) */
   if(['신청','조정 필요'].includes(r.status)) r.hour=null;
   if(!r.reqAt||r.reqAt.slice(0,10)>TODAY){
@@ -2912,6 +2921,9 @@ function confirmModal(ask){
       cycle:draft.cycle,offer:draft.offer,qty:draft.qty,team:ME.team,mk:ME.mk,
       date:from, hour:null,            /* 시간대는 담당자가 확정하며 배정한다 */
       status:ask?'조정 필요':'신청', adjBy:ask?'mkt':null,
+      /* 마케터가 손댔으니 담당자는 다시 봐야 한다 — 신청이든 수정이든 같다.
+         담당자가 손댔을 때 seen 을 내리는 것과 같은 장치다 (2026-08-07) */
+      admSeen:false,
       reason:ask?why:'', note:ask?draft.note.trim():'', admNote:'',
       reqAt:`${TODAY} ${(()=>{const t=new Date();
         return `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`})()}`};
@@ -3386,9 +3398,20 @@ function renderManage(){
   /* 내일 나가는데 아직 확정 안 된 건 — 오늘 손대지 않으면 놓친다 (DECISIONS D-07).
      제약이 아니라 알림으로 푼다는 원칙을 요약 칸에서 지킨다 */
   const waitD1=wait.filter(r=>r.from===addDays(TODAY,1)).length;
+  /* 담당자가 아직 안 본 것 — 마케터 쪽 unseen 과 같은 장치를 방향만 바꾼 것이다.
+     마케터가 그냥 신청하면 '확정 대기'로, 조정을 요청하면 '조정 필요'로 들어오므로
+     칸이 저절로 갈린다. 한 칸에 몰아 두면 무엇이 왔는지 열어 봐야 안다. */
+  const admUnseen=k=>requests.filter(r=>ADM_PANELS[k].st.includes(r.status)
+    &&ofMonth(r)&&r.admSeen===false).length;
+  const newWait=admUnseen('wait'), newAdj=admUnseen('adj');
+  /* 점은 하나지만 이유는 여럿일 수 있다 — 무엇 때문에 켜졌는지는 툴팁이 말한다 */
+  const tip=(...xs)=>xs.filter(Boolean).join(' · ');
+  const waitTip=tip(newWait&&`새 신청 ${newWait}건`,
+                    waitD1&&`내일 발송 · 미확정 ${waitD1}건`);
+  const adjTip =tip(newAdj&&`새 조정 요청 ${newAdj}건`);
   const box=(k,v,hero,key,dot)=>`<div class="kpi${key?' clickable':''}${dot?' unseen':''}${
       key&&openPanel===key?' open':''}" ${key?`data-panel="${key}"`:''}>
-    <div class="k">${k}${dot?`<i class="ndot" title="내일 발송 · 미확정 ${dot}건"></i>`:''}</div>
+    <div class="k">${k}${dot?`<i class="ndot" title="${esc(dot)}"></i>`:''}</div>
     <div class="v num">${v||'—'}</div></div>`;
   return `<div class="wrap wide">
     <div class="kpihd">
@@ -3402,9 +3425,9 @@ function renderManage(){
       ${/* 순서는 마케터 화면과 같게 — 같은 것을 다르게 배열하면 안 된다.
             진행 흐름(대기 → 확정)을 따른다 (0802 UT) */''}
       ${/* 네 칸은 같은 무게다. 손이 필요한 것은 알림의 빨간 점과 숫자가 말한다 */''}
-      ${box('확정 대기',wait.length,false,'wait',waitD1)}
+      ${box('확정 대기',wait.length,false,'wait',waitTip)}
       ${box('확정',conf.length,false,'conf')}
-      ${box('조정 필요',adj.length,false,'adj')}
+      ${box('조정 필요',adj.length,false,'adj',adjTip)}
       ${box('취소',canc.length,false,'canc')}
     </div>
     ${openPanel?admStatePanel(openPanel):''}
@@ -3921,7 +3944,13 @@ function bindManage(){
     if(x.dataset.km){kpiMonth=x.dataset.km; render()}});
   document.querySelectorAll('[data-am]').forEach(x=>x.onclick=()=>admModal(+x.dataset.am));
   document.querySelectorAll('[data-panel]').forEach(x=>x.onclick=()=>{
-    openPanel=openPanel===x.dataset.panel?null:x.dataset.panel; render()});
+    openPanel=openPanel===x.dataset.panel?null:x.dataset.panel;
+    /* 펼쳐서 봤으면 '새로 들어온 것' 표시를 끈다 — 마케터 쪽과 같다.
+       흐려지는 게 아니라 없어져야 '봤다'로 읽힌다 */
+    const p=ADM_PANELS[openPanel];
+    if(p) requests.filter(r=>p.st.includes(r.status)&&r.from.slice(0,7)===kpiMonth)
+      .forEach(r=>r.admSeen=true);
+    render()});
 
   /* ── 드래그로 날짜 옮기기 ──
      클릭 경로는 그대로 둔다. 드래그는 그 위에 얹는 것이라 키보드로도 쓸 수 있다.
