@@ -3395,20 +3395,18 @@ function renderManage(){
   /* 지난달에 시작하는데 아직 확정 못 한 건 — 월을 넘겨 놓치지 않도록 알린다 */
   const carry=requests.filter(r=>['신청','조정 필요'].includes(r.status)&&r.from.slice(0,7)<kpiMonth);
   const mi=MONTHS.indexOf(kpiMonth);
-  /* 내일 나가는데 아직 확정 안 된 건 — 오늘 손대지 않으면 놓친다 (DECISIONS D-07).
-     제약이 아니라 알림으로 푼다는 원칙을 요약 칸에서 지킨다 */
-  const waitD1=wait.filter(r=>r.from===addDays(TODAY,1)).length;
-  /* 담당자가 아직 안 본 것 — 마케터 쪽 unseen 과 같은 장치를 방향만 바꾼 것이다.
-     마케터가 그냥 신청하면 '확정 대기'로, 조정을 요청하면 '조정 필요'로 들어오므로
-     칸이 저절로 갈린다. 한 칸에 몰아 두면 무엇이 왔는지 열어 봐야 안다. */
+  /* 점은 '새로 들어왔는데 아직 안 봤다' 하나만 뜻한다 — 마케터 쪽 seen 을
+     방향만 바꾼 것이다. 마케터가 그냥 신청하면 '확정 대기'로, 조정을 요청하면
+     '조정 필요'로 들어오므로 칸이 저절로 갈린다.
+
+     '내일 발송인데 미확정'(D-07)도 여기 얹어 봤다가 뺐다 — 점 하나가 두 가지를
+     뜻하면 눌러 보기 전에는 무엇 때문인지 모르고, 다 보고 나서도 안 꺼져
+     '봤다'가 통하지 않는다. 알림은 읽으면 꺼지는 것이어야 한다 (2026-08-07) */
   const admUnseen=k=>requests.filter(r=>ADM_PANELS[k].st.includes(r.status)
     &&ofMonth(r)&&r.admSeen===false).length;
   const newWait=admUnseen('wait'), newAdj=admUnseen('adj');
-  /* 점은 하나지만 이유는 여럿일 수 있다 — 무엇 때문에 켜졌는지는 툴팁이 말한다 */
-  const tip=(...xs)=>xs.filter(Boolean).join(' · ');
-  const waitTip=tip(newWait&&`새 신청 ${newWait}건`,
-                    waitD1&&`내일 발송 · 미확정 ${waitD1}건`);
-  const adjTip =tip(newAdj&&`새 조정 요청 ${newAdj}건`);
+  const waitTip=newWait?`새 신청 ${newWait}건`:'';
+  const adjTip =newAdj?`새 조정 요청 ${newAdj}건`:'';
   const box=(k,v,hero,key,dot)=>`<div class="kpi${key?' clickable':''}${dot?' unseen':''}${
       key&&openPanel===key?' open':''}" ${key?`data-panel="${key}"`:''}>
     <div class="k">${k}${dot?`<i class="ndot" title="${esc(dot)}"></i>`:''}</div>
