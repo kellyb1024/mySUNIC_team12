@@ -167,19 +167,21 @@ input,select,textarea{font-family:inherit;font-size:13px}
 /* 여유가 없는 날 — 고를 수는 있다. 고르면 조정 요청으로 이어지므로 커서를 막지 않는다 */
 /* 캐파로 막힌 날은 '안 되는 날'이 아니라 '담당자와 협의하면 되는 날'이다.
    회색 면으로 칠했더니 당일(아예 길이 없는 날)과 같은 말을 했다.
-   면을 칠하는 대신 지면은 가능한 날과 같이 희게 두고, 점선을 굵혀 티나게
-   하고 글씨만 연하게 뺀다 — '자리는 있는데 지금은 비어 있지 않다'는 뜻이다.
-   당일은 사선으로 면 자체를 그어 두었으니 둘이 섞이지 않는다 (2026-08-07) */
-.dcell.no{background:var(--surface);border-style:dashed;border-width:2px;padding:7px 5px;
-  border-color:var(--text-muted)}
+   면을 칠하는 대신 지면은 가능한 날과 같이 희게 두고, 점선과 연한 글씨로
+   말한다 — '자리는 있는데 지금은 비어 있지 않다'는 뜻이다.
+   당일은 사선으로 면 자체를 그어 두었으니 둘이 섞이지 않는다.
+
+   획은 1px — 이 화면의 모든 달력이 1px 이고, 2px 는 캘린더 탭의 '오늘'
+   강조에만 쓴다. 굵기로 눈에 띄게 하려다 달력마다 획이 달라지면 같은 격자로
+   안 보인다. 티는 굵기 말고 색으로 낸다 (2026-08-07) */
+.dcell.no{background:var(--surface);border-style:dashed;border-color:var(--text-muted)}
 .dcell.no .dd{color:var(--text-muted);font-weight:400} .dcell.no .dm{color:var(--text-muted)}
 .dcell.no:hover{transform:translateY(-1px);border-color:var(--text)}
 /* 막힌 날을 골랐을 때 — 색이 뜻을 뒤집으면 안 된다.
    이 화면에서 주황은 줄곧 '가능·선택됨'이었는데 차단일에만 주황이 되니,
    막힌 날이 옆의 막힌 날보다 오히려 고를 수 있어 보였다.
    차단 회색은 그대로 두고 테두리만 굵혀 '이 칸을 골랐다'만 말한다 (2026-08-07) */
-.dcell.no.on{border-color:var(--text-strong);border-width:2px;padding:7px 5px;
-  background:var(--surface)}
+.dcell.no.on{border-color:var(--text-strong);padding:7px 5px;background:var(--surface)}
 .dcell.no.on .dd{color:var(--text);font-weight:500}
 /* 당일 — 캐파로 막힌 날과 같은 회색이면 안 된다. 캐파는 담당자에게 조정을
    요청할 길이라도 있지만 당일은 아무 길이 없다. 같은 색으로 두면 눌러 보고서야
