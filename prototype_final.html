@@ -3812,7 +3812,7 @@ function admModal(no,st){
     ${/* 초과 사유는 '캐파' 라벨 바로 아래에 붙인다 — 무엇에 대한 이야기인지가
           라벨로 이미 정해져 있어 따로 블록을 세울 필요가 없다.
           라벨이 '캐파'라 사유에서 그 단어를 다시 적지 않는다 (2026-08-04) */''}
-    <div class="fixrow"><span>${capLabel(r)}${overCap?shortOf(r,span).map(g=>
+    <div class="fixrow" style="margin-top:24px"><span>${capLabel(r)}${overCap?shortOf(r,span).map(g=>
       `<em class="capnote">${g.ch} ${man(g.amt)}만 초과${
         span.length>1?`<br>${fmtD(g.d)}`:''}</em>`).join(''):''}</span>${
       gaugeRow(span[0],r,r.qty,'신청건')}</div>
