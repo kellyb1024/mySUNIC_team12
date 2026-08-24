@@ -930,6 +930,10 @@ table.list.adm th:last-child,table.list.adm td.act{width:1%}
 .fdates .tl{font-size:11.5px;color:var(--text-muted)}
 .fdates .tl b{font-weight:500;color:var(--sk-orange-text)}
 .fdates .tl.moved{flex-basis:100%;color:var(--sk-orange-text)}
+/* 동시 신청 팝업 — 조율 색(주황). 금지·에러(빨강)가 아니라 '다시 고르면 되는' 상태다 */
+.box.race h3{color:var(--sk-orange-text);display:flex;align-items:center}
+.box.race .rwarn{width:20px;height:20px;margin-right:8px;flex:0 0 auto}
+.box.race .m-sub b{color:var(--text-strong);font-weight:600}
 .daychips{display:flex;gap:6px;flex-wrap:wrap}
 .hgrid.adm{grid-template-columns:repeat(11,minmax(0,1fr));flex:1}
 
@@ -1728,10 +1732,22 @@ const DB=(()=>{
 
   /* 서버 쓰기는 화면을 막지 않는다 — 먼저 로컬에 반영하고 뒤에서 보낸다.
      실패하면 서버 상태를 다시 받아 되돌린다. 조용히 어긋나는 것이 제일 나쁘다. */
-  const push=async(fn,what)=>{
+  /* 서버가 캐파 재검증에서 되돌린 경우 — 통신 실패가 아니라 동시 신청이다.
+     supabase/03_capa_guard.sql 의 저장 직전 트리거가 SQLSTATE 'CAPA1' 로 올린다.
+     "서버에 반영하지 못했습니다"(다시 눌러 보라)와 "이미 선점됐습니다"(다시 골라야 한다)는
+     사용자가 할 일이 다르므로 여기서 갈래를 나눈다. */
+  const isCapaReject=e=>{
+    const c=(e&&(e.code||e.sqlstate))||'', m=String((e&&(e.message||e.details))||'');
+    return c==='CAPA1' || /CAPA1/.test(m);
+  };
+  const push=async(fn,what,onCapa)=>{
     if(!USE_REMOTE||!sb) return;
     try{const {error}=await fn(); if(error) throw error}
-    catch(e){console.error('[DB]',what,e);
+    catch(e){
+      /* 서버 상태를 먼저 되받아 낙관적으로 넣어 둔 행을 걷어낸 뒤 팝업을 띄운다 —
+         팝업 뒤로 보이는 화면이 이미 최신이어야 '누가 가져갔는지'가 납득된다 */
+      if(onCapa&&isCapaReject(e)){ await DB.reload(); onCapa(e); return }
+      console.error('[DB]',what,e);
       toast(`서버에 반영하지 못했습니다 — ${what}`,true); await DB.reload()}
   };
 
@@ -1741,12 +1757,13 @@ const DB=(()=>{
     isRemote:()=>USE_REMOTE,
     isReady:()=>ready,
 
-    add(body){
+    /* onCapa — 서버가 캐파 초과로 거절했을 때 부를 것. 넘기지 않으면 일반 실패로 다룬다 */
+    add(body,onCapa){
       const r=mkReq(body);
       /* 서버에서도 같은 번호를 쓰도록 로컬 최대값 다음을 직접 정한다 */
       if(USE_REMOTE) r.no=Math.max(0,...requests.map(x=>x.no))+1;
       requests.push(r); fire();
-      push(()=>sb.from('campaigns').insert(toRow(r)),`${r.camp} 신청`);
+      push(()=>sb.from('campaigns').insert(toRow(r)),`${r.camp} 신청`,onCapa);
       return r;
     },
     set(t,patch){
@@ -2928,6 +2945,15 @@ function confirmModal(ask){
   $('mNo').onclick=()=>$('modalSlot').innerHTML='';
   bindOverlay(()=>$('modalSlot').innerHTML='');
   $('mYes').onclick=()=>{
+    /* ── 동시 신청 관문 (서버 도착 순 선착) ──
+       조회와 신청 사이에 남이 같은 날·같은 채널의 자리를 가져갔을 수 있다.
+       화면은 조회 시점에 멈춰 있으므로(stale) 누른 이 순간의 데이터로 한 번 더 본다 —
+       수강신청에서 '신청하기'를 누른 순간 서버가 최종 판정하는 것과 같다.
+       '조정 요청'(ask)은 초과를 이미 알고 담당자에게 넘기는 길이라 이 관문을 지난다. */
+    if(!ask){
+      const v=dayCheck(draft,draft.date);
+      if(!v.ok){ raceModal(v.why); return }
+    }
     /* 일회성은 시작일에 1회 발송한다 — 선택한 날이 곧 캠페인 시작일이다.
        노출 기간의 길이는 마케터가 입력한 그대로 유지하고, 기간을 통째로 옮긴다. */
     const from=draft.date, to=addDays(from,(draft.days||1)-1);
@@ -2944,7 +2970,14 @@ function confirmModal(ask){
       reqAt:`${TODAY} ${(()=>{const t=new Date();
         return `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`})()}`};
     const ex=draft.editNo!=null?DB.find(draft.editNo):null;
-    if(ex) DB.set(ex,body); else DB.add(body);
+    /* 로컬 관문을 지나도 최종 판정은 서버다. 서버가 CAPA1 로 되돌리면 같은 팝업으로 간다.
+       그때는 이미 화면을 접은 뒤라, 신청 직전 상태를 되돌려 놓아야 [일정 수정]이 갈 곳이 있다. */
+    const draft0={...draft,ch:[...draft.ch]}, form0={...form,ch:[...form.ch]};
+    const onCapa=ask?null:()=>{
+      draft=draft0; form=form0; found=true;
+      raceModal(dayCheck(draft,draft.date).why||`${fmtD(draft.date)} 캐파 초과`);
+    };
+    if(ex) DB.set(ex,body); else DB.add(body,onCapa);
     $('modalSlot').innerHTML='';
     toast(ex ? `수정되었습니다 — ${body.camp}`
              : ask ? `조정 요청되었습니다 — ${fmtD(from)}`
@@ -2953,6 +2986,67 @@ function confirmModal(ask){
     draft=EMPTY_DRAFT(); form=EMPTY_FORM(); found=false; calPick=null;
     scope='mine'; render();
   };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   동시 신청 — 같은 날·같은 채널의 마지막 자리를 둘이 동시에 집었을 때
+
+   규칙 : 서버 도착 순 선착. 먼저 도착 = 접수(캐파 차지), 늦게 도착 = 이 팝업.
+   모델 : 수강신청. 조회 화면은 조회한 시점에 멈춰 있어(stale) 그 사이 남이 가져갈 수 있다.
+          그래서 최종 판정은 '신청하기'를 누른 순간 서버가 한다.
+   결과 : 진 쪽을 조정 필요로 자동 편입하지 않는다. [일정 수정]으로 조회 화면에 돌려보내면
+          ① 다른 날짜로 정상 신청  ② 이 날 그대로 원하면 사유를 적어 조정 요청 —
+          둘 다 원래 있던 길이다. 동시 신청 때문에 늘어난 화면은 이 팝업 하나뿐이다.
+
+   ── 실서버에 붙일 때 (이 파일만 받아 구현한다면 여기까지가 계약이다) ──
+   1) 쓰기 직렬화 : 같은 날짜의 신청을 한 줄로 세운다.
+        SELECT pg_advisory_xact_lock(20260804, hashtext(send_date::text));
+      재검증만으로는 READ COMMITTED 에서 두 트랜잭션이 서로를 못 봐 둘 다 통과한다.
+   2) 저장 직전 재검증 : used + NEW.qty > limit 이면 거절한다.
+        RAISE EXCEPTION '% 배너 캐파 %만 초과 — 그 사이 다른 신청이 자리를 차지했습니다',
+              to_char(NEW.send_date,'MM/DD'), (used + NEW.qty - lim)
+          USING ERRCODE = 'CAPA1';
+      클라이언트는 SQLSTATE 'CAPA1' 만 보고 이 팝업으로 보낸다 (DB 계층의 isCapaReject).
+   3) 정각 동시 도착 : 승자는 권고잠금이 정한다(사실상 도착 순). 랜덤이 아니다.
+      초 단위까지 같아 순서를 남겨야 하면 req_at 을 timestamptz(6) 로 두고 tiebreak 한다.
+   4) 낙관적 쓰기 주의 : 지금은 로컬에 먼저 넣고 뒤에서 보낸다(DB 계층의 push).
+      실서버에서는 성공 토스트를 서버 응답 뒤로 미뤄야
+      '신청되었습니다' 가 뜬 다음 이 팝업이 뜨는 순간이 생기지 않는다.
+   ══════════════════════════════════════════════════════════════════════ */
+/* 시연에서 경쟁이 일어나는 날. 판정 로직은 이 값을 쓰지 않는다 — raceDemo 전용이다 */
+const RACE={date:'2026-08-30'};
+/* why — 얼마나 모자란지. 캐파 초과 사유와 같은 형식을 쓴다 ('8/30(일) 배너 캐파 3만 초과').
+   숫자는 담당자 화면·캘린더가 쓰는 그 계산값이라 화면끼리 어긋나지 않는다. */
+function raceModal(why){
+  $('modalSlot').innerHTML=`<div class="modal"><div class="box race">
+    <h3><svg class="rwarn" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="#FF7A00"/><rect x="8.85" y="4.4" width="2.3" height="7" rx="1.15" fill="#fff"/><circle cx="10" cy="14.3" r="1.35" fill="#fff"/></svg>이미 선점된 일정입니다</h3>
+    <div class="m-sub"><b>${esc(why||'')}</b><br>
+      다른 날짜를 선택하거나, 현재 날짜를 유지하려면 사유를 입력해 조정을 요청해 주세요.</div>
+    <div class="m-act">
+      <button class="pill primary" id="rEdit">일정 수정</button>
+    </div></div></div>`;
+  /* [일정 수정] — 입력값은 그대로 두고 조회 결과만 최신 기준으로 다시 그린다.
+     수강신청에서 새로고침하면 마감된 강좌가 회색으로 바뀌는 것과 같다.
+     그 날이 '찼음'으로 바뀌므로, 그대로 원하면 조정 요청 · 다른 날이면 정상 신청으로 흐른다. */
+  $('rEdit').onclick=()=>{$('modalSlot').innerHTML=''; found=true; render()};
+  bindOverlay(()=>$('modalSlot').innerHTML='');
+}
+
+/* 시연용 — #race 또는 ?race=1 로 열면 팝업까지 한 번에 간다 (발표·확인).
+   기본 데이터는 건드리지 않는다. 그 날 실제 잔여를 읽어, 딱 그만큼을 남이 먼저
+   가져간 상황만 만든다. 데이터가 바뀌어도 숫자가 저절로 맞는다. */
+function raceDemo(){
+  const d=RACE.date, rem=Math.max(1,bannerRem(d));  /* 조회 시점 잔여 — 이만큼은 신청할 수 있었다 */
+  Object.assign(form,{qFrom:'2026-08-26',qTo:'2026-09-01',days:1,ch:['배너'],
+    gnb:'홈',cycle:'일회성',offer:'없음',qty:rem});
+  Object.assign(draft,form,{ch:['배너'],camp:'주말 프라임 배너 프로모션',date:d,hour:null,
+    dept:ME.team,mk:ME.mk,note:'',editNo:null});
+  /* 남이 먼저 도착해 남은 자리를 가져간다 — 이 주입은 시연 진입에서만 일어난다 */
+  DB.add({camp:'추석 프리뷰 배너',from:d,to:d,date:d,ch:['배너'],gnb:'홈',
+    cycle:'일회성',offer:'없음',qty:rem,team:'C팀',mk:'유리',hour:null,
+    status:'신청',reqAt:`${TODAY} 09:20`});
+  found=true;
+  raceModal(dayCheck(draft,d).why);
 }
 
 /* 팝오버 바깥 클릭 — 이름을 가진 함수라야 렌더마다 중복 등록되지 않고 떼어 낼 수 있다 */
@@ -4065,6 +4159,9 @@ $('roleAdm').onclick=()=>{role='adm';openPanel=null;$('roleAdm').classList.add('
    실시간 변경도 같은 자리로 들어온다 (DB.onChange → render). */
 DB.onChange(()=>{if(DB.isRemote()&&DB.isReady()) render()});
 render();
+/* 동시 신청 시연 진입 — 주소에 #race 또는 ?race=1 이 있을 때만 동작한다.
+   평소에 이 파일을 열면 아무 일도 일어나지 않고 데이터도 그대로다. */
+if(location.hash==='#race' || /[?&]race=1\b/.test(location.search)) raceDemo();
 if(DB.isRemote()) DB.connect().then(ok=>{
   if(ok) console.log('[DB] 서버 연결 · 실시간 구독 시작');
 }).catch(e=>{console.error('[DB] 연결 실패',e);
