@@ -1,0 +1,20 @@
+# index.html 은 공개본 진입점(prototype_final.html 로 보내는 리다이렉트)이라 추적한다.
+# 이전의 로컬 미리보기용 사본은 prototype0728_code.html 로 그대로 남아 있다.
+
+# 이전 버전 백업
+*.bak.html
+
+# 도구 / OS 생성 파일
+.omc/
+.DS_Store
+
+# 웹앱 빌드 산출물
+webapp/node_modules/
+webapp/.next/
+webapp/out/
+webapp/.env*.local
+
+# 날짜별 로컬 스냅샷·백업 (로컬 전용)
+prototype0*_code.html
+*.bak_*
+*.tsbuildinfo
